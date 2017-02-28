@@ -1,9 +1,9 @@
 module Main where
 
-import Lib
+import Lib (run)
 
 main :: IO ()
-main = someFunc
+main = run
   -- 1. read config
   -- 2. find dependencies of entry points (magic requires (.sass/.elm)?) (how many levels? we should probably find elm deps as wel)
   -- 3. create binary with tree
