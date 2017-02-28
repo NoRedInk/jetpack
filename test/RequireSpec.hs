@@ -7,6 +7,8 @@ import qualified Require
 import Control.Monad.Trans.Either (runEitherT)
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.SmallCheck
+import qualified Test.SmallCheck.Series.Text as T.Series
 
 
 assertRequire :: T.Text -> Require.Require -> Assertion
@@ -14,6 +16,7 @@ assertRequire content require =
   case Require.require content of
     Right c -> c @?= require
     Left msg -> assertFailure $ "failed: " ++ T.unpack msg
+
 
 suite :: TestTree
 suite = testGroup "Require"
@@ -45,3 +48,12 @@ suite = testGroup "Require"
         assertRequire "require 'foo.bar.js' "
           $ Require.Require "foo.bar" Require.Js
     ]
+
+properties :: TestTree
+properties = testGroup "Require Properties"
+  [ testProperty "#require" $
+      \name ->
+        case Require.require (T.concat ["require '", T.pack name, ".js' "]) of
+          Right c -> c == Require.Require (T.pack name) Require.Js
+          Left msg -> False
+  ]

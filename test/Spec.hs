@@ -7,6 +7,11 @@ import Test.Tasty.HUnit
 main :: IO ()
 main = defaultMain $
   testGroup "jetpack"
-    [ ConfigSpec.suite
-    , RequireSpec.suite
+    [ testGroup "suites"
+      [ ConfigSpec.suite
+      , RequireSpec.suite
+      ]
+    , testGroup "properties"
+      [ RequireSpec.properties
+      ]
     ]
