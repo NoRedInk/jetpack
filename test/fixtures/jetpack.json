@@ -1,0 +1,7 @@
+{
+  "module_directory" : "app/modules",
+  "source_directory" : "app/sources",
+  "temp_directory" : "app/tmp",
+  "output_js_directory" : "app/js",
+  "output_css_directory" : "app/css"
+}

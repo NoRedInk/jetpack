@@ -21,7 +21,7 @@ data Config = Config
   , temp_directory :: FilePath
   , output_js_directory :: FilePath
   , output_css_directory :: FilePath
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 
 instance ToJSON Config
