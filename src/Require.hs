@@ -49,15 +49,17 @@ extractRequire str = P.parse requireParser "Error" str
 
 requireParser :: P.Parsec T.Text u0 (FilePath, String)
 requireParser = do
-  _ <- P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
+  _ <- ignoreTillRequire
   _ <- requireKeyword
-  _ <- P.oneOf " ("
-  _ <- P.oneOf "'\""
-  content <- P.manyTill P.anyChar (P.oneOf "'\"")
-  _ <- P.oneOf " )\n"
+  _ <- P.spaces
+  _ <- P.optional $ P.char '('
+  content <- P.choice [UP.quotes manyChars, UP.doubleQuotes manyChars]
   return $ splitExtension content
   where
     requireKeyword = P.string "require"
+    ignoreTillRequire =
+      P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
+    manyChars = P.many1 $ P.noneOf "'\""
 
 getFileType :: String -> SourceType
 getFileType ".coffee" = Coffee
