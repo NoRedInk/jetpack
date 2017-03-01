@@ -4,6 +4,7 @@
 
 module Require
   ( require
+  , fromPathAndExt
   , Require(..)
   , SourceType(..)
   ) where
@@ -32,11 +33,14 @@ data SourceType
 require :: T.Text -> Either T.Text Require
 require content =
   case extractRequire content of
-    Right (name, ext) ->
-      case getFileType ext of
-        Unsupported -> Right $ Require Js $ name <.> ext
-        _ -> Right $ Require (getFileType ext) name
+    Right (path, ext) -> Right $ fromPathAndExt path ext
     Left msg -> Left $ T.pack $ show msg
+
+fromPathAndExt :: FilePath -> String -> Require
+fromPathAndExt path ext =
+  case getFileType ext of
+    Unsupported -> Require Js $ path <.> ext
+    _ -> Require (getFileType ext) path
 
 {-| running the parser
 -}
