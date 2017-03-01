@@ -1,19 +1,21 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Config (Config(..), load) where
+
+module Config
+  ( Config(..)
+  , load
+  ) where
 
 {-| Configuration of jetpack.
 -}
-
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (EitherT, left)
 import Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
 import Errors (Error(..))
 import FileUtils (fileExists)
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
-import qualified Data.ByteString.Lazy as BL
-
 
 data Config = Config
   { module_directory :: FilePath
@@ -23,10 +25,9 @@ data Config = Config
   , output_css_directory :: FilePath
   } deriving (Show, Eq, Generic)
 
-
 instance ToJSON Config
-instance FromJSON Config
 
+instance FromJSON Config
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
@@ -38,4 +39,3 @@ load root = do
   case Aeson.decode content of
     Just config -> lift $ return config
     Nothing -> left $ JsonInvalid path
-

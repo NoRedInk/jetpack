@@ -1,13 +1,14 @@
 {-# OPTIONS_GHC -Wall #-}
-module FileUtils (fileExists) where
 
+module FileUtils
+  ( fileExists
+  ) where
 
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (EitherT, left)
 import Errors (Error(..))
 import System.Directory (doesFileExist)
-import System.FilePath()
-
+import System.FilePath ()
 
 {-| Checks if file exists.
 -}
