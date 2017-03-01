@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module FileUtils
+module Utils.Files
   ( fileExists
   ) where
 

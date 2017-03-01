@@ -17,7 +17,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib,
                        Config,
-                       FileUtils,
+                       Utils.Files,
+                       Utils.Parser,
                        Errors,
                        Require
   build-depends:       base >= 4.7 && < 5,

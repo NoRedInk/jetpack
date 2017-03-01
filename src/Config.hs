@@ -13,7 +13,7 @@ import Control.Monad.Trans.Either (EitherT, left)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Errors (Error(..))
-import FileUtils (fileExists)
+import Utils.Files (fileExists)
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
 

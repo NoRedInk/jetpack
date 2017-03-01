@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Errors (Error(..))
 import System.FilePath ((<.>), splitExtension)
 import qualified Text.Parsec as P
+import qualified Utils.Parser as UP
 
 data Require = Require
   { fileType :: SourceType
