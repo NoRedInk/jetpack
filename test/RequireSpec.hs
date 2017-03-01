@@ -21,10 +21,10 @@ assertRequire content require =
 suite :: TestTree
 suite = testGroup "Require"
     [ testCase "#require" $
-        assertRequire "require(\"x.elm\")"
+        assertRequire "var x = require(\"x.elm\")"
           $ Require.Require "x" Require.Elm
     , testCase "#require" $
-        assertRequire "require(\"foo.elm\")"
+        assertRequire "let foo = require(\"foo.elm\")"
           $ Require.Require "foo" Require.Elm
     , testCase "#require" $
         assertRequire "require(\"foo.bar.elm\")"
@@ -42,10 +42,28 @@ suite = testGroup "Require"
         assertRequire "require(\"foo.bar.js\")"
           $ Require.Require "foo.bar" Require.Js
     , testCase "#require" $
-        assertRequire "require \"foo.bar.js\" "
+        assertRequire "coffee = require \"foo.bar.js\" "
           $ Require.Require "foo.bar" Require.Js
     , testCase "#require" $
         assertRequire "require 'foo.bar.js' "
+          $ Require.Require "foo.bar" Require.Js
+    , testCase "#require multilines" $
+        assertRequire
+          ( T.unlines
+            [ "// test"
+            , "moo = require 'foo.bar.js'"
+            , "moo(42)"
+            ]
+          )
+          $ Require.Require "foo.bar" Require.Js
+    , testCase "#require multilines" $
+        assertRequire
+          ( T.unlines
+            [ "// test"
+            , "var moo = require('foo.bar.js');"
+            , "moo(42)"
+            ]
+          )
           $ Require.Require "foo.bar" Require.Js
     ]
 

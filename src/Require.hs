@@ -44,12 +44,14 @@ extractRequire str =
 
 requireParser :: P.Parsec T.Text u0 (T.Text, T.Text)
 requireParser = do
-  _ <- P.string "require"
+  _ <- P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
+  _ <- requireKeyword
   _ <- P.oneOf " ("
   _ <- P.oneOf "'\""
   content <- P.manyTill P.anyChar (P.oneOf "'\"")
-  _ <- P.oneOf " )"
+  _ <- P.oneOf " )\n"
   return $ T.breakOnEnd "." $ T.pack content
+    where requireKeyword = P.string "require"
 
 
 getFileType :: T.Text -> SourceType
