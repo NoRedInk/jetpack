@@ -6,16 +6,14 @@ module Config
   , load
   ) where
 
-{-| Configuration of jetpack.
--}
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (EitherT, left)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Errors (Error(..))
-import Utils.Files (fileExists)
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
+import Utils.Files (fileExists)
 
 data Config = Config
   { module_directory :: FilePath

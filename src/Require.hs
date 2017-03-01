@@ -10,7 +10,8 @@ module Require
   ) where
 
 import qualified Data.Text as T
-import Errors (Error(..))
+
+-- TODO use this import Errors (Error(..))
 import System.FilePath ((<.>), splitExtension)
 import qualified Text.Parsec as P
 import qualified Utils.Parser as UP
@@ -18,7 +19,10 @@ import qualified Utils.Parser as UP
 data Require = Require
   { fileType :: SourceType
   , fileName :: FilePath
-  } deriving (Show, Eq)
+  } deriving (Eq)
+
+instance Show Require where
+  show (Require t n) = "(Require " ++ show n ++ " " ++ show t ++ ")"
 
 data SourceType
   = Coffee
@@ -28,7 +32,19 @@ data SourceType
   | Unsupported
   deriving (Show, Eq)
 
+{-| imports for doctests
+   >>> :set -XOverloadedStrings
+-}
 {-| Parses a require statement and returns the filename and the type base on the extensions.
+
+    >>> require "require('lodash')"
+    Right (Require "lodash" Js)
+
+    >>> require "require('Main.elm')"
+    Right (Require "Main" Elm)
+
+    >>> require "require('Main.elm';"
+    Left "\"Error\" (line 1, column 19):\nunexpected \";\"\nexpecting \")\""
 -}
 require :: T.Text -> Either T.Text Require
 require content =
@@ -47,19 +63,25 @@ fromPathAndExt path ext =
 extractRequire :: T.Text -> Either P.ParseError (FilePath, String)
 extractRequire str = P.parse requireParser "Error" str
 
-requireParser :: P.Parsec T.Text u0 (FilePath, String)
+requireParser :: P.Parsec T.Text u (FilePath, String)
 requireParser = do
   _ <- ignoreTillRequire
   _ <- requireKeyword
   _ <- P.spaces
-  _ <- P.optional $ P.char '('
-  content <- P.choice [UP.quotes manyChars, UP.doubleQuotes manyChars]
+  content <- P.choice [requireBetweenParens, coffeeRequire]
   return $ splitExtension content
-  where
-    requireKeyword = P.string "require"
-    ignoreTillRequire =
-      P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
-    manyChars = P.many1 $ P.noneOf "'\""
+
+requireBetweenParens :: P.Parsec T.Text u String
+requireBetweenParens = UP.betweenParens UP.stringContent
+
+coffeeRequire :: P.Parsec T.Text u String
+coffeeRequire = P.spaces *> UP.stringContent
+
+requireKeyword :: P.Parsec T.Text u String
+requireKeyword = P.string "require"
+
+ignoreTillRequire :: P.Parsec T.Text u String
+ignoreTillRequire = P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
 
 getFileType :: String -> SourceType
 getFileType ".coffee" = Coffee
