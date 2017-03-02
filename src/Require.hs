@@ -3,15 +3,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Require
-  ( require
-  , fromPathAndExt
+  ( requires
+  , require
+  , getFileType
   , Require(..)
   , SourceType(..)
   ) where
 
+import qualified Data.Maybe as M
 import qualified Data.Text as T
 
--- TODO use this import Errors (Error(..))
 import System.FilePath ((<.>), splitExtension)
 import qualified Text.Parsec as P
 import qualified Utils.Parser as UP
@@ -32,8 +33,27 @@ data SourceType
   deriving (Show, Eq)
 
 {-| imports for doctests
+   >>> import qualified Data.Text as T
    >>> :set -XOverloadedStrings
 -}
+{-| returns all requires of a file
+    >>> :{
+    requires $
+      T.unlines
+      [ "var _ = require('lodash')"
+      , "var Main = require('Foo.Bar.Main.elm')"
+      , ""
+      , "Main.embed(document.getElementById('host'), {})"
+      , "function require(foo) {"
+      , "  console.log('local require')"
+      , "}"
+      ]
+    :}
+    [(Require "lodash" Js),(Require "Foo.Bar.Main.elm" Elm)]
+-}
+requires :: T.Text -> [Require]
+requires = M.mapMaybe require . T.lines
+
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 
     >>> require "require('lodash')"
