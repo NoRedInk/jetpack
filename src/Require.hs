@@ -29,7 +29,6 @@ data SourceType
   | Js
   | Elm
   | Sass
-  | Unsupported
   deriving (Show, Eq)
 
 {-| imports for doctests
@@ -38,25 +37,19 @@ data SourceType
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 
     >>> require "require('lodash')"
-    Right (Require "lodash" Js)
+    Just (Require "lodash" Js)
 
     >>> require "require('Main.elm')"
-    Right (Require "Main" Elm)
+    Just (Require "Main.elm" Elm)
 
     >>> require "require('Main.elm';"
-    Left "\"Error\" (line 1, column 19):\nunexpected \";\"\nexpecting \")\""
+    Nothing
 -}
-require :: T.Text -> Either T.Text Require
+require :: T.Text -> Maybe Require
 require content =
   case extractRequire content of
-    Right (path, ext) -> Right $ fromPathAndExt path ext
-    Left msg -> Left $ T.pack $ show msg
-
-fromPathAndExt :: FilePath -> String -> Require
-fromPathAndExt path ext =
-  case getFileType ext of
-    Unsupported -> Require Js $ path <.> ext
-    _ -> Require (getFileType ext) path
+    Right (path, ext) -> Just $ Require (getFileType ext) $ path <.> ext
+    Left _ -> Nothing
 
 {-| running the parser
 -}
@@ -88,4 +81,4 @@ getFileType ".coffee" = Coffee
 getFileType ".elm" = Elm
 getFileType ".sass" = Sass
 getFileType ".js" = Js
-getFileType _ = Unsupported
+getFileType _ = Js
