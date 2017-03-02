@@ -48,8 +48,7 @@ test-suite jetpack-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       ConfigSpec,
-                       RequireSpec,
-                       DocTest
+                       RequireSpec
   build-depends:       base,
                        jetpack,
                        tasty == 0.11.2,
