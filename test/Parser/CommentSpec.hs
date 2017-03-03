@@ -31,10 +31,23 @@ suite =
       (Parser.Comment.eatComments $
        T.unlines ["a\n", "b // ignore", "//xxxxxx", " c\n"])
     , testCase "parse block and line comments" $
-      "a\n\nb  c\n\nb \n" @=?
+      "a\n\nb  c\n\nb \nOOOO\noooo\n\n" @=?
       (Parser.Comment.eatComments $
        T.unlines
-         ["a\n", "b // ignore", "//xxxxxx", " c\n", "b /* BLOCK", "BLOCK", "*/"])
+         [ "a\n"
+         , "b // ignore"
+         , "//xxxxxx"
+         , " c\n"
+         , "b /* BLOCK"
+         , "BLOCK"
+         , "*/"
+         , "OOOO"
+         , "// ignore"
+         , "oooo"
+         , "/* IGNORE"
+         , "IGNORE"
+         , "*/"
+         ])
     , testCase "only comments" $
       "" @=? (Parser.Comment.eatComments $ T.concat ["// foo", "/* asdf */"])
     , testCase "only comments" $
