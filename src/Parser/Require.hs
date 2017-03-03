@@ -2,19 +2,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Require
+module Parser.Require
   ( requires
   , require
   , getFileType
+  , eatComments
   , Require(..)
   , SourceType(..)
   ) where
 
+import Data.Functor (void)
+import qualified Data.List as L
 import qualified Data.Maybe as M
 import qualified Data.Text as T
-
+import Parser.Comment as Comment
 import System.FilePath ((<.>), splitExtension)
-import qualified Text.Parsec as P
+import Text.Parsec
 import qualified Utils.Parser as UP
 
 data Require = Require
@@ -43,6 +46,10 @@ data SourceType
       [ "var _ = require('lodash')"
       , "var Main = require('Foo.Bar.Main.elm')"
       , ""
+      , "// var Main = require('Foo.Bar.Main.elm')"
+      , "console.log('42'); /*"
+      , "var Main = require('Foo.Bar.Main.elm')"
+      , "*/"
       , "Main.embed(document.getElementById('host'), {})"
       , "function require(foo) {"
       , "  console.log('local require')"
@@ -52,7 +59,7 @@ data SourceType
     [(Require "lodash" Js),(Require "Foo.Bar.Main.elm" Elm)]
 -}
 requires :: T.Text -> [Require]
-requires = M.mapMaybe require . T.lines
+requires = M.mapMaybe require . T.lines . Comment.eatComments
 
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 
@@ -73,28 +80,28 @@ require content =
 
 {-| running the parser
 -}
-extractRequire :: T.Text -> Either P.ParseError (FilePath, String)
-extractRequire str = P.parse requireParser "Error" str
+extractRequire :: T.Text -> Either ParseError (FilePath, String)
+extractRequire str = parse requireParser "Error" str
 
-requireParser :: P.Parsec T.Text u (FilePath, String)
+requireParser :: Parsec T.Text u (FilePath, String)
 requireParser = do
   _ <- ignoreTillRequire
   _ <- requireKeyword
-  _ <- P.spaces
-  content <- P.choice [requireBetweenParens, coffeeRequire]
+  _ <- spaces
+  content <- choice [requireBetweenParens, coffeeRequire]
   return $ splitExtension content
 
-requireBetweenParens :: P.Parsec T.Text u String
+requireBetweenParens :: Parsec T.Text u String
 requireBetweenParens = UP.betweenParens UP.stringContent
 
-coffeeRequire :: P.Parsec T.Text u String
-coffeeRequire = P.spaces *> UP.stringContent
+coffeeRequire :: Parsec T.Text u String
+coffeeRequire = spaces *> UP.stringContent
 
-requireKeyword :: P.Parsec T.Text u String
-requireKeyword = P.string "require"
+requireKeyword :: Parsec T.Text u String
+requireKeyword = string "require"
 
-ignoreTillRequire :: P.Parsec T.Text u String
-ignoreTillRequire = P.manyTill P.anyChar (P.lookAhead $ P.try requireKeyword)
+ignoreTillRequire :: Parsec T.Text u String
+ignoreTillRequire = manyTill anyChar (lookAhead $ try requireKeyword)
 
 getFileType :: String -> SourceType
 getFileType ".coffee" = Coffee

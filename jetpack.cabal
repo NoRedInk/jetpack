@@ -17,10 +17,12 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib,
                        Config,
+                       Errors,
+                       Parser.Comment,
+                       Parser.Require,
                        Utils.Files,
                        Utils.Parser,
-                       Errors,
-                       Require
+                       Utils.Text
   build-depends:       base >= 4.7 && < 5,
                        aeson == 1.0.2.1,
                        binary == 0.8.3.0,
@@ -48,16 +50,17 @@ test-suite jetpack-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       ConfigSpec,
-                       RequireSpec
+                       Helper.Property,
+                       Parser.RequireSpec,
+                       Parser.CommentSpec
   build-depends:       base,
                        jetpack,
                        tasty == 0.11.2,
                        tasty-hunit == 0.9.2,
-                       tasty-smallcheck == 0.8.1,
+                       tasty-quickcheck == 0.8.4,
                        either == 4.4.1.1,
                        filepath == 1.4.1.1,
                        text == 1.2.2.1,
-                       smallcheck-series == 0.6,
                        doctest == 0.11.1,
                        Glob == 0.7.*
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N

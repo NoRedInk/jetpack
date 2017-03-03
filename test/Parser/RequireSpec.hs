@@ -1,15 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module RequireSpec where
+module Parser.RequireSpec where
 
 import Control.Monad.Trans.Either (runEitherT)
+import Data.Maybe as M
 import Data.Text as T
-import qualified Require
+import Helper.Property
+import qualified Parser.Require as Require
 import System.FilePath ((<.>), (</>))
-import qualified Test.SmallCheck.Series.Text as T.Series
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Tasty.SmallCheck
+import Test.Tasty.QuickCheck
 
 assertRequire :: T.Text -> Require.Require -> Assertion
 assertRequire content require =
@@ -17,61 +18,68 @@ assertRequire content require =
     Just c -> c @?= require
     Nothing -> assertFailure "failed"
 
+assertParsingFails :: T.Text -> Assertion
+assertParsingFails =
+  assertBool "unexpected success" . M.isNothing . Require.require
+
 suite :: TestTree
 suite =
   testGroup
     "Require"
-    [ testCase "#require" $
+    [ testCase ".elm" $
       assertRequire "var x = require(\"x.elm\")" $
       Require.Require Require.Elm "x.elm"
-    , testCase "#require" $
+    , testCase ".elm with namespace" $
       assertRequire "let foo = require(\"foo.elm\")" $
       Require.Require Require.Elm "foo.elm"
-    , testCase "#require" $
+    , testCase ".elm" $
       assertRequire "require(\"foo.bar.elm\")" $
       Require.Require Require.Elm $ "foo" <.> "bar.elm"
-    , testCase "#require" $
+    , testCase ".coffee" $
       assertRequire "require(\"foo.bar.coffee\")" $
       Require.Require Require.Coffee $ "foo" <.> "bar.coffee"
-    , testCase "#require" $
+    , testCase "sass" $
       assertRequire "require(\"foo.bar.sass\")" $
       Require.Require Require.Sass $ "foo" <.> "bar.sass"
-    , testCase "#require" $
+    , testCase "no ext" $
       assertRequire "require(\"foo.bar\")" $
       Require.Require Require.Js $ "foo" <.> "bar"
-    , testCase "#require" $
+    , testCase "js" $
       assertRequire "require(\"foo.bar.js\")" $
       Require.Require Require.Js $ "foo" <.> "bar.js"
-    , testCase "#require" $
+    , testCase "coffee" $
       assertRequire "coffee = require \"foo.bar.js\" " $
       Require.Require Require.Js $ "foo" <.> "bar.js"
-    , testCase "#require" $
+    , testCase "js" $
       assertRequire "require 'foo.bar.js' " $
       Require.Require Require.Js $ "foo" <.> "bar.js"
-    , testCase "#require node_module" $
+    , testCase "node_module" $
       assertRequire "require 'lodash'" $ Require.Require Require.Js "lodash"
-    , testCase "#require multilines" $
+    , testCase "multilines" $
       assertRequire
         (T.unlines ["// test", "moo = require  'foo.bar.js'", "moo(42)"]) $
       Require.Require Require.Js $ "foo" <.> "bar.js"
-    , testCase "#require multilines" $
+    , testCase "multilines" $
       assertRequire
         (T.unlines ["// test", "var moo = require('foo.bar.js');", "moo(42)"]) $
       Require.Require Require.Js $ "foo" <.> "bar.js"
-    -- TODO add failing tests
+    , testCase "fails" $
+      assertParsingFails $
+      T.unlines ["// test", "var moo = require('foo.bar.js';", "moo(42)"]
     ]
 
 properties :: TestTree
 properties =
   testGroup
     "Require Properties"
-    [ testProperty "#require" $ \name ext ->
-        (T.length (T.pack ext) > 0) ==>
-        case require name (T.pack ext) of
+    [ testProperty "#require" $ \(AlphaNum name) (AlphaNum ext) ->
+        case require name ext of
           Just c ->
-            c == (Require.Require (Require.getFileType ext) $ name <.> ext)
+            c ==
+            (Require.Require (Require.getFileType $ T.unpack ext) $
+             T.unpack name <.> T.unpack ext)
           Nothing -> False
     ]
   where
     require name ext =
-      Require.require $ T.concat ["\nrequire '", T.pack name, ".", ext, "'\n"]
+      Require.require $ T.concat ["\nrequire '", name, ".", ext, "'\n"]

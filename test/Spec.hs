@@ -1,5 +1,6 @@
 import ConfigSpec
-import RequireSpec
+import Parser.CommentSpec
+import Parser.RequireSpec
 import System.FilePath.Glob (glob)
 import Test.DocTest
 import Test.Tasty
@@ -13,8 +14,12 @@ runTests = do
   defaultMain $
     testGroup
       "jetpack"
-      [ testGroup "suites" [ConfigSpec.suite, RequireSpec.suite]
-      , testGroup "properties" [RequireSpec.properties]
+      [ testGroup
+          "suites"
+          [ConfigSpec.suite, Parser.RequireSpec.suite, Parser.CommentSpec.suite]
+      , testGroup
+          "properties"
+          [Parser.RequireSpec.properties, Parser.CommentSpec.properties]
       ]
 
 runDocTests :: IO ()
