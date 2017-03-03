@@ -11,8 +11,6 @@ module Parser.Require
   , SourceType(..)
   ) where
 
-import Data.Functor (void)
-import qualified Data.List as L
 import qualified Data.Maybe as M
 import qualified Data.Text as T
 import Parser.Comment as Comment
