@@ -11,6 +11,21 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import Text.Parsec
 
+{-| imports for doctests
+   >>> :set -XOverloadedStrings
+   >>> import qualified Data.Text as T
+-}
+{-| Removes block and line comments from text.
+    >>> :{
+    eatComments $
+      T.unlines
+        [ "var x = require('x.js');"
+        , "// var x = require('x.js');"
+        , "x.foo(); /* comment */"
+        ]
+    :}
+    "var x = require('x.js');\nx.foo(); \n"
+-}
 eatComments :: T.Text -> T.Text
 eatComments str =
   case (parse parser "Error" str) of
