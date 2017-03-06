@@ -2,9 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Utils.Parser
-    ( stringContent
-    , betweenParens
-    ) where
+  ( stringContent
+  , betweenParens
+  ) where
 
 import qualified Data.Text as T
 import qualified Text.Parsec as P

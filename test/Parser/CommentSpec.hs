@@ -17,22 +17,22 @@ suite =
   testGroup
     "Parser.Comment"
     [ testCase "parse no comments" $
-      Parser.Comment.eatComments "asdf" @?= "asdf"
+      Parser.Comment.eatJsComments "asdf" @?= "asdf"
     , testCase "parse block comments" $
-      Parser.Comment.eatComments "moo/*foo*/boo" @?= "mooboo"
+      Parser.Comment.eatJsComments "moo/*foo*/boo" @?= "mooboo"
     , testCase "parse block comments starting at the beginning" $
-      Parser.Comment.eatComments "/*foo*/boo" @?= "boo"
+      Parser.Comment.eatJsComments "/*foo*/boo" @?= "boo"
     , testCase "parse block comments" $
       "a\n\nb  c\n\n" @=?
-      (Parser.Comment.eatComments $
+      (Parser.Comment.eatJsComments $
        T.unlines ["a\n", "b /* ignore", "xxxxxx", "  */ c\n"])
     , testCase "parse line comments" $
       "a\n\nb  c\n\n" @=?
-      (Parser.Comment.eatComments $
+      (Parser.Comment.eatJsComments $
        T.unlines ["a\n", "b // ignore", "//xxxxxx", " c\n"])
     , testCase "parse block and line comments" $
       "a\n\nb  c\n\nb \nOOOO\noooo\n\n" @=?
-      (Parser.Comment.eatComments $
+      (Parser.Comment.eatJsComments $
        T.unlines
          [ "a\n"
          , "b // ignore"
@@ -49,25 +49,34 @@ suite =
          , "*/"
          ])
     , testCase "only comments" $
-      "" @=? (Parser.Comment.eatComments $ T.concat ["// foo", "/* asdf */"])
+      "" @=? (Parser.Comment.eatJsComments $ T.concat ["// foo", "/* asdf */"])
     , testCase "only comments" $
-      "" @=? (Parser.Comment.eatComments $ T.concat ["/* foo */", "// asdf"])
+      "" @=? (Parser.Comment.eatJsComments $ T.concat ["/* foo */", "// asdf"])
     , testCase "only comments" $
-      "" @=? (Parser.Comment.eatComments $ T.concat ["// foo", "/* asdf */"])
+      "" @=? (Parser.Comment.eatJsComments $ T.concat ["// foo", "/* asdf */"])
     ]
 
 properties :: TestTree
 properties =
   testGroup
     "Parser.Comment Properties"
-    [ testProperty "#eatComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatComments $
-         Parser.Comment.eatComments $ codeWithComments b1 b2 b3) ==
-        (Parser.Comment.eatComments $ codeWithComments b1 b2 b3)
-    , testProperty "#eatComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatComments $ codeWithComments b1 b2 b3) /=
-        (codeWithComments b1 b2 b3)
+    [ testProperty "#eatJsComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatJsComments $
+         Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) ==
+        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3)
+    , testProperty "#eatJsComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) /=
+        (codeWithJsComments b1 b2 b3)
+    , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatCoffeeComments $
+         Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) ==
+        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3)
+    , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) /=
+        (codeWithCoffeeComments b1 b2 b3)
     ]
   where
-    codeWithComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+    codeWithJsComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
       T.concat [b1, "// hello", b2, "/* \nworld\n */", b3]
+    codeWithCoffeeComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+      T.concat [b1, "# hello", b2, "\n###\nworld\n###\n", b3]

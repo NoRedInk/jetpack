@@ -18,6 +18,7 @@ library
   exposed-modules:     Lib,
                        Config,
                        Errors,
+                       Parser.Ast,
                        Parser.Comment,
                        Parser.Require,
                        Utils.Files,

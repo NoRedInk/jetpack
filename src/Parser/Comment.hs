@@ -2,8 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
+{-| Parser for line and block comments in js or coffeescript.
+
+
+### imports for doctests
+   >>> :set -XOverloadedStrings
+   >>> import qualified Data.Text as T
+-}
 module Parser.Comment
-  ( eatComments
+  ( eatJsComments
+  , eatCoffeeComments
   ) where
 
 import Data.Functor (void)
@@ -11,13 +19,9 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import Text.Parsec
 
-{-| imports for doctests
-   >>> :set -XOverloadedStrings
-   >>> import qualified Data.Text as T
--}
 {-| Removes block and line comments from text.
     >>> :{
-    eatComments $
+    eatJsComments $
       T.unlines
         [ "var x = require('x.js');"
         , "// var x = require('x.js');"
@@ -26,14 +30,33 @@ import Text.Parsec
     :}
     "var x = require('x.js');\nx.foo(); \n"
 -}
-eatComments :: T.Text -> T.Text
-eatComments str =
+eatJsComments :: T.Text -> T.Text
+eatJsComments = eatComments jsBlockCommentParser jsLineCommentParser
+
+{-| Removes block and line comments from text.
+    >>> :{
+    eatCoffeeComments $
+      T.unlines
+        [ "var x = require('x.js');"
+        , "# var x = require('x.js');"
+        , "x.foo();"
+        , "###"
+        , "ignore"
+        , "###"
+        ]
+    :}
+    "var x = require('x.js');\nx.foo();\n\n"
+-}
+eatCoffeeComments :: T.Text -> T.Text
+eatCoffeeComments = eatComments coffeeBlockCommentParser coffeeLineCommentParser
+
+eatComments :: Parsec T.Text () () -> Parsec T.Text () () -> T.Text -> T.Text
+eatComments blockParser lineParser str =
   case (parse parser "Error" str) of
     Right parsed -> parsed
     Left _ -> str
   where
-    parser = do
-      eatCommentsParser (try blockCommentParser <|> try commentParser)
+    parser = eatCommentsParser (try blockParser <|> try lineParser)
 
 eatCommentsParser :: Parsec T.Text st () -> Parsec T.Text st T.Text
 eatCommentsParser parser = do
@@ -42,12 +65,21 @@ eatCommentsParser parser = do
   optional parser
   return $ T.pack $ L.intercalate "" xs
 
-blockCommentParser :: Parsec T.Text st ()
-blockCommentParser = string "/*" >> manyTill anyChar (string "*/") >> return ()
+jsBlockCommentParser :: Parsec T.Text st ()
+jsBlockCommentParser =
+  string "/*" >> manyTill anyChar (string "*/") >> return ()
 
-commentParser :: Parsec T.Text st ()
-commentParser =
+jsLineCommentParser :: Parsec T.Text st ()
+jsLineCommentParser =
   string "//" >> manyTill anyChar (void newline <|> eof) >> return ()
+
+coffeeBlockCommentParser :: Parsec T.Text st ()
+coffeeBlockCommentParser =
+  string "###" >> manyTill anyChar (string "###") >> return ()
+
+coffeeLineCommentParser :: Parsec T.Text st ()
+coffeeLineCommentParser =
+  string "#" >> manyTill anyChar (void newline <|> eof) >> return ()
 
 notCommentParser :: Parsec T.Text st () -> Parsec T.Text st String
 notCommentParser parser = manyTill anyChar (lookAhead (parser <|> eof))

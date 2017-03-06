@@ -8,6 +8,7 @@
 
 
 ### imports for doctests
+   >>> import Parser.Ast
    >>> import qualified Data.Text as T
    >>> :set -XOverloadedStrings
 -}
@@ -15,35 +16,19 @@ module Parser.Require
   ( requires
   , require
   , getFileType
-  , Require(..)
-  , SourceType(..)
   ) where
 
 import qualified Data.Maybe as M
 import qualified Data.Text as T
+import Parser.Ast as Ast
 import Parser.Comment as Comment
 import System.FilePath ((<.>), splitExtension)
 import Text.Parsec
 import qualified Utils.Parser as UP
 
-data Require = Require
-  { fileType :: SourceType
-  , fileName :: FilePath
-  } deriving (Eq)
-
-instance Show Require where
-  show (Require t n) = "(Require " ++ show n ++ " " ++ show t ++ ")"
-
-data SourceType
-  = Coffee
-  | Js
-  | Elm
-  | Sass
-  deriving (Show, Eq)
-
 {-| returns all requires of a file
     >>> :{
-    requires $
+    requires Js $
       T.unlines
       [ "var _ = require('lodash')"
       , "var Main = require('Foo.Bar.Main.elm')"
@@ -60,8 +45,14 @@ data SourceType
     :}
     [(Require "lodash" Js),(Require "Foo.Bar.Main.elm" Elm)]
 -}
-requires :: T.Text -> [Require]
-requires = M.mapMaybe require . T.lines . Comment.eatComments
+requires :: Ast.SourceType -> T.Text -> [Ast.Require]
+requires sourceType = M.mapMaybe require . T.lines . eatComments
+  where
+    eatComments =
+      case sourceType of
+        Ast.Js -> Comment.eatJsComments
+        Ast.Coffee -> Comment.eatCoffeeComments
+        _ -> id
 
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 
@@ -74,10 +65,10 @@ requires = M.mapMaybe require . T.lines . Comment.eatComments
     >>> require "require('Main.elm';"
     Nothing
 -}
-require :: T.Text -> Maybe Require
+require :: T.Text -> Maybe Ast.Require
 require content =
   case extractRequire content of
-    Right (path, ext) -> Just $ Require (getFileType ext) $ path <.> ext
+    Right (path, ext) -> Just $ Ast.Require (getFileType ext) $ path <.> ext
     Left _ -> Nothing
 
 {-| Converts a file extension into a union type.
@@ -90,7 +81,7 @@ This is because you might importe something like `require('MyModule.Foo')`
     >>> getFileType ""
     Js
 -}
-getFileType :: String -> SourceType
+getFileType :: String -> Ast.SourceType
 getFileType ".coffee" = Coffee
 getFileType ".elm" = Elm
 getFileType ".sass" = Sass
