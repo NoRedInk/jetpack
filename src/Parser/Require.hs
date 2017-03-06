@@ -2,11 +2,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
+{-| Parser for `require` in js and coffeescript.
+* It returns a list of `Require (Coffee|Js|Elm|Sass) fileName`
+* It ignores `require` in commments.
+
+
+### imports for doctests
+   >>> import qualified Data.Text as T
+   >>> :set -XOverloadedStrings
+-}
 module Parser.Require
   ( requires
   , require
   , getFileType
-  , eatComments
   , Require(..)
   , SourceType(..)
   ) where
@@ -33,10 +41,6 @@ data SourceType
   | Sass
   deriving (Show, Eq)
 
-{-| imports for doctests
-   >>> import qualified Data.Text as T
-   >>> :set -XOverloadedStrings
--}
 {-| returns all requires of a file
     >>> :{
     requires $
@@ -76,6 +80,23 @@ require content =
     Right (path, ext) -> Just $ Require (getFileType ext) $ path <.> ext
     Left _ -> Nothing
 
+{-| Converts a file extension into a union type.
+
+    >>> getFileType ".coffee"
+    Coffee
+
+Default for an empty extension or something unknown is js.
+This is because you might importe something like `require('MyModule.Foo')`
+    >>> getFileType ""
+    Js
+-}
+getFileType :: String -> SourceType
+getFileType ".coffee" = Coffee
+getFileType ".elm" = Elm
+getFileType ".sass" = Sass
+getFileType ".js" = Js
+getFileType _ = Js
+
 {-| running the parser
 -}
 extractRequire :: T.Text -> Either ParseError (FilePath, String)
@@ -86,24 +107,11 @@ requireParser = do
   _ <- ignoreTillRequire
   _ <- requireKeyword
   _ <- spaces
-  content <- choice [requireBetweenParens, coffeeRequire]
+  content <- choice [UP.betweenParens UP.stringContent, UP.stringContent]
   return $ splitExtension content
-
-requireBetweenParens :: Parsec T.Text u String
-requireBetweenParens = UP.betweenParens UP.stringContent
-
-coffeeRequire :: Parsec T.Text u String
-coffeeRequire = spaces *> UP.stringContent
-
-requireKeyword :: Parsec T.Text u String
-requireKeyword = string "require"
 
 ignoreTillRequire :: Parsec T.Text u String
 ignoreTillRequire = manyTill anyChar (lookAhead $ try requireKeyword)
 
-getFileType :: String -> SourceType
-getFileType ".coffee" = Coffee
-getFileType ".elm" = Elm
-getFileType ".sass" = Sass
-getFileType ".js" = Js
-getFileType _ = Js
+requireKeyword :: Parsec T.Text u String
+requireKeyword = string "require"
