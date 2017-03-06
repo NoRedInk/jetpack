@@ -1,26 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{-| Helpers for property based tests.
+-}
 module Helper.Property where
 
 import Data.Text as T
-import Test.Tasty.QuickCheck
+import Test.Tasty.QuickCheck as QC
 
 newtype AlphaNum =
   AlphaNum T.Text
   deriving (Show)
 
-instance (Arbitrary AlphaNum) where
+instance (QC.Arbitrary AlphaNum) where
   arbitrary = fmap (AlphaNum . T.pack) letterOrDigit
 
-alphaFreqList :: [(Int, Gen Char)]
+newtype CodeNoComments =
+  CodeNoComments T.Text
+  deriving (Show)
+
+instance (QC.Arbitrary CodeNoComments) where
+  arbitrary = fmap (CodeNoComments . T.pack) code
+
+alphaFreqList :: [(Int, QC.Gen Char)]
 alphaFreqList =
-  [(26, choose ('a', 'z')), (26, choose ('A', 'Z')), (1, elements ['_'])]
+  [ (26, QC.choose ('a', 'z'))
+  , (26, QC.choose ('A', 'Z'))
+  , (1, QC.elements ['_'])
+  ]
 
-digitFreqList :: [(Int, Gen Char)]
-digitFreqList = [(10, choose ('0', '9'))]
+digitFreqList :: [(Int, QC.Gen Char)]
+digitFreqList = [(10, QC.choose ('0', '9'))]
 
-letter :: Gen Char
-letter = frequency alphaFreqList
+symbolsFreqList :: [(Int, QC.Gen Char)]
+symbolsFreqList = [(5, QC.elements ['-', '+', ';', '*', '%'])]
 
-letterOrDigit :: Gen String
-letterOrDigit = listOf1 $ frequency $ alphaFreqList ++ digitFreqList
+letter :: QC.Gen Char
+letter = QC.frequency alphaFreqList
+
+letterOrDigit :: QC.Gen String
+letterOrDigit = listOf1 $ QC.frequency $ alphaFreqList ++ digitFreqList
+
+code :: QC.Gen String
+code =
+  listOf1 $ QC.frequency $ alphaFreqList ++ digitFreqList ++ symbolsFreqList

@@ -69,5 +69,5 @@ properties =
         (codeWithComments b1 b2 b3)
     ]
   where
-    codeWithComments b1 b2 b3 =
-      T.concat [T.pack b1, "// hello", T.pack b2, "/* \nworld\n */", T.pack b3]
+    codeWithComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+      T.concat [b1, "// hello", b2, "/* \nworld\n */", b3]
