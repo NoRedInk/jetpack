@@ -27,13 +27,13 @@ program = do
   _ <- compile
   return ()
 
-interpreter :: PipelineF a -> Free (Sum Logger.LogF RunnableF) a
+interpreter :: PipelineF a -> Free (Sum Logger.LogF IO) a
 interpreter op =
-  toLeft (LogI.interpreter op) *> toRight (PipelineI.interpreter op)
+  toLeft (LogI.interpreter op) *> toRight (lift $ PipelineI.interpreter op)
 
-executor :: Sum Logger.LogF RunnableF a -> (IO a)
+executor :: Sum Logger.LogF IO a -> IO a
 executor (InL log@(Logger.Log _ _ next)) = Logger.executor log >> return next
-executor (InR (Run io next)) = io >> return next
+executor (InR io) = io
 
 run :: IO ()
 run = do

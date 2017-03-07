@@ -6,13 +6,10 @@ module Pipeline
   ( Args(..)
   , Pipeline
   , PipelineF(..)
-  , Runnable
-  , RunnableF(..)
   , readCliArgs
   , readConfig
   , noArgs
   , compile
-  , printStr
   ) where
 
 import Config (Config)
@@ -39,13 +36,6 @@ data PipelineF a
 
 type Pipeline = Free PipelineF
 
-data RunnableF a =
-  Run (IO ())
-      a
-  deriving (Functor)
-
-type Runnable = Free RunnableF
-
 readCliArgs :: Pipeline Args
 readCliArgs = liftF $ ReadCliArgs id
 
@@ -54,6 +44,3 @@ readConfig maybePath = liftF $ ReadConfig maybePath id
 
 compile :: Pipeline [T.Text]
 compile = liftF $ Compile id
-
-printStr :: IO () -> Runnable ()
-printStr io = liftF $ Run io ()
