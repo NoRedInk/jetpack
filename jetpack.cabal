@@ -15,9 +15,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib,
-                       Config,
-                       Errors,
+  exposed-modules:     Lib
+  other-modules:       Config,
+                       Error,
+                       Interpreter.Pipeline,
+                       Interpreter.Logger,
                        Logger,
                        Pipeline,
                        Parser.Ast,
@@ -25,10 +27,12 @@ library
                        Parser.Require,
                        Utils.Files,
                        Utils.Parser,
-                       Utils.Text
+                       Utils.Text,
+                       Utils.Free
   build-depends:       base >= 4.7 && < 5,
                        aeson == 1.0.2.1,
                        binary == 0.8.3.0,
+                       either == 4.4.1.1,
                        text == 1.2.2.1,
                        filepath == 1.4.1.1,
                        bytestring == 0.10.8.1,

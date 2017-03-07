@@ -6,7 +6,7 @@ module Utils.Files
 
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (EitherT, left)
-import Errors (Error(..))
+import Error (Error(..))
 import System.Directory (doesFileExist)
 import System.FilePath ()
 

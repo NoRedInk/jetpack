@@ -11,7 +11,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (EitherT, left)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import Errors (Error(..))
+import Error (Error(..))
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
 import Utils.Files (fileExists)
