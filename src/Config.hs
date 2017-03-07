@@ -4,6 +4,7 @@
 module Config
   ( Config(..)
   , load
+  , defaultConfig
   ) where
 
 import Control.Monad.Trans.Class (lift)
@@ -22,6 +23,15 @@ data Config = Config
   , output_js_directory :: FilePath
   , output_css_directory :: FilePath
   } deriving (Show, Eq, Generic)
+
+defaultConfig :: Config
+defaultConfig =
+  Config
+    ("." </> "app" </> "assets" </> "modules")
+    ("." </> "ui" </> "src")
+    ("." </> "tmp")
+    ("." </> "app" </> "assets" </> "javascript" </> "webpack")
+    ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
 
 instance ToJSON Config
 
