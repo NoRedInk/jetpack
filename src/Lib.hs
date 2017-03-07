@@ -18,6 +18,7 @@ import qualified Interpreter.Pipeline as PipelineI
 import qualified Logger
 import Pipeline
 import qualified System.Exit
+import Task
 import Utils.Free (toLeft, toRight)
 
 program :: Pipeline ()
@@ -27,19 +28,20 @@ program = do
   _ <- compile
   return ()
 
-interpreter :: PipelineF a -> Free (Sum Logger.LogF IO) a
+interpreter :: PipelineF a -> Free (Sum Logger.LogF Task) a
 interpreter op =
   toLeft (LogI.interpreter op) *> toRight (lift $ PipelineI.interpreter op)
 
-executor :: Sum Logger.LogF IO a -> IO a
-executor (InL log@(Logger.Log _ _ next)) = Logger.executor log >> return next
+executor :: Sum Logger.LogF Task a -> Task a
+executor (InL log@(Logger.Log _ _ next)) =
+  lift $ Logger.executor log >> return next
 executor (InR io) = io
 
 run :: IO ()
 run = do
-  e <- runEitherT $ lift $ do foldFree executor $ foldFree interpreter program
+  e <- runEitherT $ do foldFree executor $ foldFree interpreter program
   case e of
     Left err -> do
-      putStrLn $ Error.description err
+      putStrLn "Compilation failed!"
       System.Exit.die $ Error.description err
     Right _ -> putStrLn "Compilation succeeded!"

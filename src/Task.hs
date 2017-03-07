@@ -2,7 +2,7 @@ module Task
   ( Task
   ) where
 
-import Error
 import Control.Monad.Trans.Either
+import Error
 
-newtype Task = EitherT Error IO
+type Task = EitherT Error IO

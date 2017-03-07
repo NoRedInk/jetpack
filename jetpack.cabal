@@ -18,6 +18,7 @@ library
   exposed-modules:     Lib
   other-modules:       Config,
                        Error,
+                       Task,
                        Interpreter.Pipeline,
                        Interpreter.Logger,
                        Logger,

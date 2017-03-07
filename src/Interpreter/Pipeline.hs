@@ -5,11 +5,15 @@ module Interpreter.Pipeline
   ) where
 
 import qualified Config
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+import Error
 import Pipeline
+import Task (Task)
 
-interpreter :: PipelineF a -> IO a
+interpreter :: PipelineF a -> Task a
 interpreter (ReadCliArgs next) =
-  (putStrLn "readCliArgs") >> return (next noArgs)
+  lift (putStrLn "readCliArgs") >> return (next noArgs)
 interpreter (ReadConfig args next) =
-  (putStrLn "readConfig") >> return (next Config.defaultConfig)
-interpreter (Compile next) = (putStrLn "compile") >> return (next [])
+  lift (putStrLn "readConfig") >> return (next Config.defaultConfig)
+interpreter (Compile next) = right (putStrLn "compile") >> return (next [])
