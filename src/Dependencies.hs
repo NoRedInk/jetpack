@@ -51,6 +51,7 @@ findRequires sourcePath require =
     let path = sourcePath </> Ast.fileName require
     exists <- doesFileExist path
     if not exists
+      -- TODO handle node modules/precompiled modules
       then return (require, [])
       else do
         content <- readFile $ path
