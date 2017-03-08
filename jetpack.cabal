@@ -15,18 +15,19 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-  other-modules:       Config,
+  exposed-modules:     Lib,
+                       Config,
+                       Dependencies,
                        Error,
-                       Task,
-                       Interpreter.Pipeline,
                        Interpreter.Logger,
+                       Interpreter.Pipeline,
                        Logger,
-                       Pipeline,
                        Parser.Ast,
                        Parser.Comment,
                        Parser.Require,
-                       Utils.Files,
+                       Pipeline,
+                       Task
+  other-modules:       Utils.Files,
                        Utils.Parser,
                        Utils.Text,
                        Utils.Free
@@ -44,7 +45,8 @@ library
                        directory == 1.3.0.0,
                        parsec == 3.1.11,
                        free == 4.12.4,
-                       filepath == 1.4.1.1
+                       filepath == 1.4.1.1,
+                       Glob == 0.7.*
   default-language:    Haskell2010
 
 executable jetpack-exe

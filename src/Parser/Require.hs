@@ -14,6 +14,8 @@
 -}
 module Parser.Require
   ( requires
+  , jsRequires
+  , coffeeRequires
   , require
   , getFileType
   ) where
@@ -53,6 +55,16 @@ requires sourceType = M.mapMaybe require . T.lines . eatComments
         Ast.Js -> Comment.eatJsComments
         Ast.Coffee -> Comment.eatCoffeeComments
         _ -> id
+
+{-| Partially applied `requires` for js files.
+-}
+jsRequires :: T.Text -> [Ast.Require]
+jsRequires = requires Ast.Js
+
+{-| Partially applied `requires` for coffee files.
+-}
+coffeeRequires :: T.Text -> [Ast.Require]
+coffeeRequires = requires Ast.Coffee
 
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 

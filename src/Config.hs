@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy as BL
 import Error (Error(..))
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
+import Task (Task)
 import Utils.Files (fileExists)
 
 data Config = Config
@@ -39,7 +40,7 @@ instance FromJSON Config
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
-load :: FilePath -> EitherT Error IO Config
+load :: FilePath -> Task Config
 load root = do
   let path = root </> "jetpack.json"
   _ <- fileExists path

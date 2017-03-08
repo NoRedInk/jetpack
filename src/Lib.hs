@@ -32,8 +32,9 @@ run = do
 program :: Pipeline ()
 program = do
   args <- readCliArgs -- TODO we propably want to read cli args before running the program.
-  _config <- readConfig (configPath args)
-  _ <- compile
+  config <- readConfig (configPath args)
+  deps <- dependencies config
+  _ <- compile deps
   return ()
 
 runProgram :: Pipeline a -> Task a

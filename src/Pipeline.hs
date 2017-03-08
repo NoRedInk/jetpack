@@ -8,6 +8,7 @@ module Pipeline
   , PipelineF(..)
   , readCliArgs
   , readConfig
+  , dependencies
   , noArgs
   , compile
   ) where
@@ -15,6 +16,7 @@ module Pipeline
 import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import Data.Text as T
+import Dependencies (Dependencies)
 import System.FilePath ()
 
 -- TODO move this to args parser
@@ -31,7 +33,10 @@ data PipelineF a
   = ReadCliArgs (Args -> a)
   | ReadConfig (Maybe FilePath)
                (Config -> a)
-  | Compile ([T.Text] -> a)
+  | Dependencies Config
+                 (Dependencies -> a)
+  | Compile Dependencies
+            ([T.Text] -> a)
   deriving (Functor)
 
 type Pipeline = Free PipelineF
@@ -42,5 +47,8 @@ readCliArgs = liftF $ ReadCliArgs id
 readConfig :: Maybe FilePath -> Pipeline Config
 readConfig maybePath = liftF $ ReadConfig maybePath id
 
-compile :: Pipeline [T.Text]
-compile = liftF $ Compile id
+dependencies :: Config -> Pipeline Dependencies
+dependencies config = liftF $ Dependencies config id
+
+compile :: Dependencies -> Pipeline [T.Text]
+compile deps = liftF $ Compile deps id
