@@ -42,7 +42,7 @@ runProgram = foldFree executor . foldFree interpreter
 
 interpreter :: PipelineF a -> Free (Sum Logger.LogF Task) a
 interpreter op =
-  toLeft (LogI.interpreter op) *> toRight (lift $ PipelineI.interpreter op)
+  toLeft (LogI.treeInterpreter op) *> toRight (lift $ PipelineI.interpreter op)
 
 executor :: Sum Logger.LogF Task a -> Task a
 executor (InL l@(Logger.Log _ _ next)) = lift $ Logger.executor l >> return next

@@ -15,7 +15,7 @@ import Error (Error(..))
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
 import Task (Task)
-import Utils.Files (fileExists)
+import Utils.Files (fileExistsTask)
 
 data Config = Config
   { module_directory :: FilePath
@@ -43,7 +43,7 @@ instance FromJSON Config
 load :: FilePath -> Task Config
 load root = do
   let path = root </> "jetpack.json"
-  _ <- fileExists path
+  _ <- fileExistsTask path
   content <- lift $ BL.readFile path
   case Aeson.decode content of
     Just config -> lift $ return config

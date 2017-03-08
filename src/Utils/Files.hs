@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Utils.Files
-  ( fileExists
+  ( fileExistsTask
   , findAllFilesIn
   ) where
 
@@ -13,10 +13,10 @@ import System.FilePath ((</>))
 import System.FilePath.Glob (glob)
 import Task (Task)
 
-{-| Checks if file exists.
+{-| Checks if file exists and returns a failing task if it doesn't
 -}
-fileExists :: FilePath -> Task ()
-fileExists path = do
+fileExistsTask :: FilePath -> Task ()
+fileExistsTask path = do
   exists <- lift $ doesFileExist path
   case exists of
     True -> lift $ return ()

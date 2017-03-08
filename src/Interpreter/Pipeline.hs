@@ -18,8 +18,7 @@ interpreter (ReadConfig _ next) =
 interpreter (Dependencies config next) = do
   deps <- Dependencies.find config
   return $ next deps
-interpreter (Compile deps next) =
-  lift (putStrLn $ "TODO" ++ show deps) >> return (next [])
+interpreter (Compile _ next) = lift (putStrLn "TODO") >> return (next [])
 
 dryInterpreter :: PipelineF a -> Task a
 dryInterpreter (ReadCliArgs next) =
