@@ -52,10 +52,18 @@ suite =
                 "index.js"
               , Dependency Ast.Js ("." </> "lodash.dist.js") $
                 "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "." </> "lodash.dist.js"
+                "." </>
+                "lodash.dist.js"
               , Dependency Ast.Js ("." </> "lodash") $
                 "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "." </> "." </> "lodash.js"
+                "." </>
+                "." </>
+                "lodash.js"
+              , Dependency Ast.Js ("" </> "debug") $
+                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </>
+                "node_modules" </>
+                "debug.js"
               ]
             ]
     , testCase "#find failing" $ do

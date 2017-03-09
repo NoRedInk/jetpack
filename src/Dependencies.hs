@@ -99,15 +99,24 @@ findRequires config require = do
   let nodeModulesPath = sourcePath </> ".." </> "node_modules"
   let nodeModulesInRoot = "." </> "node_modules"
   let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' require
+  let relativeNodeModulesRequire =
+        tryPlainJsExtAndIndex
+          (relativePath </> "node_modules")
+          requiredAs'
+          require
   let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' require
   let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' require
   let nodeModuleRequireInRoot =
         tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' require
   let nodeModuleRequire =
         tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
-  let vendorComponentsRequire = tryPlainJsExtAndIndex vendorComponentsPath requiredAs' require
-  let vendorJavaScriptsRequire = tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' require
-  relativeRequire <|> moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
+  let vendorComponentsRequire =
+        tryPlainJsExtAndIndex vendorComponentsPath requiredAs' require
+  let vendorJavaScriptsRequire =
+        tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' require
+  relativeRequire <|> relativeNodeModulesRequire <|> moduleRequire <|>
+    sourceRequire <|>
+    nodeModuleRequire <|>
     nodeModuleRequireInRoot <|>
     vendorComponentsRequire <|>
     vendorJavaScriptsRequire <|>
