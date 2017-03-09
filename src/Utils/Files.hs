@@ -20,7 +20,7 @@ fileExistsTask path = do
   exists <- lift $ doesFileExist path
   case exists of
     True -> lift $ return ()
-    False -> left $ FileNotFound (show path)
+    False -> left $ [FileNotFound (show path)]
 
 {-| Returns a list of files in the given direcory and all it's subdirectories.
 -}

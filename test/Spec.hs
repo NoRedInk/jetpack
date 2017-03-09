@@ -1,4 +1,5 @@
 import ConfigSpec
+import DependenciesSpec
 import Parser.CommentSpec
 import Parser.RequireSpec
 import System.FilePath.Glob (glob)
@@ -16,7 +17,11 @@ runTests = do
       "jetpack"
       [ testGroup
           "suites"
-          [ConfigSpec.suite, Parser.RequireSpec.suite, Parser.CommentSpec.suite]
+          [ ConfigSpec.suite
+          , DependenciesSpec.suite
+          , Parser.RequireSpec.suite
+          , Parser.CommentSpec.suite
+          ]
       , testGroup
           "properties"
           [Parser.RequireSpec.properties, Parser.CommentSpec.properties]

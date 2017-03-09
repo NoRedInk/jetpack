@@ -28,6 +28,8 @@ suite =
     , testCase "#load failure" $ do
         e <- runEitherT $ do Config.load "./test"
         case e of
-          Left msg -> Error.description msg @=? "Couldn't find file: \"./test/jetpack.json\""
+          Left msg ->
+            fmap Error.description msg @=?
+            ["Couldn't find file: \"./test/jetpack.json\""]
           Right config -> assertFailure $ "This shouldn't succeed"
     ]

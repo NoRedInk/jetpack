@@ -5,4 +5,4 @@ module Task
 import Control.Monad.Trans.Either
 import Error
 
-type Task = EitherT Error IO
+type Task = EitherT [Error] IO

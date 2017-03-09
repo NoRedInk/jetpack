@@ -11,6 +11,7 @@ import Control.Monad.Free (Free, foldFree)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Data.Functor.Sum (Sum(..))
+import Data.List as L
 import qualified Error
 import qualified Interpreter.Logger as LogI
 import qualified Interpreter.Pipeline as PipelineI
@@ -26,7 +27,7 @@ run = do
   case e of
     Left err -> do
       putStrLn "Compilation failed!"
-      System.Exit.die $ Error.description err
+      System.Exit.die $ L.unlines $ fmap Error.description err
     Right _ -> putStrLn "Compilation succeeded!"
 
 program :: Pipeline ()
