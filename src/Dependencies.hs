@@ -40,6 +40,7 @@ import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Error
 import Parser.Ast as Ast
+import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.Directory (doesFileExist)
 import System.FilePath ((</>), (<.>), dropFileName, takeDirectory)
@@ -89,31 +90,32 @@ updateDepPath :: FilePath -> Dependency -> Dependency
 updateDepPath newPath (Dependency t r p) = Dependency t r newPath
 
 findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
-findRequires config require = do
+findRequires config parent = do
+  _ <- lift $ print parent
   let sourcePath = Config.source_directory config
-  let requiredAs' = requiredAs require
-  let relativePath = filePath require
-  let modulesPath = dropFileName $ filePath require
+  let requiredAs' = requiredAs parent
+  let relativePath = filePath parent
+  let modulesPath = dropFileName $ filePath parent
   let vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
   let vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
   let nodeModulesPath = sourcePath </> ".." </> "node_modules"
   let nodeModulesInRoot = "." </> "node_modules"
-  let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' require
+  let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' parent
   let relativeNodeModulesRequire =
         tryPlainJsExtAndIndex
           (relativePath </> "node_modules")
           requiredAs'
-          require
-  let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' require
-  let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' require
+          parent
+  let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' parent
+  let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' parent
   let nodeModuleRequireInRoot =
-        tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' require
+        tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' parent
   let nodeModuleRequire =
-        tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
+        tryPlainJsExtAndIndex nodeModulesPath requiredAs' parent
   let vendorComponentsRequire =
-        tryPlainJsExtAndIndex vendorComponentsPath requiredAs' require
+        tryPlainJsExtAndIndex vendorComponentsPath requiredAs' parent
   let vendorJavaScriptsRequire =
-        tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' require
+        tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' parent
   relativeRequire <|> relativeNodeModulesRequire <|> moduleRequire <|>
     sourceRequire <|>
     nodeModuleRequire <|>
@@ -127,6 +129,7 @@ tryPlainJsExtAndIndex :: FilePath
                       -> Dependency
                       -> Task (Dependency, [Dependency])
 tryPlainJsExtAndIndex basePath fileName require =
+  tryMain basePath fileName require <|>
   findInPath Ast.Js basePath fileName require <|>
   findInPath Ast.Js basePath (fileName <.> "js") require <|>
   findInPath Ast.Js basePath (fileName </> "index.js") require <|>
@@ -135,6 +138,15 @@ tryPlainJsExtAndIndex basePath fileName require =
   findInPath Ast.Coffee basePath fileName require <|>
   findInPath Ast.Coffee basePath (fileName <.> "coffee") require <|>
   findInPath Ast.Coffee basePath (fileName </> "index.coffee") require
+
+tryMain :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
+tryMain basePath fileName require = do
+  PackageJson maybeMain maybeBrowser <-
+    PackageJson.load $ basePath </> fileName </> "package" <.> "json"
+  case maybeBrowser <|> maybeMain of
+    Just browser ->
+      findInPath Ast.Js basePath (fileName </> T.unpack browser) require
+    Nothing -> left []
 
 moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
 moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do

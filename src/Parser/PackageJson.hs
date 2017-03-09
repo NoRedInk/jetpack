@@ -12,9 +12,11 @@ import qualified Data.Text as T
 import Error (Error(..))
 import GHC.Generics (Generic)
 import Task (Task)
+import Utils.Files (fileExistsTask)
 
 data PackageJson = PackageJson
-  { main :: T.Text
+  { main :: Maybe T.Text
+  , browser :: Maybe T.Text
   } deriving (Show, Eq, Generic)
 
 instance FromJSON PackageJson
@@ -23,6 +25,7 @@ instance FromJSON PackageJson
 -}
 load :: FilePath -> Task PackageJson
 load path = do
+  _ <- fileExistsTask path
   content <- lift $ BL.readFile path
   case Aeson.decode content of
     Just json -> return json

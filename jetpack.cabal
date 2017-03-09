@@ -25,6 +25,7 @@ library
                        Parser.Ast,
                        Parser.Comment,
                        Parser.Require,
+                       Parser.PackageJson,
                        Pipeline,
                        Task
   other-modules:       Utils.Files,
