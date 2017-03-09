@@ -44,9 +44,9 @@ suite =
          , "OOOO"
          , "// ignore"
          , "oooo"
-         , "/* IGNORE"
-         , "IGNORE"
-         , "*/"
+         , "/**"
+         , " * IGNORE"
+         , " */"
          ])
     , testCase "only comments" $
       "" @=? (Parser.Comment.eatJsComments $ T.concat ["// foo", "/* asdf */"])

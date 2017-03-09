@@ -67,7 +67,7 @@ eatCommentsParser parser = do
 
 jsBlockCommentParser :: Parsec T.Text st ()
 jsBlockCommentParser =
-  string "/*" >> manyTill anyChar (string "*/") >> return ()
+  string "/*" >> manyTill anyChar (try $ string "*/") >> return ()
 
 jsLineCommentParser :: Parsec T.Text st ()
 jsLineCommentParser =
