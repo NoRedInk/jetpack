@@ -1,2 +1,2 @@
-var _ = require("lodash/lodash.dist.js");
+var _ = require("lodash");
 // var Main = require("Main.elm");

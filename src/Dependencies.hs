@@ -42,7 +42,7 @@ import Error
 import Parser.Ast as Ast
 import qualified Parser.Require
 import System.Directory (doesFileExist)
-import System.FilePath ((</>), (<.>), dropFileName)
+import System.FilePath ((</>), (<.>), dropFileName, takeDirectory)
 import Task (Task)
 import Utils.Files (findAllFilesIn, fileExistsTask)
 
@@ -82,8 +82,8 @@ updatePath path (Dependency t r _) = Dependency t r path
 depsTree :: Config -> Dependency -> Task DependencyTree
 depsTree config = Tree.unfoldTreeM $ findRequires config
 
-requireToDep :: Ast.Require -> Dependency
-requireToDep (Ast.Require t n) = Dependency t n n
+requireToDep :: FilePath -> Ast.Require -> Dependency
+requireToDep path (Ast.Require t n) = Dependency t n path
 
 updateDepPath :: FilePath -> Dependency -> Dependency
 updateDepPath newPath (Dependency t r p) = Dependency t r newPath
@@ -92,10 +92,12 @@ findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRequires config require = do
   let sourcePath = Config.source_directory config
   let requiredAs' = requiredAs require
+  let relativePath = filePath require
   let modulesPath = dropFileName $ filePath require
   let vendorPath = "." </> "vendor" </> "assets" </> "components"
   let nodeModulesPath = sourcePath </> ".." </> "node_modules"
   let nodeModulesInRoot = "." </> "node_modules"
+  let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' require
   let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' require
   let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' require
   let nodeModuleRequireInRoot =
@@ -103,7 +105,7 @@ findRequires config require = do
   let nodeModuleRequire =
         tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
   let vendorRequire = tryPlainJsExtAndIndex vendorPath requiredAs' require
-  moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
+  relativeRequire <|> moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
     nodeModuleRequireInRoot <|>
     vendorRequire <|>
     moduleNotFound config requiredAs'
@@ -116,6 +118,8 @@ tryPlainJsExtAndIndex basePath fileName require =
   findInPath Ast.Js basePath fileName require <|>
   findInPath Ast.Js basePath (fileName <.> "js") require <|>
   findInPath Ast.Js basePath (fileName </> "index.js") require <|>
+  findInPath Ast.Js basePath (fileName </> fileName) require <|>
+  findInPath Ast.Js basePath (fileName </> fileName <.> "js") require <|>
   findInPath Ast.Coffee basePath fileName require <|>
   findInPath Ast.Coffee basePath (fileName <.> "coffee") require <|>
   findInPath Ast.Coffee basePath (fileName </> "index.coffee") require
@@ -148,5 +152,5 @@ parseModule basePath path require parser = do
   _ <- fileExistsTask searchPath
   content <- lift $ readFile searchPath
   let requires = parser $ T.pack content
-  let dependencies = fmap requireToDep requires
+  let dependencies = fmap (requireToDep $ takeDirectory searchPath) requires
   return (updateDepPath searchPath require, dependencies)

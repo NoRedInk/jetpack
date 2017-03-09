@@ -38,16 +38,24 @@ suite =
     [ testCase "#find success" $ do
         e <- runEitherT $ do Dependencies.find basicsFixtures
         case e of
-          Left msg -> assertFailure $ "This shouldn't fail"
+          Left msg -> do
+            _ <- traverse print msg
+            assertFailure $ "This shouldn't fail"
           Right deps ->
             fmap (fmap pathsFromFixturesDir . Tree.flatten) deps @?=
             [ [ Dependency Ast.Js ("basics" </> "modules" </> "test.js") $
                 "basics" </> "modules" </> "test.js"
               , Dependency Ast.Js ("" </> "index") $
                 "basics" </> "sources" </> "index.js"
-              , Dependency Ast.Js ("lodash" </> "lodash.dist.js") $
+              , Dependency Ast.Js ("" </> "lodash") $
                 "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "lodash.dist.js"
+                "index.js"
+              , Dependency Ast.Js ("." </> "lodash.dist.js") $
+                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "lodash.dist.js"
+              , Dependency Ast.Js ("." </> "lodash") $
+                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "." </> "lodash.js"
               ]
             ]
     , testCase "#find failing" $ do
