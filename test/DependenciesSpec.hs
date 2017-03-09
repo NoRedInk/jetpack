@@ -46,7 +46,7 @@ suite =
               , Dependency Ast.Js ("" </> "index") $
                 "basics" </> "sources" </> "index.js"
               , Dependency Ast.Js ("lodash" </> "lodash.dist.js") $
-                "basics" </> "sources" </> "node_modules" </> "lodash" </>
+                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "lodash.dist.js"
               ]
             ]

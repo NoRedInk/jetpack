@@ -93,16 +93,19 @@ findRequires config require = do
   let sourcePath = Config.source_directory config
   let requiredAs' = requiredAs require
   let modulesPath = dropFileName $ filePath require
-  let nodeModulesPath = "" </> "node_modules"
-  let nodeModulesPathInSourceDir = sourcePath </> nodeModulesPath
+  let vendorPath = "." </> "vendor" </> "assets" </> "components"
+  let nodeModulesPath = sourcePath </> ".." </> "node_modules"
+  let nodeModulesInRoot = "." </> "node_modules"
   let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' require
   let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' require
+  let nodeModuleRequireInRoot =
+        tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' require
   let nodeModuleRequire =
-        tryPlainJsExtAndIndex nodeModulesPathInSourceDir requiredAs' require
-  let nodeModuleOneUpRequire =
         tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
-  moduleRequire <|> sourceRequire <|> nodeModuleOneUpRequire <|>
-    nodeModuleRequire <|>
+  let vendorRequire = tryPlainJsExtAndIndex vendorPath requiredAs' require
+  moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
+    nodeModuleRequireInRoot <|>
+    vendorRequire <|>
     moduleNotFound config requiredAs'
 
 tryPlainJsExtAndIndex :: FilePath
@@ -110,22 +113,40 @@ tryPlainJsExtAndIndex :: FilePath
                       -> Dependency
                       -> Task (Dependency, [Dependency])
 tryPlainJsExtAndIndex basePath fileName require =
-  findInPath basePath fileName require <|>
-  findInPath basePath (fileName <.> "js") require <|>
-  findInPath basePath (fileName </> "index.js") require
+  findInPath Ast.Js basePath fileName require <|>
+  findInPath Ast.Js basePath (fileName <.> "js") require <|>
+  findInPath Ast.Js basePath (fileName </> "index.js") require <|>
+  findInPath Ast.Coffee basePath fileName require <|>
+  findInPath Ast.Coffee basePath (fileName <.> "coffee") require <|>
+  findInPath Ast.Coffee basePath (fileName </> "index.coffee") require
 
 moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
 moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do
   left [ModuleNotFound moduleDirectory sourceDirectory $ show fileName]
 
-findInPath :: FilePath
-           -> FilePath
-           -> Dependency
-           -> Task (Dependency, [Dependency])
-findInPath basePath path require = do
+findInPath
+  :: Ast.SourceType
+  -> FilePath
+  -> FilePath
+  -> Dependency
+  -> Task (Dependency, [Dependency])
+findInPath Ast.Js basePath path require = do
+  parseModule basePath path require $ Parser.Require.jsRequires
+findInPath Ast.Coffee basePath path require = do
+  parseModule basePath path require $ Parser.Require.coffeeRequires
+findInPath Ast.Elm basePath path require = do
+  return (require, [])
+
+parseModule
+  :: FilePath
+  -> FilePath
+  -> Dependency
+  -> (T.Text -> [Ast.Require])
+  -> Task (Dependency, [Dependency])
+parseModule basePath path require parser = do
   let searchPath = basePath </> path
   _ <- fileExistsTask searchPath
   content <- lift $ readFile searchPath
-  let requires = Parser.Require.jsRequires $ T.pack content
+  let requires = parser $ T.pack content
   let dependencies = fmap requireToDep requires
   return (updateDepPath searchPath require, dependencies)
