@@ -14,17 +14,34 @@
   ```
 
 
-## The path problem:
+## Finding modules
 
-We need the absolute path as well as the path that a file got required by.
-The absolute path is different, for each model.
-Entry points: Config.module_directory / filename
-Sourcefile: Config.source_directory / filename
-Sourcefile: Config.source_directory / name /index.js
-NodeModule: Config.source_directory / node_modules / filename
-NodeModule: Config.source_directory / node_modules / name / index.js
-NodeModule: Config.source_directory / .. / node_modules / filename
-NodeModule: Config.source_directory / .. / node_modules / name / index.js
+We are searching in the following folders.
+
+1. relative to the file requiring the module
+2. relative in node_modules
+3. in `modules_directory`
+4. in `source_directory`
+5. in `{source_directory}/../node_modules`
+6. in `{root}/node_modules`
+7. in `{root}/vendor/assets/components`
+8. in `{root}/vendor/assets/javascripts`
+9. woop woop! module not found
+
+In each directory we search for the following names.
+`{name}`  is the string from the `require` statement
+
+1. `{folder}/{name}` from `browser` field in `package.json`
+2. `{folder}/{name}` from `main` field in `package.json`
+3. `{folder}/{name}`
+4. `{folder}/{name}.js`
+5. `{folder}/{name}/index.js`
+6. `{folder}/{name}/{name}`
+7. `{folder}/{name}/{name}.js`
+8. `{folder}/{name}`
+9. `{folder}/{name}.coffee`
+10. `{folder}/{name}/index.coffee`
+
 -}
 module Dependencies
   ( find
