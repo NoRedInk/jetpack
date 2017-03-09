@@ -94,7 +94,8 @@ findRequires config require = do
   let requiredAs' = requiredAs require
   let relativePath = filePath require
   let modulesPath = dropFileName $ filePath require
-  let vendorPath = "." </> "vendor" </> "assets" </> "components"
+  let vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
+  let vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
   let nodeModulesPath = sourcePath </> ".." </> "node_modules"
   let nodeModulesInRoot = "." </> "node_modules"
   let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' require
@@ -104,10 +105,12 @@ findRequires config require = do
         tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' require
   let nodeModuleRequire =
         tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
-  let vendorRequire = tryPlainJsExtAndIndex vendorPath requiredAs' require
+  let vendorComponentsRequire = tryPlainJsExtAndIndex vendorComponentsPath requiredAs' require
+  let vendorJavaScriptsRequire = tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' require
   relativeRequire <|> moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
     nodeModuleRequireInRoot <|>
-    vendorRequire <|>
+    vendorComponentsRequire <|>
+    vendorJavaScriptsRequire <|>
     moduleNotFound config requiredAs'
 
 tryPlainJsExtAndIndex :: FilePath
