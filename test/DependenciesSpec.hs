@@ -55,12 +55,11 @@ suite =
         case e of
           Right _ -> assertFailure $ "This shouldn't fail"
           Left errors ->
-            errors @?=
-            [ ModuleNotFound
-                (Config.module_directory failingFixtures)
-                (Config.source_directory failingFixtures)
-                "index"
-            ]
+            L.last errors @?=
+            ModuleNotFound
+              (Config.module_directory failingFixtures)
+              (Config.source_directory failingFixtures)
+              "\"index\""
     ]
 
 pathsFromFixturesDir :: Dependency -> Dependency

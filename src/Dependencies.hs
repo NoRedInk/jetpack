@@ -23,6 +23,8 @@ Sourcefile: Config.source_directory / filename
 Sourcefile: Config.source_directory / name /index.js
 NodeModule: Config.source_directory / node_modules / filename
 NodeModule: Config.source_directory / node_modules / name / index.js
+NodeModule: Config.source_directory / .. / node_modules / filename
+NodeModule: Config.source_directory / .. / node_modules / name / index.js
 -}
 module Dependencies
   ( find
@@ -91,12 +93,16 @@ findRequires config require = do
   let sourcePath = Config.source_directory config
   let requiredAs' = requiredAs require
   let modulesPath = dropFileName $ filePath require
-  let nodeModulesPath = sourcePath </> "node_modules"
+  let nodeModulesPath = "" </> "node_modules"
+  let nodeModulesPathInSourceDir = sourcePath </> nodeModulesPath
   let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' require
   let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' require
   let nodeModuleRequire =
+        tryPlainJsExtAndIndex nodeModulesPathInSourceDir requiredAs' require
+  let nodeModuleOneUpRequire =
         tryPlainJsExtAndIndex nodeModulesPath requiredAs' require
-  moduleRequire <|> sourceRequire <|> nodeModuleRequire <|>
+  moduleRequire <|> sourceRequire <|> nodeModuleOneUpRequire <|>
+    nodeModuleRequire <|>
     moduleNotFound config requiredAs'
 
 tryPlainJsExtAndIndex :: FilePath
