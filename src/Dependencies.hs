@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-| Finds all dependencies of a module. It creates a try like the following for each module.
@@ -60,14 +60,14 @@ import Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.Directory (doesFileExist)
-import System.FilePath ((</>), (<.>), dropFileName, takeDirectory)
+import System.FilePath (dropFileName, takeDirectory, (<.>), (</>))
 import Task (Task)
-import Utils.Files (findAllFilesIn, fileExistsTask)
+import Utils.Files (fileExistsTask, findAllFilesIn)
 
 data Dependency = Dependency
-  { fileType :: Ast.SourceType
+  { fileType   :: Ast.SourceType
   , requiredAs :: FilePath
-  , filePath :: FilePath
+  , filePath   :: FilePath
   } deriving (Eq)
 
 instance Show Dependency where
@@ -121,9 +121,7 @@ findRelative :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRelative config parent =
   tryPlainJsExtAndIndex (filePath parent) (requiredAs parent) parent
 
-findRelativeNodeModules :: Config
-                        -> Dependency
-                        -> Task (Dependency, [Dependency])
+findRelativeNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRelativeNodeModules config parent =
   tryPlainJsExtAndIndex
     (filePath parent </> "node_modules")
@@ -154,35 +152,29 @@ findInNodeModules config parent =
   where
     nodeModulesPath = Config.source_directory config </> ".." </> "node_modules"
 
-findInVendorComponents :: Config
-                       -> Dependency
-                       -> Task (Dependency, [Dependency])
+findInVendorComponents :: Config -> Dependency -> Task (Dependency, [Dependency])
 findInVendorComponents config parent =
   tryPlainJsExtAndIndex vendorComponentsPath (requiredAs parent) parent
   where
     vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
 
-findInVendorJavascripts :: Config
-                        -> Dependency
-                        -> Task (Dependency, [Dependency])
+findInVendorJavascripts :: Config -> Dependency -> Task (Dependency, [Dependency])
 findInVendorJavascripts config parent =
   tryPlainJsExtAndIndex vendorJavaScriptsPath (requiredAs parent) parent
   where
     vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
 
-tryPlainJsExtAndIndex :: FilePath
-                      -> FilePath
-                      -> Dependency
-                      -> Task (Dependency, [Dependency])
+tryPlainJsExtAndIndex :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 tryPlainJsExtAndIndex basePath fileName require =
-  tryMain basePath fileName require <|> findJsInPath fileName <|>
-  findJsInPath (fileName <.> "js") <|>
-  findJsInPath (fileName </> "index.js") <|>
-  findJsInPath (fileName </> fileName) <|>
-  findJsInPath (fileName </> fileName <.> "js") <|>
-  findCoffeeInPath fileName <|>
-  findCoffeeInPath (fileName <.> "coffee") <|>
-  findCoffeeInPath (fileName </> "index.coffee")
+  tryMain basePath fileName require
+  <|> findJsInPath fileName
+  <|> findJsInPath (fileName <.> "js")
+  <|> findJsInPath (fileName </> "index.js")
+  <|> findJsInPath (fileName </> fileName)
+  <|> findJsInPath (fileName </> fileName <.> "js")
+  <|> findCoffeeInPath fileName
+  <|> findCoffeeInPath (fileName <.> "coffee")
+  <|> findCoffeeInPath (fileName </> "index.coffee")
   where
     findJsInPath f = findInPath Ast.Js basePath f require
     findCoffeeInPath f = findInPath Ast.Coffee basePath f require
@@ -200,25 +192,12 @@ moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
 moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do
   left [ModuleNotFound moduleDirectory sourceDirectory $ show fileName]
 
-findInPath
-  :: Ast.SourceType
-  -> FilePath
-  -> FilePath
-  -> Dependency
-  -> Task (Dependency, [Dependency])
-findInPath Ast.Js basePath path require = do
-  parseModule basePath path require $ Parser.Require.jsRequires
-findInPath Ast.Coffee basePath path require = do
-  parseModule basePath path require $ Parser.Require.coffeeRequires
-findInPath Ast.Elm basePath path require = do
-  return (require, [])
+findInPath :: Ast.SourceType -> FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
+findInPath Ast.Js basePath path require = do parseModule basePath path require $ Parser.Require.jsRequires
+findInPath Ast.Coffee basePath path require = do parseModule basePath path require $ Parser.Require.coffeeRequires
+findInPath Ast.Elm basePath path require = do return (require, [])
 
-parseModule
-  :: FilePath
-  -> FilePath
-  -> Dependency
-  -> (T.Text -> [Ast.Require])
-  -> Task (Dependency, [Dependency])
+parseModule :: FilePath -> FilePath -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
 parseModule basePath path require parser = do
   let searchPath = basePath </> path
   _ <- fileExistsTask searchPath
