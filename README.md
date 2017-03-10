@@ -6,4 +6,13 @@ jetpack
 
 https://paper.dropbox.com/doc/jetpack-1EgiUsPF7gx5lwPD1BCKe
 
-`./watch-tests`
+```bash
+stack setup
+stack build
+stack test
+```
+
+* install `stylish` `stack install stylish`
+* install [`entr`](http://entrproject.org/)
+
+Run `./watch-tests` during development. It will rerun all tests when a `hs` file changes.
