@@ -108,53 +108,84 @@ updateDepPath newPath (Dependency t r p) = Dependency t r newPath
 
 findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRequires config parent = do
-  _ <- lift $ print parent
-  let sourcePath = Config.source_directory config
-  let requiredAs' = requiredAs parent
-  let relativePath = filePath parent
-  let modulesPath = dropFileName $ filePath parent
-  let vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
-  let vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
-  let nodeModulesPath = sourcePath </> ".." </> "node_modules"
-  let nodeModulesInRoot = "." </> "node_modules"
-  let relativeRequire = tryPlainJsExtAndIndex relativePath requiredAs' parent
-  let relativeNodeModulesRequire =
-        tryPlainJsExtAndIndex
-          (relativePath </> "node_modules")
-          requiredAs'
-          parent
-  let moduleRequire = tryPlainJsExtAndIndex modulesPath requiredAs' parent
-  let sourceRequire = tryPlainJsExtAndIndex sourcePath requiredAs' parent
-  let nodeModuleRequireInRoot =
-        tryPlainJsExtAndIndex nodeModulesInRoot requiredAs' parent
-  let nodeModuleRequire =
-        tryPlainJsExtAndIndex nodeModulesPath requiredAs' parent
-  let vendorComponentsRequire =
-        tryPlainJsExtAndIndex vendorComponentsPath requiredAs' parent
-  let vendorJavaScriptsRequire =
-        tryPlainJsExtAndIndex vendorJavaScriptsPath requiredAs' parent
-  relativeRequire <|> relativeNodeModulesRequire <|> moduleRequire <|>
-    sourceRequire <|>
-    nodeModuleRequire <|>
-    nodeModuleRequireInRoot <|>
-    vendorComponentsRequire <|>
-    vendorJavaScriptsRequire <|>
-    moduleNotFound config requiredAs'
+  findRelative config parent <|> findRelativeNodeModules config parent <|>
+    findInModules config parent <|>
+    findInSources config parent <|>
+    findInNodeModules config parent <|>
+    findInRootNodeModules config parent <|>
+    findInVendorComponents config parent <|>
+    findInVendorJavascripts config parent <|>
+    moduleNotFound config (requiredAs parent)
+
+findRelative :: Config -> Dependency -> Task (Dependency, [Dependency])
+findRelative config parent =
+  tryPlainJsExtAndIndex (filePath parent) (requiredAs parent) parent
+
+findRelativeNodeModules :: Config
+                        -> Dependency
+                        -> Task (Dependency, [Dependency])
+findRelativeNodeModules config parent =
+  tryPlainJsExtAndIndex
+    (filePath parent </> "node_modules")
+    (requiredAs parent)
+    parent
+
+findInModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInModules config parent =
+  tryPlainJsExtAndIndex modulesPath (requiredAs parent) parent
+  where
+    modulesPath = dropFileName $ filePath parent
+
+findInSources :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInSources config parent =
+  tryPlainJsExtAndIndex sourcePath (requiredAs parent) parent
+  where
+    sourcePath = Config.source_directory config
+
+findInRootNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInRootNodeModules config parent =
+  tryPlainJsExtAndIndex nodeModulesInRoot (requiredAs parent) parent
+  where
+    nodeModulesInRoot = "." </> "node_modules"
+
+findInNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInNodeModules config parent =
+  tryPlainJsExtAndIndex nodeModulesPath (requiredAs parent) parent
+  where
+    nodeModulesPath = Config.source_directory config </> ".." </> "node_modules"
+
+findInVendorComponents :: Config
+                       -> Dependency
+                       -> Task (Dependency, [Dependency])
+findInVendorComponents config parent =
+  tryPlainJsExtAndIndex vendorComponentsPath (requiredAs parent) parent
+  where
+    vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
+
+findInVendorJavascripts :: Config
+                        -> Dependency
+                        -> Task (Dependency, [Dependency])
+findInVendorJavascripts config parent =
+  tryPlainJsExtAndIndex vendorJavaScriptsPath (requiredAs parent) parent
+  where
+    vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
 
 tryPlainJsExtAndIndex :: FilePath
                       -> FilePath
                       -> Dependency
                       -> Task (Dependency, [Dependency])
 tryPlainJsExtAndIndex basePath fileName require =
-  tryMain basePath fileName require <|>
-  findInPath Ast.Js basePath fileName require <|>
-  findInPath Ast.Js basePath (fileName <.> "js") require <|>
-  findInPath Ast.Js basePath (fileName </> "index.js") require <|>
-  findInPath Ast.Js basePath (fileName </> fileName) require <|>
-  findInPath Ast.Js basePath (fileName </> fileName <.> "js") require <|>
-  findInPath Ast.Coffee basePath fileName require <|>
-  findInPath Ast.Coffee basePath (fileName <.> "coffee") require <|>
-  findInPath Ast.Coffee basePath (fileName </> "index.coffee") require
+  tryMain basePath fileName require <|> findJsInPath fileName <|>
+  findJsInPath (fileName <.> "js") <|>
+  findJsInPath (fileName </> "index.js") <|>
+  findJsInPath (fileName </> fileName) <|>
+  findJsInPath (fileName </> fileName <.> "js") <|>
+  findCoffeeInPath fileName <|>
+  findCoffeeInPath (fileName <.> "coffee") <|>
+  findCoffeeInPath (fileName </> "index.coffee")
+  where
+    findJsInPath f = findInPath Ast.Js basePath f require
+    findCoffeeInPath f = findInPath Ast.Coffee basePath f require
 
 tryMain :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 tryMain basePath fileName require = do
