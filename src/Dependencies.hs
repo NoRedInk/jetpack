@@ -60,7 +60,13 @@ import Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.Directory (doesFileExist)
-import System.FilePath (dropFileName, takeDirectory, (<.>), (</>))
+import System.FilePath
+    ( dropFileName
+    , takeDirectory
+    , takeExtension
+    , (<.>)
+    , (</>)
+    )
 import Task (Task)
 import Utils.Files (fileExistsTask, findAllFilesIn)
 
@@ -105,6 +111,11 @@ requireToDep path (Ast.Require t n) = Dependency t n path
 
 updateDepPath :: FilePath -> Dependency -> Dependency
 updateDepPath newPath (Dependency t r p) = Dependency t r newPath
+
+updateDepType :: Dependency -> Dependency
+updateDepType (Dependency t r p) = Dependency newType r p
+  where newType = Parser.Require.getFileType $ takeExtension p
+
 
 findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRequires config parent = do
@@ -199,7 +210,7 @@ moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do
 findInPath :: Ast.SourceType -> FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 findInPath Ast.Js basePath path require = do parseModule basePath path require $ Parser.Require.jsRequires
 findInPath Ast.Coffee basePath path require = do parseModule basePath path require $ Parser.Require.coffeeRequires
-findInPath Ast.Elm basePath path require = do return (require, [])
+findInPath Ast.Elm basePath _ require = do return (require, [])
 
 parseModule :: FilePath -> FilePath -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
 parseModule basePath path require parser = do
@@ -208,4 +219,4 @@ parseModule basePath path require parser = do
   content <- lift $ readFile searchPath
   let requires = parser $ T.pack content
   let dependencies = fmap (requireToDep $ takeDirectory searchPath) requires
-  return (updateDepPath searchPath require, dependencies)
+  return (updateDepType $ updateDepPath searchPath require, dependencies)
