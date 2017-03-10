@@ -9,7 +9,7 @@ import Data.Tree as Tree
 import Dependencies
 import Error
 import Parser.Ast as Ast
-import System.FilePath ((</>), joinPath, splitPath)
+import System.FilePath (joinPath, splitPath, (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -45,8 +45,8 @@ suite =
             fmap (fmap pathsFromFixturesDir . Tree.flatten) deps @?=
             [ [ Dependency Ast.Js ("basics" </> "modules" </> "test.js") $
                 "basics" </> "modules" </> "test.js"
-              , Dependency Ast.Js ("" </> "index") $
-                "basics" </> "sources" </> "index.js"
+              , Dependency Ast.Coffee ("" </> "index") $
+                "basics" </> "sources" </> "index.coffee"
               , Dependency Ast.Js ("" </> "lodash") $
                 "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "index.js"

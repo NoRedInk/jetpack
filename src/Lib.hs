@@ -12,6 +12,8 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Data.Functor.Sum (Sum (..))
 import Data.List as L
+import Data.List.Utils (uniq)
+import Data.Tree as Tree
 import qualified Error
 import qualified Interpreter.Logger as LogI
 import qualified Interpreter.Pipeline as PipelineI
@@ -35,7 +37,8 @@ program = do
   args <- readCliArgs -- TODO we propably want to read cli args before running the program.
   config <- readConfig (configPath args)
   deps <- dependencies config
-  _ <- compile deps
+  let modules = uniq $ concatMap Tree.flatten deps
+  _ <- compile modules
   return ()
 
 runProgram :: Pipeline a -> Task a
@@ -43,7 +46,7 @@ runProgram = foldFree executor . foldFree interpreter
 
 interpreter :: PipelineF a -> Free (Sum Logger.LogF Task) a
 interpreter op =
-  toLeft (LogI.treeInterpreter op) *> toRight (lift $ PipelineI.interpreter op)
+  toLeft (LogI.interpreter op) *> toRight (lift $ PipelineI.interpreter op)
 
 executor :: Sum Logger.LogF Task a -> Task a
 executor (InL l@(Logger.Log _ _ next)) = lift $ Logger.executor l >> return next

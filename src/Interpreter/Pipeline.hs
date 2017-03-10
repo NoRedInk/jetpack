@@ -5,6 +5,7 @@ module Interpreter.Pipeline
   , interpreter
   ) where
 
+import qualified Compile
 import qualified Config
 import Control.Monad.Trans.Class (lift)
 import qualified Dependencies
@@ -18,7 +19,9 @@ interpreter (ReadConfig _ next) =
 interpreter (Dependencies config next) = do
   deps <- Dependencies.find config
   return $ next deps
-interpreter (Compile _ next) = lift (putStrLn "TODO") >> return (next [])
+interpreter (Compile deps next) = do
+  Compile.compileModules deps
+  return next
 
 dryInterpreter :: PipelineF a -> Task a
 dryInterpreter (ReadCliArgs next) =
@@ -28,4 +31,4 @@ dryInterpreter (ReadConfig _ next) =
 dryInterpreter (Dependencies _ next) =
   lift (putStrLn "finding all dependencies") >> return (next [])
 dryInterpreter (Compile _ next) =
-  lift (putStrLn "compiling") >> return (next [])
+  lift (putStrLn "compiling") >> return next
