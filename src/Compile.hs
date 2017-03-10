@@ -7,6 +7,7 @@
 module Compile where
 
 import qualified Config
+import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import Dependencies (Dependency (..))
 import qualified Error
@@ -16,13 +17,10 @@ import System.FilePath ()
 import System.Process
 import Task (Task)
 
-
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task () }
 
 compileModules :: [Dependency] -> Task ()
-compileModules modules = do
-  traverse compile modules
-  return ()
+compileModules modules = Async.forConcurrently_ modules compile
 
 {-| Compile a dependency.
  1. find compiler

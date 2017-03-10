@@ -51,6 +51,7 @@ module Dependencies
 
 import Config
 import Control.Applicative ((<|>))
+import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (left)
 import qualified Data.Text as T
@@ -95,7 +96,7 @@ find config = do
       left [NoModulesPresent $ show modulesPath]
     else do
       let modules = fmap toDependency paths
-      traverse (depsTree config) modules
+      Async.forConcurrently modules (depsTree config)
 
 toDependency :: FilePath -> Dependency
 toDependency path = Dependency Ast.Js path path
