@@ -43,12 +43,7 @@ compile (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler) p "test"
 elmCompiler :: Compiler
 elmCompiler = Compiler $ \input output -> do
   let elmMake = "elm-make " ++ "../" ++ input ++ " --output " ++ output
-  (_, maybeOut, _, _) <- lift $ createProcess (proc "bash" ["-c", elmMake])
-    { std_out = CreatePipe
-    , cwd = Just "./ui"
-    }
-  printStdOut maybeOut
-  return ()
+  runCmd elmMake "./ui"
 
 coffeeCompiler :: Compiler
 coffeeCompiler = Compiler $ \input output -> do
@@ -65,6 +60,15 @@ jsCompiler = Compiler $ \input output -> do
 sassCompiler :: Compiler
 sassCompiler = Compiler $ \input output -> do
   (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["SASS"]){ std_out = CreatePipe }
+  printStdOut maybeOut
+  return ()
+
+runCmd :: String ->String -> Task ()
+runCmd cmd cwd = do
+  (_, maybeOut, _, _) <- lift $ createProcess (proc "bash" ["-c", cmd])
+    { std_out = CreatePipe
+    , cwd = Just cwd
+    }
   printStdOut maybeOut
   return ()
 
