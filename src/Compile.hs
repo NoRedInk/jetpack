@@ -30,7 +30,7 @@ compileModules modules = do
  3. compile to that output path
 -}
 compile :: Dependency -> Task ()
-compile (Dependency Ast.Elm _ p)    = (runCompiler elmCompiler) p "test"
+compile (Dependency Ast.Elm _ p)    = (runCompiler elmCompiler) p "./test.js"
 compile (Dependency Ast.Js _ p)     = (runCompiler jsCompiler) p "test"
 compile (Dependency Ast.Coffee _ p) = (runCompiler coffeeCompiler) p "test"
 compile (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler) p "test"
@@ -42,7 +42,11 @@ compile (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler) p "test"
 
 elmCompiler :: Compiler
 elmCompiler = Compiler $ \input output -> do
-  (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["ELM"]){ std_out = CreatePipe }
+  let elmMake = "elm-make " ++ "../" ++ input ++ " --output " ++ output
+  (_, maybeOut, _, _) <- lift $ createProcess (proc "bash" ["-c", elmMake])
+    { std_out = CreatePipe
+    , cwd = Just "./ui"
+    }
   printStdOut maybeOut
   return ()
 
