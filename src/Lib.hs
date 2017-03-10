@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
@@ -10,7 +10,7 @@ import Config ()
 import Control.Monad.Free (Free, foldFree)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
-import Data.Functor.Sum (Sum(..))
+import Data.Functor.Sum (Sum (..))
 import Data.List as L
 import qualified Error
 import qualified Interpreter.Logger as LogI

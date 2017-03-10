@@ -166,12 +166,16 @@ findInVendorJavascripts config parent =
 
 tryPlainJsExtAndIndex :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 tryPlainJsExtAndIndex basePath fileName require =
-  tryMain basePath fileName require
+  -- check if we have a package.json.
+  -- it contains information about the main file
+  tryMainFromPackageJson basePath fileName require
+  -- js
   <|> findJsInPath fileName
   <|> findJsInPath (fileName <.> "js")
   <|> findJsInPath (fileName </> "index.js")
   <|> findJsInPath (fileName </> fileName)
   <|> findJsInPath (fileName </> fileName <.> "js")
+  -- coffeescript
   <|> findCoffeeInPath fileName
   <|> findCoffeeInPath (fileName <.> "coffee")
   <|> findCoffeeInPath (fileName </> "index.coffee")
@@ -179,13 +183,13 @@ tryPlainJsExtAndIndex basePath fileName require =
     findJsInPath f = findInPath Ast.Js basePath f require
     findCoffeeInPath f = findInPath Ast.Coffee basePath f require
 
-tryMain :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
-tryMain basePath fileName require = do
-  PackageJson maybeMain maybeBrowser <-
-    PackageJson.load $ basePath </> fileName </> "package" <.> "json"
+tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
+tryMainFromPackageJson basePath fileName require = do
+  let packageJsonPath = basePath </> fileName </> "package" <.> "json"
+  PackageJson maybeMain maybeBrowser <- PackageJson.load packageJsonPath
   case maybeBrowser <|> maybeMain of
-    Just browser ->
-      findInPath Ast.Js basePath (fileName </> T.unpack browser) require
+    Just entryPoint ->
+      findInPath Ast.Js basePath (fileName </> T.unpack entryPoint) require
     Nothing -> left []
 
 moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
