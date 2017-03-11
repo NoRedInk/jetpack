@@ -2,7 +2,7 @@
 
 module Parser.CommentSpec where
 
-import Control.Monad.Trans.Either (runEitherT)
+import Control.Monad.Except (runExceptT)
 import Data.Maybe as M
 import Data.Text as T
 import Helper.Property

@@ -52,8 +52,8 @@ module Dependencies
 import Config
 import Control.Applicative ((<|>))
 import Control.Concurrent.Async.Lifted as Async
+import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Either (left)
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Error
@@ -93,7 +93,7 @@ find config = do
   paths <- findAllFilesIn modulesPath
   if paths == []
     then do
-      left [NoModulesPresent $ show modulesPath]
+      throwError [NoModulesPresent $ show modulesPath]
     else do
       let modules = fmap toDependency paths
       Async.forConcurrently modules (depsTree config)
@@ -202,11 +202,11 @@ tryMainFromPackageJson basePath fileName require = do
   case maybeBrowser <|> maybeMain of
     Just entryPoint ->
       findInPath Ast.Js basePath (fileName </> T.unpack entryPoint) require
-    Nothing -> left []
+    Nothing -> throwError []
 
 moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
 moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do
-  left [ModuleNotFound moduleDirectory sourceDirectory $ show fileName]
+  throwError [ModuleNotFound moduleDirectory sourceDirectory $ show fileName]
 
 findInPath :: Ast.SourceType -> FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 findInPath Ast.Js basePath path require = do parseModule basePath path require $ Parser.Require.jsRequires

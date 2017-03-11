@@ -7,9 +7,9 @@ module Lib
   ) where
 
 import Config ()
+import Control.Monad.Except
 import Control.Monad.Free (Free, foldFree)
 import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
 import Data.Functor.Sum (Sum (..))
 import Data.List as L
 import Data.List.Utils (uniq)
@@ -25,7 +25,7 @@ import Utils.Free (toLeft, toRight)
 
 run :: IO ()
 run = do
-  e <- runEitherT $ do runProgram program
+  e <- runExceptT $ do runProgram program
   case e of
     Left err -> do
       putStrLn "Compilation failed!"

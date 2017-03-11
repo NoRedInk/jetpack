@@ -3,7 +3,7 @@
 module ConfigSpec where
 
 import Config
-import Control.Monad.Trans.Either (runEitherT)
+import Control.Monad.Except (runExceptT)
 import Error
 import System.FilePath ((</>))
 import Test.Tasty
@@ -14,7 +14,7 @@ suite =
   testGroup
     "Config"
     [ testCase "#load success" $ do
-        e <- runEitherT $ do Config.load "./test/fixtures"
+        e <- runExceptT $ do Config.load "./test/fixtures"
         case e of
           Left _ -> assertFailure $ "Couldn't decode jetpack.json"
           Right config ->
@@ -26,7 +26,7 @@ suite =
               ("app" </> "js")
               ("app" </> "css")
     , testCase "#load failure" $ do
-        e <- runEitherT $ do Config.load "./test"
+        e <- runExceptT $ do Config.load "./test"
         case e of
           Left msg ->
             fmap Error.description msg @=?

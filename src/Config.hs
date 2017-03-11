@@ -7,21 +7,21 @@ module Config
   , defaultConfig
   ) where
 
+import Control.Monad.Except
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Either (EitherT, left)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import Error (Error(..))
+import Error (Error (..))
 import GHC.Generics (Generic)
 import System.FilePath ((</>))
 import Task (Task)
 import Utils.Files (fileExistsTask)
 
 data Config = Config
-  { module_directory :: FilePath
-  , source_directory :: FilePath
-  , temp_directory :: FilePath
-  , output_js_directory :: FilePath
+  { module_directory     :: FilePath
+  , source_directory     :: FilePath
+  , temp_directory       :: FilePath
+  , output_js_directory  :: FilePath
   , output_css_directory :: FilePath
   } deriving (Show, Eq, Generic)
 
@@ -47,4 +47,4 @@ load root = do
   content <- lift $ BL.readFile path
   case Aeson.decode content of
     Just config -> lift $ return config
-    Nothing -> left $ [JsonInvalid path]
+    Nothing     -> throwError $ [JsonInvalid path]

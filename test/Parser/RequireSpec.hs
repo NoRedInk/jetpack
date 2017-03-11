@@ -2,7 +2,7 @@
 
 module Parser.RequireSpec where
 
-import Control.Monad.Trans.Either (runEitherT)
+import Control.Monad.Except (runExceptT)
 import Data.Maybe as M
 import Data.Text as T
 import Helper.Property
@@ -16,7 +16,7 @@ import Test.Tasty.QuickCheck
 assertRequire :: T.Text -> Ast.Require -> Assertion
 assertRequire content require =
   case Require.require content of
-    Just c -> c @?= require
+    Just c  -> c @?= require
     Nothing -> assertFailure "failed"
 
 assertParsingFails :: T.Text -> Assertion

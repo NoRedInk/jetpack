@@ -3,7 +3,7 @@
 module DependenciesSpec where
 
 import Config
-import Control.Monad.Trans.Either (runEitherT)
+import Control.Monad.Except (runExceptT)
 import Data.List as L
 import Data.Tree as Tree
 import Dependencies
@@ -36,7 +36,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runEitherT $ do Dependencies.find basicsFixtures
+        e <- runExceptT $ do Dependencies.find basicsFixtures
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -67,7 +67,7 @@ suite =
               ]
             ]
     , testCase "#find failing" $ do
-        e <- runEitherT $ do Dependencies.find failingFixtures
+        e <- runExceptT $ do Dependencies.find failingFixtures
         case e of
           Right _ -> assertFailure $ "This shouldn't fail"
           Left errors ->

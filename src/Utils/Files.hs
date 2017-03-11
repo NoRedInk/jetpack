@@ -14,8 +14,8 @@ module Utils.Files
   , pathToFileName
   ) where
 
+import Control.Monad.Except
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Either (EitherT, left)
 import Data.List as L
 import Data.Text as T
 import Error (Error (..))
@@ -31,7 +31,7 @@ fileExistsTask path = do
   exists <- lift $ doesFileExist path
   case exists of
     True  -> lift $ return ()
-    False -> left $ [FileNotFound (show path)]
+    False -> throwError $ [FileNotFound (show path)]
 
 {-| Returns a list of files in the given direcory and all it's subdirectories.
 -}
