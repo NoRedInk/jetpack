@@ -9,13 +9,15 @@ module Compile where
 import qualified Config
 import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
+import Data.Text as T
 import Dependencies (Dependency (..))
 import qualified Error
 import GHC.IO.Handle
 import Parser.Ast as Ast
-import System.FilePath ()
+import System.FilePath ((<.>), (</>))
 import System.Process
 import Task (Task)
+import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task () }
 
@@ -28,11 +30,18 @@ compileModules modules = Async.forConcurrently_ modules compile
  3. compile to that output path
 -}
 compile :: Dependency -> Task ()
-compile (Dependency Ast.Elm _ p)    = (runCompiler elmCompiler) p "./test.js"
+compile (Dependency Ast.Elm _ p)    = (runCompiler elmCompiler) p $ outputFileName p
 compile (Dependency Ast.Js _ p)     = (runCompiler jsCompiler) p "test"
 compile (Dependency Ast.Coffee _ p) = (runCompiler coffeeCompiler) p "test"
 compile (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler) p "test"
 
+
+outputFileName :: FilePath -> String
+outputFileName path =
+  "."
+  </> "tmp"
+  </> (T.unpack $ pathToFileName path)
+  <.> "js"
 
 ---------------
 -- COMPILERS --
@@ -61,7 +70,7 @@ sassCompiler = Compiler $ \input output -> do
   printStdOut maybeOut
   return ()
 
-runCmd :: String ->String -> Task ()
+runCmd :: String -> String -> Task ()
 runCmd cmd cwd = do
   (_, maybeOut, _, _) <- lift $ createProcess (proc "bash" ["-c", cmd])
     { std_out = CreatePipe

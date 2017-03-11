@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
 
 {-| Parser for line and block comments in js or coffeescript.
 
@@ -54,7 +54,7 @@ eatComments :: Parsec T.Text () () -> Parsec T.Text () () -> T.Text -> T.Text
 eatComments blockParser lineParser str =
   case (parse parser "Error" str) of
     Right parsed -> parsed
-    Left _ -> str
+    Left _       -> str
   where
     parser = eatCommentsParser (try blockParser <|> try lineParser)
 
