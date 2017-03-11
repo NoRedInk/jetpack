@@ -6,12 +6,10 @@
 -}
 module Compile where
 
-import qualified Config
 import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import Data.Text as T
 import Dependencies (Dependency (..))
-import qualified Error
 import GHC.IO.Handle
 import Parser.Ast as Ast
 import System.FilePath ((<.>), (</>))
@@ -53,19 +51,19 @@ elmCompiler = Compiler $ \input output -> do
   runCmd elmMake "./ui"
 
 coffeeCompiler :: Compiler
-coffeeCompiler = Compiler $ \input output -> do
+coffeeCompiler = Compiler $ \_input _output -> do
   (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["COFFEE"]){ std_out = CreatePipe }
   printStdOut maybeOut
   return ()
 
 jsCompiler :: Compiler
-jsCompiler = Compiler $ \input output -> do
+jsCompiler = Compiler $ \_input _output -> do
   (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["JS"]){ std_out = CreatePipe }
   printStdOut maybeOut
   return ()
 
 sassCompiler :: Compiler
-sassCompiler = Compiler $ \input output -> do
+sassCompiler = Compiler $ \_input _output -> do
   (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["SASS"]){ std_out = CreatePipe }
   printStdOut maybeOut
   return ()

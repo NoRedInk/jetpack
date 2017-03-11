@@ -6,16 +6,16 @@ module Interpreter.Logger
   -- , treeInterpreter
   ) where
 
-import Data.Text as T
-import Data.Tree as Tree
-import Logger
+-- import Data.Text as T
+-- import Data.Tree as Tree
+import qualified Logger
 import Pipeline
 
-interpreter :: PipelineF a -> Log ()
-interpreter (ReadCliArgs next)          = info "readCliArgs"
-interpreter (ReadConfig maybePath next) = info "readConfig"
-interpreter (Dependencies _ next)       = info "dependencies"
-interpreter (Compile deps next)         = info "compile"
+interpreter :: PipelineF a -> Logger.Log ()
+interpreter (ReadCliArgs _)    = Logger.info "readCliArgs"
+interpreter (ReadConfig _ _)   = Logger.info "readConfig"
+interpreter (Dependencies _ _) = Logger.info "dependencies"
+interpreter (Compile _ _)      = Logger.info "compile"
 
 -- treeInterpreter :: PipelineF a -> Log ()
 -- treeInterpreter (ReadCliArgs next) = info "readCliArgs"

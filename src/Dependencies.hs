@@ -120,28 +120,29 @@ updateDepType (Dependency t r p) = Dependency newType r p
 
 findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRequires config parent = do
-  findRelative config parent <|> findRelativeNodeModules config parent <|>
-    findInModules config parent <|>
-    findInSources config parent <|>
-    findInNodeModules config parent <|>
-    findInRootNodeModules config parent <|>
-    findInVendorComponents config parent <|>
-    findInVendorJavascripts config parent <|>
-    moduleNotFound config (requiredAs parent)
+  findRelative parent
+    <|> findRelativeNodeModules parent
+    <|> findInModules parent
+    <|> findInSources config parent
+    <|> findInNodeModules config parent
+    <|> findInRootNodeModules parent
+    <|> findInVendorComponents parent
+    <|> findInVendorJavascripts parent
+    <|> moduleNotFound config (requiredAs parent)
 
-findRelative :: Config -> Dependency -> Task (Dependency, [Dependency])
-findRelative config parent =
+findRelative :: Dependency -> Task (Dependency, [Dependency])
+findRelative parent =
   tryPlainJsExtAndIndex (filePath parent) (requiredAs parent) parent
 
-findRelativeNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
-findRelativeNodeModules config parent =
+findRelativeNodeModules :: Dependency -> Task (Dependency, [Dependency])
+findRelativeNodeModules parent =
   tryPlainJsExtAndIndex
     (filePath parent </> "node_modules")
     (requiredAs parent)
     parent
 
-findInModules :: Config -> Dependency -> Task (Dependency, [Dependency])
-findInModules config parent =
+findInModules :: Dependency -> Task (Dependency, [Dependency])
+findInModules parent =
   tryPlainJsExtAndIndex modulesPath (requiredAs parent) parent
   where
     modulesPath = dropFileName $ filePath parent
@@ -152,8 +153,8 @@ findInSources config parent =
   where
     sourcePath = Config.source_directory config
 
-findInRootNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
-findInRootNodeModules config parent =
+findInRootNodeModules :: Dependency -> Task (Dependency, [Dependency])
+findInRootNodeModules parent =
   tryPlainJsExtAndIndex nodeModulesInRoot (requiredAs parent) parent
   where
     nodeModulesInRoot = "." </> "node_modules"
@@ -164,14 +165,14 @@ findInNodeModules config parent =
   where
     nodeModulesPath = Config.source_directory config </> ".." </> "node_modules"
 
-findInVendorComponents :: Config -> Dependency -> Task (Dependency, [Dependency])
-findInVendorComponents config parent =
+findInVendorComponents :: Dependency -> Task (Dependency, [Dependency])
+findInVendorComponents parent =
   tryPlainJsExtAndIndex vendorComponentsPath (requiredAs parent) parent
   where
     vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
 
-findInVendorJavascripts :: Config -> Dependency -> Task (Dependency, [Dependency])
-findInVendorJavascripts config parent =
+findInVendorJavascripts :: Dependency -> Task (Dependency, [Dependency])
+findInVendorJavascripts parent =
   tryPlainJsExtAndIndex vendorJavaScriptsPath (requiredAs parent) parent
   where
     vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
