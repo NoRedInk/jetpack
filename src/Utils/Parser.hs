@@ -45,6 +45,7 @@ stringContent = P.choice [quotes manyNotQuotes, doubleQuotes manyNotQuotes]
 betweenParens :: P.Parsec T.Text u String -> P.Parsec T.Text u String
 betweenParens = P.between (P.char '(') $ P.char ')'
 
+
 manyNotQuotes :: P.Parsec T.Text u String
 manyNotQuotes = P.many1 $ P.noneOf "'\""
 

@@ -50,7 +50,6 @@ module Dependencies
   ( find
   , Dependencies
   , Dependency(..)
-  , findChild_
   ) where
 
 import Config
@@ -286,12 +285,8 @@ findInPath basePath path require = do
 parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
 parseModule cache dep@Dependency {filePath} parser = do
   case findInCache dep cache of
-    Just cached -> do
-      lift $ putStrLn "cached"
-      return cached
+    Just cached -> return cached
     Nothing -> do
-      lift $ print dep
-      lift $ putStrLn "nope"
       content <- lift $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
