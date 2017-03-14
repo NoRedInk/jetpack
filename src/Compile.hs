@@ -15,6 +15,7 @@ import Data.Text as T
 import Dependencies (Dependency (..))
 import GHC.IO.Handle
 import Parser.Ast as Ast
+import System.Directory (copyFile)
 import System.FilePath ((<.>), (</>))
 import System.Process
 import Task (Task)
@@ -32,7 +33,7 @@ compileModules config modules = Async.forConcurrently_ modules $ compile config
 -}
 compile :: Config -> Dependency -> Task ()
 compile config (Dependency Ast.Elm _ p)    = (runCompiler $ elmCompiler config) p $ buildArtifactPath config "js" p
-compile _config (Dependency Ast.Js _ p)     = (runCompiler jsCompiler ) p "test"
+compile config (Dependency Ast.Js _ p)     = (runCompiler jsCompiler ) p $ buildArtifactPath config "js" p
 compile config (Dependency Ast.Coffee _ p) = (runCompiler coffeeCompiler ) p $ buildArtifactPath config "js" p -- todo get rid of ui here
 compile config (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler ) p $ buildArtifactPath config "css" p
 
@@ -62,10 +63,11 @@ coffeeCompiler = Compiler $ \input output -> do
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
 jsCompiler :: Compiler
-jsCompiler = Compiler $ \_input _output -> do
-  (_, maybeOut, _, _) <- lift $ createProcess (proc "echo" ["JS"]){ std_out = CreatePipe }
-  printStdOut maybeOut
-  return ()
+jsCompiler = Compiler $ \input output -> lift $ do
+  putStrLn input
+  putStrLn output
+  copyFile input output
+
 
 sassCompiler :: Compiler
 sassCompiler = Compiler $ \input output -> do
