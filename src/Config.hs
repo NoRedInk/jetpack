@@ -20,6 +20,8 @@ import Utils.Files (fileExistsTask)
 data Config = Config
   { module_directory     :: FilePath
   , source_directory     :: FilePath
+  , elm_root_directory   :: FilePath
+  , sass_load_paths      :: [FilePath]
   , temp_directory       :: FilePath
   , output_js_directory  :: FilePath
   , output_css_directory :: FilePath
@@ -30,9 +32,22 @@ defaultConfig =
   Config
     ("." </> "app" </> "assets" </> "modules")
     ("." </> "ui" </> "src")
+    ("." </> "ui")
+    sassLoadPaths
     ("." </> "tmp")
     ("." </> "app" </> "assets" </> "javascript" </> "webpack")
     ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
+  where
+    sassLoadPaths =
+      [ "node_modules"
+      , "vendor" </> "assets" </> "components" </> "animatewithsass"
+      , "app" </> "assets" </> "modules" </> "css"
+      , "app" </> "assets" </> "stylesheets" </> "webpack"
+      , "ui" </> "src"
+      , "node_modules" </> "bourbon" </> "app" </> "assets" </> "stylesheets"
+      , "node_modules" </> "bourbon-neat" </> "app" </> "assets" </> "stylesheets"
+      ]
+
 
 instance ToJSON Config
 

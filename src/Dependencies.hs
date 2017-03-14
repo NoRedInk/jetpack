@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-| Finds all dependencies of a module. It creates a try like the following for each module.
@@ -206,8 +207,8 @@ tryMainFromPackageJson basePath fileName require = do
     Nothing -> throwError []
 
 moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
-moduleNotFound (Config moduleDirectory sourceDirectory _ _ _) fileName = do
-  throwError [ModuleNotFound moduleDirectory sourceDirectory $ show fileName]
+moduleNotFound Config {module_directory, source_directory} fileName = do
+  throwError [ModuleNotFound module_directory source_directory $ show fileName]
 
 findInPath :: Ast.SourceType -> FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
 findInPath Ast.Js basePath path require = do parseModule basePath path require $ Parser.Require.jsRequires

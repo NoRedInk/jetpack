@@ -19,8 +19,8 @@ interpreter (ReadConfig _ next) =
 interpreter (Dependencies config next) = do
   deps <- Dependencies.find config
   return $ next deps
-interpreter (Compile deps next) = do
-  Compile.compileModules deps
+interpreter (Compile config deps next) = do
+  Compile.compileModules config deps
   return next
 
 dryInterpreter :: PipelineF a -> Task a
@@ -30,5 +30,5 @@ dryInterpreter (ReadConfig _ next) =
   lift (putStrLn "reading config") >> return (next Config.defaultConfig)
 dryInterpreter (Dependencies _ next) =
   lift (putStrLn "finding all dependencies") >> return (next [])
-dryInterpreter (Compile _ next) =
+dryInterpreter (Compile _ _ next) =
   lift (putStrLn "compiling") >> return next

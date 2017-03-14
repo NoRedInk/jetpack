@@ -6,6 +6,7 @@
 -}
 module Compile where
 
+import Config (Config)
 import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
@@ -23,8 +24,8 @@ import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task () }
 
-compileModules :: [Dependency] -> Task ()
-compileModules modules = Async.forConcurrently_ modules compile
+compileModules :: Config -> [Dependency] -> Task ()
+compileModules _ modules = Async.forConcurrently_ modules compile
 
 {-| Compile a dependency.
  1. find compiler

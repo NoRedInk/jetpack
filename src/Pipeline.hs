@@ -33,7 +33,7 @@ data PipelineF a
   = ReadCliArgs (Args -> a)
   | ReadConfig (Maybe FilePath) (Config -> a)
   | Dependencies Config (Dependencies -> a)
-  | Compile [Dependency] a
+  | Compile Config [Dependency] a
   deriving (Functor)
 
 type Pipeline = Free PipelineF
@@ -47,5 +47,5 @@ readConfig maybePath = liftF $ ReadConfig maybePath id
 dependencies :: Config -> Pipeline Dependencies
 dependencies config = liftF $ Dependencies config id
 
-compile :: [Dependency] -> Pipeline ()
-compile deps = liftF $ Compile deps ()
+compile :: Config -> [Dependency] -> Pipeline ()
+compile config deps = liftF $ Compile config deps ()

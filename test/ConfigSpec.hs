@@ -22,6 +22,8 @@ suite =
             Config.Config
               ("app" </> "modules")
               ("app" </> "sources")
+              ("app" </> "sources")
+              []
               ("app" </> "tmp")
               ("app" </> "js")
               ("app" </> "css")

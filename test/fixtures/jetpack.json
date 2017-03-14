@@ -1,6 +1,8 @@
 {
   "module_directory" : "app/modules",
   "source_directory" : "app/sources",
+  "elm_root_directory" : "app/sources",
+  "sass_load_paths" : [],
   "temp_directory" : "app/tmp",
   "output_js_directory" : "app/js",
   "output_css_directory" : "app/css"

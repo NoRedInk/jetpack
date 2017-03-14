@@ -18,6 +18,8 @@ basicsFixtures =
   Config
     ("." </> "test" </> "fixtures" </> "basics" </> "modules")
     ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+    ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+    []
     ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
     ("." </> "test" </> "fixtures" </> "basics" </> "js")
     ("." </> "test" </> "fixtures" </> "basics" </> "css")
@@ -27,6 +29,8 @@ failingFixtures =
   Config
     ("." </> "test" </> "fixtures" </> "failing" </> "modules")
     ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+    ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+    []
     ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
     ("." </> "test" </> "fixtures" </> "failing" </> "js")
     ("." </> "test" </> "fixtures" </> "failing" </> "css")
