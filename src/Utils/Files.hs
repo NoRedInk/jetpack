@@ -42,7 +42,7 @@ findAllFilesIn path = do
 
 {-| Converts a path into a flat filename.
     >>> pathToFileName $ "." </> "foo" </> "bar" <.> "elm"
-    "foo_bar.elm"
+    "foo@@@bar.elm"
 
     >>> pathToFileName $ "." </> "bar" <.> "elm"
     "bar.elm"
@@ -50,7 +50,7 @@ findAllFilesIn path = do
 pathToFileName :: FilePath -> T.Text
 pathToFileName =
   T.concat
-  . L.intersperse "_"
+  . L.intersperse "@@@"
   . L.filter ((/=) ".")
   . L.map T.pack
   . splitDirectories
