@@ -2,5 +2,8 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-extra-deps: []
+extra-deps: [
+  containers-0.5.10.1,
+  rosezipper-0.1
+]
 resolver: lts-8.3

@@ -1,7 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 {-| Finds all dependencies of a module. It creates a try like the following for each module.
   ```
@@ -48,6 +50,7 @@ module Dependencies
   ( find
   , Dependencies
   , Dependency(..)
+  , findChild_
   ) where
 
 import Config
@@ -55,12 +58,21 @@ import Control.Applicative ((<|>))
 import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
+import Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
+import Data.List as L hiding (find)
+import Data.Maybe as M
 import qualified Data.Text as T
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
+import qualified Data.Tree.Zipper as TreeZ
 import Error
-import Parser.Ast as Ast
+import GHC.Generics (Generic)
+import qualified Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
+import Safe
 import System.Directory (doesFileExist)
 import qualified System.Directory as Dir
 import System.FilePath
@@ -71,18 +83,23 @@ import System.FilePath
     , (<.>)
     , (</>)
     )
+import System.Posix.Files
 import Task (Task)
 import Utils.Files (fileExistsTask, findAllFilesIn)
 
 data Dependency = Dependency
-  { fileType   :: Ast.SourceType
-  , requiredAs :: FilePath
-  , filePath   :: FilePath
-  } deriving (Eq)
+  { fileType             :: Ast.SourceType
+  , requiredAs           :: FilePath
+  , filePath             :: FilePath
+  , lastModificationTime :: Maybe UTCTime
+  } deriving (Eq, Generic)
+
+instance FromJSON Dependency
+instance ToJSON Dependency
 
 instance Show Dependency where
-  show (Dependency t r p) =
-    "(Dependency: " ++ show r ++ " " ++ show t ++ " <" ++ show p ++ ">)"
+  show (Dependency t r p l) =
+    "(Dependency: " ++ show r ++ " " ++ show t ++ " <" ++ show p ++ "> " ++ show l ++ ")"
 
 type DependencyTree = Tree.Tree Dependency
 
@@ -91,42 +108,53 @@ type Dependencies = [DependencyTree]
 {-| Find all dependencies for files in `module_directory`.
 -}
 find :: Config -> Task Dependencies
-find config = do
-  let modulesPath = Config.module_directory config
+find config@Config {module_directory, temp_directory} = do
+  depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
+  let cache = M.maybe [] id $ Aeson.decode depsJson :: Dependencies
   cwd <- lift $ Dir.getCurrentDirectory
-  paths <- findAllFilesIn modulesPath
-  let relativePaths = fmap (makeRelative $ cwd </> modulesPath) paths
+  paths <- findAllFilesIn module_directory
+  let relativePaths = fmap (makeRelative $ cwd </> module_directory) paths
   if relativePaths == []
     then do
-      throwError [NoModulesPresent $ show modulesPath]
+      throwError [NoModulesPresent $ show module_directory]
     else do
-      let modules = fmap toDependency relativePaths
-      Async.forConcurrently modules (depsTree config)
+      modules <- traverse (toDependency module_directory) relativePaths
+      deps <- Async.forConcurrently modules (depsTree config cache)
+      lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
+      return deps
 
-toDependency :: FilePath -> Dependency
-toDependency path =
-  Dependency Ast.Js path path
+toDependency :: FilePath -> FilePath -> Task Dependency
+toDependency module_directory path  = lift $ do
+  status <- getFileStatus $ module_directory </> path
+  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
+  return $ Dependency Ast.Js path path $ Just lastModificationTime
 
 updatePath :: FilePath -> Dependency -> Dependency
-updatePath path (Dependency t r _) = Dependency t r path
+updatePath path Dependency {fileType, requiredAs, lastModificationTime} = Dependency fileType requiredAs path lastModificationTime
 
-depsTree :: Config -> Dependency -> Task DependencyTree
-depsTree config = Tree.unfoldTreeM $ findRequires config
+depsTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
+depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
-requireToDep path (Ast.Require t n) = Dependency t n path
+requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 updateDepPath :: FilePath -> Dependency -> Dependency
-updateDepPath newPath (Dependency t r p) = Dependency t r newPath
+updateDepPath newPath (Dependency t r p l) = Dependency t r newPath l
 
 updateDepType :: Dependency -> Dependency
-updateDepType (Dependency t r p) = Dependency newType r p
+updateDepType (Dependency t r p l) = Dependency newType r p l
   where newType = Parser.Require.getFileType $ takeExtension p
 
+updateDepTime :: Dependency -> Task Dependency
+updateDepTime (Dependency t r p l) = lift $ do
+  status <- getFileStatus p
+  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
+  return $ Dependency t r p $ Just lastModificationTime
 
-findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
-findRequires config parent = do
-  findRelative parent
+
+findRequires :: Config -> Dependencies -> Dependency -> Task (Dependency, [Dependency])
+findRequires config cache parent = do
+  dep@Dependency {fileType} <- findRelative parent
     <|> findRelativeNodeModules parent
     <|> findInModules config parent
     <|> findInSources config parent
@@ -135,94 +163,136 @@ findRequires config parent = do
     <|> findInVendorComponents parent
     <|> findInVendorJavascripts parent
     <|> moduleNotFound config (requiredAs parent)
+  case fileType of
+    Ast.Js ->
+      parseModule cache dep $ Parser.Require.jsRequires
+    Ast.Coffee ->
+      parseModule cache dep $ Parser.Require.coffeeRequires
+    Ast.Elm -> return (dep, [])
+    Ast.Sass -> return (dep, [])
 
-findRelative :: Dependency -> Task (Dependency, [Dependency])
+findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
+findInCache dep =
+  headMay . M.catMaybes . fmap (findInCache_ dep)
+
+findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
+findInCache_ dep cache =
+  fmap (toTuple . TreeZ.tree)
+  $ findChild_ (isSameDep dep . Tree.rootLabel)
+  $ TreeZ.fromTree cache
+  where toTuple Tree.Node{rootLabel, subForest} =
+          (rootLabel, fmap Tree.rootLabel subForest)
+        isSameDep :: Dependency -> Dependency -> Bool
+        isSameDep a b =
+          filePath a == filePath b
+          && fileType a == fileType b
+          && lastModificationTime a == lastModificationTime b
+
+-- | The first child that satisfies a predicate.
+findChild_ :: (Tree.Tree a -> Bool) -> TreeZ.TreeLoc a -> Maybe (TreeZ.TreeLoc a)
+findChild_ p loc =
+  do (ls,t,rs) <- split [] (Tree.subForest (TreeZ.tree loc))
+     return TreeZ.Loc { tree = t, lefts = ls, rights = rs, parents = downParents loc }
+
+  where split acc (x:xs) | p x  = Just (acc,x,xs)
+        split acc (x:xs) = split (x:acc) (xs ++ Tree.subForest x)
+        split _ []       = Nothing
+
+-- private: computes the parent for "down" operations.
+downParents :: TreeZ.TreeLoc a -> [(Tree.Forest a, a, Tree.Forest a)]
+downParents loc = (TreeZ.lefts loc, Tree.rootLabel (TreeZ.tree loc), TreeZ.rights loc) : TreeZ.parents loc
+
+findRelative :: Dependency -> Task Dependency
 findRelative parent =
   tryPlainJsExtAndIndex (filePath parent) (requiredAs parent) parent
 
-findRelativeNodeModules :: Dependency -> Task (Dependency, [Dependency])
+findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryPlainJsExtAndIndex
     (filePath parent </> "node_modules")
     (requiredAs parent)
     parent
 
-findInModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInModules :: Config -> Dependency -> Task Dependency
 findInModules Config { module_directory } parent =
   tryPlainJsExtAndIndex module_directory (requiredAs parent) parent
 
-findInSources :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInSources :: Config -> Dependency -> Task Dependency
 findInSources config parent =
   tryPlainJsExtAndIndex sourcePath (requiredAs parent) parent
   where
     sourcePath = Config.source_directory config
 
-findInRootNodeModules :: Dependency -> Task (Dependency, [Dependency])
+findInRootNodeModules :: Dependency -> Task Dependency
 findInRootNodeModules parent =
   tryPlainJsExtAndIndex nodeModulesInRoot (requiredAs parent) parent
   where
     nodeModulesInRoot = "." </> "node_modules"
 
-findInNodeModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInNodeModules :: Config -> Dependency -> Task Dependency
 findInNodeModules config parent =
   tryPlainJsExtAndIndex nodeModulesPath (requiredAs parent) parent
   where
     nodeModulesPath = Config.source_directory config </> ".." </> "node_modules"
 
-findInVendorComponents :: Dependency -> Task (Dependency, [Dependency])
+findInVendorComponents :: Dependency -> Task Dependency
 findInVendorComponents parent =
   tryPlainJsExtAndIndex vendorComponentsPath (requiredAs parent) parent
   where
     vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
 
-findInVendorJavascripts :: Dependency -> Task (Dependency, [Dependency])
+findInVendorJavascripts :: Dependency -> Task Dependency
 findInVendorJavascripts parent =
   tryPlainJsExtAndIndex vendorJavaScriptsPath (requiredAs parent) parent
   where
     vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
 
-tryPlainJsExtAndIndex :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
+tryPlainJsExtAndIndex :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryPlainJsExtAndIndex basePath fileName require =
   -- check if we have a package.json.
   -- it contains information about the main file
   tryMainFromPackageJson basePath fileName require
   -- js
-  <|> findJsInPath fileName
-  <|> findJsInPath (fileName <.> "js")
-  <|> findJsInPath (fileName </> "index.js")
-  <|> findJsInPath (fileName </> fileName)
-  <|> findJsInPath (fileName </> fileName <.> "js")
+  <|> findInPath basePath "" require
+  <|> findInPath basePath fileName require
+  <|> findInPath basePath (fileName <.> "js") require
+  <|> findInPath basePath (fileName </> "index.js") require
+  <|> findInPath basePath (fileName </> fileName) require
+  <|> findInPath basePath (fileName </> fileName <.> "js") require
   -- coffeescript
-  <|> findCoffeeInPath fileName
-  <|> findCoffeeInPath (fileName <.> "coffee")
-  <|> findCoffeeInPath (fileName </> "index.coffee")
-  where
-    findJsInPath f = findInPath Ast.Js basePath f require
-    findCoffeeInPath f = findInPath Ast.Coffee basePath f require
+  <|> findInPath basePath fileName require
+  <|> findInPath basePath (fileName <.> "coffee") require
+  <|> findInPath basePath (fileName </> "index.coffee") require
 
-tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
+tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryMainFromPackageJson basePath fileName require = do
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
   PackageJson maybeMain maybeBrowser <- PackageJson.load packageJsonPath
   case maybeBrowser <|> maybeMain of
     Just entryPoint ->
-      findInPath Ast.Js basePath (fileName </> T.unpack entryPoint) require
+      findInPath basePath (fileName </> T.unpack entryPoint) require
     Nothing -> throwError []
 
-moduleNotFound :: Config -> FilePath -> Task (Dependency, [Dependency])
+moduleNotFound :: Config -> FilePath -> Task Dependency
 moduleNotFound Config {module_directory, source_directory} fileName = do
   throwError [ModuleNotFound module_directory source_directory $ show fileName]
 
-findInPath :: Ast.SourceType -> FilePath -> FilePath -> Dependency -> Task (Dependency, [Dependency])
-findInPath Ast.Js basePath path require = do parseModule basePath path require $ Parser.Require.jsRequires
-findInPath Ast.Coffee basePath path require = do parseModule basePath path require $ Parser.Require.coffeeRequires
-findInPath Ast.Elm basePath _ require = do return (require, [])
-
-parseModule :: FilePath -> FilePath -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
-parseModule basePath path require parser = do
+findInPath :: FilePath -> FilePath -> Dependency -> Task Dependency
+findInPath basePath path require = do
   let searchPath = basePath </> path
   _ <- fileExistsTask searchPath
-  content <- lift $ readFile searchPath
-  let requires = parser $ T.pack content
-  let dependencies = fmap (requireToDep $ takeDirectory searchPath) requires
-  return (updateDepType $ updateDepPath searchPath require, dependencies)
+  updateDepTime $ updateDepType $ updateDepPath searchPath require
+
+parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
+parseModule cache dep@Dependency {filePath} parser = do
+  case findInCache dep cache of
+    Just cached -> do
+      lift $ putStrLn "cached"
+      return cached
+    Nothing -> do
+      lift $ print dep
+      lift $ putStrLn "nope"
+      content <- lift $ readFile filePath
+      let requires = parser $ T.pack content
+      let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
+      return (dep, dependencies)

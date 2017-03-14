@@ -1,10 +1,14 @@
+{-# LANGUAGE DeriveGeneric #-}
 -- TODO move this to a better place. This is not an AST
 module Parser.Ast
   ( Require(..)
   , SourceType(..)
   ) where
 
+import Data.Aeson as Aeson
+import GHC.Generics (Generic)
 import System.FilePath ()
+
 
 data Require = Require
   { fileType :: SourceType
@@ -19,4 +23,7 @@ data SourceType
   | Js
   | Elm
   | Sass
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance FromJSON SourceType
+instance ToJSON SourceType

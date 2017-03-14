@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module DependenciesSpec where
 
@@ -46,28 +48,31 @@ suite =
             _ <- traverse print msg
             assertFailure $ "This shouldn't fail"
           Right deps ->
-            fmap (Tree.flatten) deps @?=
-            [ [ Dependency Ast.Js ("" </> "test.js") $
-                "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
-              , Dependency Ast.Coffee ("" </> "index") $
-                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
-              , Dependency Ast.Js ("" </> "lodash") $
-                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "index.js"
-              , Dependency Ast.Js ("." </> "lodash.dist.js") $
-                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "." </>
-                "lodash.dist.js"
-              , Dependency Ast.Js ("." </> "lodash") $
-                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "." </>
-                "." </>
-                "lodash.js"
-              , Dependency Ast.Js ("" </> "debug") $
-                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
-                "." </>
-                "node_modules" </>
-                "debug.js"
+            fmap (fmap dropLastMod . Tree.flatten) deps @?=
+            [ [ ( Ast.Js
+                , "" </> "test.js"
+                , "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
+                )
+              , ( Ast.Coffee
+                , "" </> "index"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
+                )
+              , ( Ast.Js
+                , "" </> "lodash"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
+                )
+              , ( Ast.Js
+                , "." </> "lodash.dist.js"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
+                )
+              , ( Ast.Js
+                , "." </> "lodash"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
+                )
+              , ( Ast.Js
+                , "" </> "debug"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
+                )
               ]
             ]
     , testCase "#find failing" $ do
@@ -81,3 +86,6 @@ suite =
               (Config.source_directory failingFixtures)
               "\"index\""
     ]
+
+dropLastMod :: Dependency -> (Ast.SourceType, FilePath, FilePath)
+dropLastMod Dependency { fileType, requiredAs, filePath } = (fileType, requiredAs, filePath)
