@@ -96,6 +96,7 @@ runCmd cmd maybeCwd = do
 printStdOut :: Maybe Handle -> Task ()
 printStdOut (Just out) = lift $ do
                   contents <- hGetContents out
-                  putStrLn contents
+                  -- TODO handle output prob log to a file
+                  -- putStrLn contents
                   return ()
 printStdOut Nothing = lift $ do return ()
