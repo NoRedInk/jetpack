@@ -7,6 +7,7 @@ jetpack
 https://paper.dropbox.com/doc/jetpack-1EgiUsPF7gx5lwPD1BCKe
 
 ```bash
+brew install haskell-stack
 stack setup
 stack build
 stack test
