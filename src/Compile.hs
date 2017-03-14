@@ -33,13 +33,13 @@ compileModules config modules = Async.forConcurrently_ modules $ compile config
 -}
 compile :: Config -> Dependency -> Task ()
 compile config (Dependency Ast.Elm _ p)    = (runCompiler $ elmCompiler config) p $ buildArtifactPath config "js" p
-compile config (Dependency Ast.Js _ p)     = (runCompiler jsCompiler ) p $ buildArtifactPath config "js" p
-compile config (Dependency Ast.Coffee _ p) = (runCompiler coffeeCompiler ) p $ buildArtifactPath config "js" p -- todo get rid of ui here
-compile config (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler ) p $ buildArtifactPath config "css" p
+compile config (Dependency Ast.Js _ p)     = (runCompiler jsCompiler) p $ buildArtifactPath config "js" p
+compile config (Dependency Ast.Coffee _ p) = (runCompiler coffeeCompiler) p $ buildArtifactPath config "js" p -- todo get rid of ui here
+compile config (Dependency Ast.Sass _ p)   = (runCompiler sassCompiler) p $ buildArtifactPath config "css" p
 
 
 buildArtifactPath :: Config -> String -> FilePath -> String
-buildArtifactPath Config{temp_directory} extension inputPath=
+buildArtifactPath Config{temp_directory} extension inputPath =
   temp_directory
   </> (T.unpack $ pathToFileName inputPath)
   <.> extension
@@ -63,10 +63,7 @@ coffeeCompiler = Compiler $ \input output -> do
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
 jsCompiler :: Compiler
-jsCompiler = Compiler $ \input output -> lift $ do
-  putStrLn input
-  putStrLn output
-  copyFile input output
+jsCompiler = Compiler $ \input output -> lift $ copyFile input output
 
 
 sassCompiler :: Compiler

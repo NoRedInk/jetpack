@@ -62,8 +62,10 @@ import Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.Directory (doesFileExist)
+import qualified System.Directory as Dir
 import System.FilePath
     ( dropFileName
+    , makeRelative
     , takeDirectory
     , takeExtension
     , (<.>)
@@ -91,16 +93,19 @@ type Dependencies = [DependencyTree]
 find :: Config -> Task Dependencies
 find config = do
   let modulesPath = Config.module_directory config
+  cwd <- lift $ Dir.getCurrentDirectory
   paths <- findAllFilesIn modulesPath
-  if paths == []
+  let relativePaths = fmap (makeRelative $ cwd </> modulesPath) paths
+  if relativePaths == []
     then do
       throwError [NoModulesPresent $ show modulesPath]
     else do
-      let modules = fmap toDependency paths
+      let modules = fmap toDependency relativePaths
       Async.forConcurrently modules (depsTree config)
 
 toDependency :: FilePath -> Dependency
-toDependency path = Dependency Ast.Js path path
+toDependency path =
+  Dependency Ast.Js path path
 
 updatePath :: FilePath -> Dependency -> Dependency
 updatePath path (Dependency t r _) = Dependency t r path
@@ -123,7 +128,7 @@ findRequires :: Config -> Dependency -> Task (Dependency, [Dependency])
 findRequires config parent = do
   findRelative parent
     <|> findRelativeNodeModules parent
-    <|> findInModules parent
+    <|> findInModules config parent
     <|> findInSources config parent
     <|> findInNodeModules config parent
     <|> findInRootNodeModules parent
@@ -142,11 +147,9 @@ findRelativeNodeModules parent =
     (requiredAs parent)
     parent
 
-findInModules :: Dependency -> Task (Dependency, [Dependency])
-findInModules parent =
-  tryPlainJsExtAndIndex modulesPath (requiredAs parent) parent
-  where
-    modulesPath = dropFileName $ filePath parent
+findInModules :: Config -> Dependency -> Task (Dependency, [Dependency])
+findInModules Config { module_directory } parent =
+  tryPlainJsExtAndIndex module_directory (requiredAs parent) parent
 
 findInSources :: Config -> Dependency -> Task (Dependency, [Dependency])
 findInSources config parent =

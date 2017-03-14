@@ -46,25 +46,25 @@ suite =
             _ <- traverse print msg
             assertFailure $ "This shouldn't fail"
           Right deps ->
-            fmap (fmap pathsFromFixturesDir . Tree.flatten) deps @?=
-            [ [ Dependency Ast.Js ("basics" </> "modules" </> "test.js") $
-                "basics" </> "modules" </> "test.js"
+            fmap (Tree.flatten) deps @?=
+            [ [ Dependency Ast.Js ("" </> "test.js") $
+                "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
               , Dependency Ast.Coffee ("" </> "index") $
-                "basics" </> "sources" </> "index.coffee"
+                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
               , Dependency Ast.Js ("" </> "lodash") $
-                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "index.js"
               , Dependency Ast.Js ("." </> "lodash.dist.js") $
-                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "." </>
                 "lodash.dist.js"
               , Dependency Ast.Js ("." </> "lodash") $
-                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "." </>
                 "." </>
                 "lodash.js"
               , Dependency Ast.Js ("" </> "debug") $
-                "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
+                "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </>
                 "." </>
                 "node_modules" </>
                 "debug.js"
@@ -81,12 +81,3 @@ suite =
               (Config.source_directory failingFixtures)
               "\"index\""
     ]
-
-pathsFromFixturesDir :: Dependency -> Dependency
-pathsFromFixturesDir (Dependency t r p) =
-  Dependency t (dropUntilFixtures r) (dropUntilFixtures p)
-  where
-    dropUntilFixtures path =
-      if L.elem "fixtures/" $ splitPath path
-        then joinPath $ tail $ L.dropWhile ((/=) "fixtures/") $ splitPath path
-        else path
