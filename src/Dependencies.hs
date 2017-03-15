@@ -84,7 +84,7 @@ import System.FilePath
 import System.Posix.Files
 import Task (Task)
 import Utils.Files (fileExistsTask, findAllFilesIn)
-import Utils.Tree (findDescendant)
+import Utils.Tree (searchNode)
 
 data Dependency = Dependency
   { fileType             :: Ast.SourceType
@@ -176,8 +176,7 @@ findInCache dep =
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
 findInCache_ dep cache =
-  fmap toTuple
-  $ findDescendant (isSameDep dep . Tree.rootLabel) cache
+  fmap toTuple . searchNode (isSameDep dep . Tree.rootLabel)
   where toTuple Tree.Node{rootLabel, subForest} =
           (rootLabel, fmap Tree.rootLabel subForest)
         isSameDep :: Dependency -> Dependency -> Bool
