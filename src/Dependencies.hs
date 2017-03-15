@@ -50,6 +50,7 @@ module Dependencies
   ( find
   , Dependencies
   , Dependency(..)
+  , DependencyTree
   ) where
 
 import Config

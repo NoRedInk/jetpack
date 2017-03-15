@@ -41,16 +41,21 @@ findAllFilesIn path = do
   lift $ glob globi
 
 {-| Converts a path into a flat filename.
-    >>> pathToFileName $ "." </> "foo" </> "bar" <.> "elm"
-    "foo@@@bar.elm"
+    >>> pathToFileName ("." </> "foo" </> "bar" <.> "elm") "js"
+    "foo@@@bar.elm.js"
 
-    >>> pathToFileName $ "." </> "bar" <.> "elm"
-    "bar.elm"
+    >>> pathToFileName ("." </> "bar" <.> "elm") "js"
+    "bar.elm.js"
 -}
-pathToFileName :: FilePath -> T.Text
-pathToFileName =
-  T.concat
-  . L.intersperse "@@@"
-  . L.filter ((/=) ".")
-  . L.map T.pack
-  . splitDirectories
+pathToFileName :: FilePath -> String -> FilePath
+pathToFileName filePath extension =
+  newFileName <.> extension
+  where
+    newFileName =
+      T.unpack
+        $ T.concat
+        $ L.intersperse "@@@"
+        $ L.filter ((/=) ".")
+        $ L.map T.pack
+        $ splitDirectories filePath
+

@@ -46,9 +46,7 @@ compile config (Dependency Ast.Sass _ p _)   = (runCompiler sassCompiler) p $ bu
 
 buildArtifactPath :: Config -> String -> FilePath -> String
 buildArtifactPath Config{temp_directory} extension inputPath =
-  temp_directory
-  </> (T.unpack $ pathToFileName inputPath)
-  <.> extension
+  temp_directory </> pathToFileName inputPath extension
 
 ---------------
 -- COMPILERS --
