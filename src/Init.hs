@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Init where
-
 {-| Setup working dir for jetpack.
 -}
+module Init where
+
 import Config
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
