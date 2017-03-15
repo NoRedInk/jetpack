@@ -3,6 +3,8 @@
 
 module Init where
 
+{-| Setup working dir for jetpack.
+-}
 import Config
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
@@ -20,11 +22,15 @@ setup :: Config -> Task ()
 setup Config { temp_directory } =  do
   _ <- traverse binExists requiredBins
   _ <- lift $ createDirectoryIfMissing True temp_directory
-  let depsJSONPath = temp_directory </> "deps" <.> "json"
-  exists <- lift $ doesFileExist depsJSONPath
+  createDepsJsonIfMissing temp_directory
+
+createDepsJsonIfMissing :: FilePath -> Task ()
+createDepsJsonIfMissing tempDirectory = lift $ do
+  let depsJSONPath = tempDirectory </> "deps" <.> "json"
+  exists <- doesFileExist depsJSONPath
   if exists
-     then return ()
-     else lift $ writeFile depsJSONPath "[]"
+    then return ()
+    else writeFile depsJSONPath "[]"
 
 binExists :: String -> Task ()
 binExists bin = do
