@@ -29,6 +29,7 @@ library
                        Parser.PackageJson,
                        Pipeline,
                        Init,
+                       ConcatModule,
                        Task
   other-modules:       Utils.Files,
                        Utils.Parser,
@@ -70,6 +71,7 @@ test-suite jetpack-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       ConfigSpec,
+                       ConcatModuleSpec,
                        DependenciesSpec,
                        Helper.Property,
                        Parser.RequireSpec,

@@ -1,3 +1,4 @@
+import ConcatModuleSpec
 import ConfigSpec
 import DependenciesSpec
 import Parser.CommentSpec
@@ -18,6 +19,7 @@ runTests = do
       [ testGroup
           "suites"
           [ ConfigSpec.suite
+          , ConcatModuleSpec.suite
           , DependenciesSpec.suite
           , Parser.RequireSpec.suite
           , Parser.CommentSpec.suite
