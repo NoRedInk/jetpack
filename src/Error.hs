@@ -13,9 +13,8 @@ data Error
   = FileNotFound String
   | JsonInvalid String
   | NoModulesPresent String
-  | ModuleNotFound FilePath
-                   FilePath
-                   String
+  | ModuleNotFound FilePath FilePath String
+  | BinNotFound String
   deriving (Eq, Show)
 
 -- TODO this should be Show
@@ -40,4 +39,10 @@ description (ModuleNotFound moduleDirectory sourceDirectory file) =
     , ""
     , "In addition I tried it with a `.js` extension and with `/index.js`"
     , ""
+    ]
+description (BinNotFound bin) =
+  L.unlines
+    [ "I had troubles finding the " ++ bin ++ " command."
+    , ""
+    , "You might want to install it."
     ]
