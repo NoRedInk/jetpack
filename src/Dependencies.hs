@@ -65,7 +65,6 @@ import qualified Data.Text as T
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
-import qualified Data.Tree.Zipper as TreeZ
 import Error
 import GHC.Generics (Generic)
 import qualified Parser.Ast as Ast
@@ -85,6 +84,7 @@ import System.FilePath
 import System.Posix.Files
 import Task (Task)
 import Utils.Files (fileExistsTask, findAllFilesIn)
+import Utils.Tree (findDescendant)
 
 data Dependency = Dependency
   { fileType             :: Ast.SourceType
@@ -176,9 +176,8 @@ findInCache dep =
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
 findInCache_ dep cache =
-  fmap (toTuple . TreeZ.tree)
-  $ findChild_ (isSameDep dep . Tree.rootLabel)
-  $ TreeZ.fromTree cache
+  fmap toTuple
+  $ findDescendant (isSameDep dep . Tree.rootLabel) cache
   where toTuple Tree.Node{rootLabel, subForest} =
           (rootLabel, fmap Tree.rootLabel subForest)
         isSameDep :: Dependency -> Dependency -> Bool
@@ -186,20 +185,6 @@ findInCache_ dep cache =
           filePath a == filePath b
           && fileType a == fileType b
           && lastModificationTime a == lastModificationTime b
-
--- | The first child that satisfies a predicate.
-findChild_ :: (Tree.Tree a -> Bool) -> TreeZ.TreeLoc a -> Maybe (TreeZ.TreeLoc a)
-findChild_ p loc =
-  do (ls,t,rs) <- split [] (Tree.subForest (TreeZ.tree loc))
-     return TreeZ.Loc { tree = t, lefts = ls, rights = rs, parents = downParents loc }
-
-  where split acc (x:xs) | p x  = Just (acc,x,xs)
-        split acc (x:xs) = split (x:acc) (xs ++ Tree.subForest x)
-        split _ []       = Nothing
-
--- private: computes the parent for "down" operations.
-downParents :: TreeZ.TreeLoc a -> [(Tree.Forest a, a, Tree.Forest a)]
-downParents loc = (TreeZ.lefts loc, Tree.rootLabel (TreeZ.tree loc), TreeZ.rights loc) : TreeZ.parents loc
 
 findRelative :: Dependency -> Task Dependency
 findRelative parent =

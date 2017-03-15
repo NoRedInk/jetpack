@@ -32,7 +32,8 @@ library
   other-modules:       Utils.Files,
                        Utils.Parser,
                        Utils.Text,
-                       Utils.Free
+                       Utils.Free,
+                       Utils.Tree
   build-depends:       base >= 4.7 && < 5,
                        aeson == 1.0.2.1,
                        text == 1.2.2.1,
@@ -52,7 +53,6 @@ library
                        unix == 2.7.2.1,
                        time == 1.6.0.1,
                        bytestring == 0.10.8.1,
-                       rosezipper == 0.1,
                        safe == 0.3.14
   default-language:    Haskell2010
 
