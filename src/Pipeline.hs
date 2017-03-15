@@ -11,6 +11,7 @@ module Pipeline
   , dependencies
   , noArgs
   , compile
+  , setup
   ) where
 
 import Config (Config)
@@ -29,11 +30,12 @@ data Args = Args
 noArgs :: Args
 noArgs = Args False False Nothing
 
-data PipelineF a
-  = ReadCliArgs (Args -> a)
-  | ReadConfig (Maybe FilePath) (Config -> a)
-  | Dependencies Config (Dependencies -> a)
-  | Compile Config [Dependency] a
+data PipelineF next
+  = ReadCliArgs (Args -> next)
+  | ReadConfig (Maybe FilePath) (Config -> next)
+  | Dependencies Config (Dependencies -> next)
+  | Compile Config [Dependency] next
+  | Init Config next
   deriving (Functor)
 
 type Pipeline = Free PipelineF
@@ -49,3 +51,6 @@ dependencies config = liftF $ Dependencies config id
 
 compile :: Config -> [Dependency] -> Pipeline ()
 compile config deps = liftF $ Compile config deps ()
+
+setup :: Config -> Pipeline ()
+setup config = liftF $ Init config ()

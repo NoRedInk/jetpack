@@ -28,6 +28,7 @@ library
                        Parser.Require,
                        Parser.PackageJson,
                        Pipeline,
+                       Init,
                        Task
   other-modules:       Utils.Files,
                        Utils.Parser,

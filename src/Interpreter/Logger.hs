@@ -16,6 +16,7 @@ interpreter (ReadCliArgs _)    = Logger.info "readCliArgs"
 interpreter (ReadConfig _ _)   = Logger.info "readConfig"
 interpreter (Dependencies _ _) = Logger.info "dependencies"
 interpreter (Compile _ _ _)    = Logger.info "compile"
+interpreter (Init _ _)        = Logger.info "setup"
 
 -- treeInterpreter :: PipelineF a -> Log ()
 -- treeInterpreter (ReadCliArgs next) = info "readCliArgs"

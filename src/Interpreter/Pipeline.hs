@@ -10,6 +10,7 @@ import qualified Config
 import Control.Monad.Trans.Class (lift)
 import qualified Dependencies
 import Pipeline
+import qualified Init
 import Task (Task)
 
 interpreter :: PipelineF a -> Task a
@@ -22,13 +23,13 @@ interpreter (Dependencies config next) = do
 interpreter (Compile config deps next) = do
   Compile.compileModules config deps
   return next
+interpreter (Init config next) = do
+  _ <- Init.setup config
+  return next
 
 dryInterpreter :: PipelineF a -> Task a
-dryInterpreter (ReadCliArgs next) =
-  lift (putStrLn "reading cli arguments") >> return (next noArgs)
-dryInterpreter (ReadConfig _ next) =
-  lift (putStrLn "reading config") >> return (next Config.defaultConfig)
-dryInterpreter (Dependencies _ next) =
-  lift (putStrLn "finding all dependencies") >> return (next [])
-dryInterpreter (Compile _ _ next) =
-  lift (putStrLn "compiling") >> return next
+dryInterpreter (ReadCliArgs next) = lift (putStrLn "reading cli arguments") >> return (next noArgs)
+dryInterpreter (ReadConfig _ next) = lift (putStrLn "reading config") >> return (next Config.defaultConfig)
+dryInterpreter (Dependencies _ next) = lift (putStrLn "finding all dependencies") >> return (next [])
+dryInterpreter (Compile _ _ next) = lift (putStrLn "compiling") >> return next
+dryInterpreter (Init _ next) = lift (putStrLn "setting up") >> return next

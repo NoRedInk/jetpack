@@ -175,7 +175,7 @@ findInCache dep =
   headMay . M.catMaybes . fmap (findInCache_ dep)
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
-findInCache_ dep cache =
+findInCache_ dep =
   fmap toTuple . searchNode (isSameDep dep . Tree.rootLabel)
   where toTuple Tree.Node{rootLabel, subForest} =
           (rootLabel, fmap Tree.rootLabel subForest)
