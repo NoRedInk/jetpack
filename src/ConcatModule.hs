@@ -1,9 +1,12 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-| Concat all modules required in an entrypoint into one file.
+-}
 module ConcatModule where
 
 import Config
+import qualified Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
@@ -18,13 +21,16 @@ import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
 wrap :: Config -> Dependencies -> Task [FilePath]
-wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) dependencies
+wrap config dependencies =
+  catMaybes <$> Async.mapConcurrently (wrapModules config) dependencies
 
 wrapModules :: Config -> DependencyTree -> Task (Maybe FilePath)
 wrapModules config dep = do
-  let nodesWithDeps = UT.foldTree (\a as -> [(a , as)]) dep
-  fns <- traverse (wrapper config) $ LU.uniq nodesWithDeps
-  writeModule config dep $ catMaybes fns
+  wrapped <- traverse (wrapper config) $ uniqNodes dep
+  writeModule config dep $ catMaybes wrapped
+
+uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
+uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
 wrapper Config {temp_directory} (d@Dependency {filePath}, _ds) = lift $ do
