@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns        #-}
@@ -59,7 +58,6 @@ import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import Data.List as L hiding (find)
 import Data.Maybe as M
 import qualified Data.Text as T
 import Data.Time.Clock
@@ -71,11 +69,9 @@ import qualified Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import Safe
-import System.Directory (doesFileExist)
 import qualified System.Directory as Dir
 import System.FilePath
-    ( dropFileName
-    , makeRelative
+    ( makeRelative
     , takeDirectory
     , takeExtension
     , (<.>)
@@ -109,12 +105,12 @@ type Dependencies = [DependencyTree]
 find :: Config -> Task Dependencies
 find config@Config {module_directory, temp_directory} = do
   depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
-  let cache = M.maybe [] id $ Aeson.decode depsJson :: Dependencies
-  cwd <- lift $ Dir.getCurrentDirectory
+  let cache = fromMaybe [] $ Aeson.decode depsJson :: Dependencies
+  cwd <- lift Dir.getCurrentDirectory
   paths <- findAllFilesIn module_directory
   let relativePaths = fmap (makeRelative $ cwd </> module_directory) paths
-  if relativePaths == []
-    then do
+  if null relativePaths
+    then
       throwError [NoModulesPresent $ show module_directory]
     else do
       modules <- traverse (toDependency module_directory) relativePaths
@@ -128,9 +124,6 @@ toDependency module_directory path  = lift $ do
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
 
-updatePath :: FilePath -> Dependency -> Dependency
-updatePath path Dependency {fileType, requiredAs, lastModificationTime} = Dependency fileType requiredAs path lastModificationTime
-
 depsTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
 depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
@@ -138,14 +131,14 @@ requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 updateDepPath :: FilePath -> Dependency -> Dependency
-updateDepPath newPath (Dependency t r p l) = Dependency t r newPath l
+updateDepPath newPath (Dependency t r _ l) = Dependency t r newPath l
 
 updateDepType :: Dependency -> Dependency
-updateDepType (Dependency t r p l) = Dependency newType r p l
+updateDepType (Dependency _ r p l) = Dependency newType r p l
   where newType = Parser.Require.getFileType $ takeExtension p
 
 updateDepTime :: Dependency -> Task Dependency
-updateDepTime (Dependency t r p l) = lift $ do
+updateDepTime (Dependency t r p _) = lift $ do
   status <- getFileStatus p
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency t r p $ Just lastModificationTime
@@ -164,9 +157,9 @@ findRequires config cache parent = do
     <|> moduleNotFound config (requiredAs parent)
   case fileType of
     Ast.Js ->
-      parseModule cache dep $ Parser.Require.jsRequires
+      parseModule cache dep Parser.Require.jsRequires
     Ast.Coffee ->
-      parseModule cache dep $ Parser.Require.coffeeRequires
+      parseModule cache dep Parser.Require.coffeeRequires
     Ast.Elm -> return (dep, [])
     Ast.Sass -> return (dep, [])
 
@@ -257,7 +250,7 @@ tryMainFromPackageJson basePath fileName require = do
     Nothing -> throwError []
 
 moduleNotFound :: Config -> FilePath -> Task Dependency
-moduleNotFound Config {module_directory, source_directory} fileName = do
+moduleNotFound Config {module_directory, source_directory} fileName =
   throwError [ModuleNotFound module_directory source_directory $ show fileName]
 
 findInPath :: FilePath -> FilePath -> Dependency -> Task Dependency
@@ -267,7 +260,7 @@ findInPath basePath path require = do
   updateDepTime $ updateDepType $ updateDepPath searchPath require
 
 parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
-parseModule cache dep@Dependency {filePath} parser = do
+parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do

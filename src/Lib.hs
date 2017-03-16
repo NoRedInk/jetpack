@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
@@ -8,7 +7,6 @@ module Lib
 import Config ()
 import Control.Monad.Except
 import Control.Monad.Free (Free, foldFree)
-import Control.Monad.Trans.Class
 import Data.Functor.Sum (Sum (..))
 import Data.List as L
 import Data.List.Utils (uniq)
@@ -24,7 +22,7 @@ import Utils.Free (toLeft, toRight)
 
 run :: IO ()
 run = do
-  e <- runExceptT $ do runProgram program
+  e <- runExceptT $ runProgram program
   case e of
     Left err -> do
       putStrLn "Compilation failed!"

@@ -16,7 +16,6 @@ module Pipeline
 
 import Config (Config)
 import Control.Monad.Free (Free, liftF)
-import Data.Text as T
 import Dependencies (Dependencies, Dependency)
 import System.FilePath ()
 

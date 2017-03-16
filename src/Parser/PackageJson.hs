@@ -26,6 +26,4 @@ load :: FilePath -> Task PackageJson
 load path = do
   _ <- fileExistsTask path
   content <- lift $ BL.readFile path
-  case Aeson.decode content of
-    Just json -> return json
-    Nothing   -> throwError $ [JsonInvalid path]
+  maybe (throwError [JsonInvalid path]) return $ Aeson.decode content
