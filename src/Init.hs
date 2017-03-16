@@ -19,9 +19,9 @@ requiredBins :: [String]
 requiredBins = ["coffee", "sassc", "elm-make"]
 
 setup :: Config -> Task ()
-setup Config { temp_directory } =  do
+setup Config { temp_directory, output_js_directory, output_css_directory } =  do
   _ <- traverse binExists requiredBins
-  _ <- lift $ createDirectoryIfMissing True temp_directory
+  _ <- lift $ traverse (createDirectoryIfMissing True) [temp_directory, output_js_directory, output_css_directory]
   createDepsJsonIfMissing temp_directory
 
 createDepsJsonIfMissing :: FilePath -> Task ()
