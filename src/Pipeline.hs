@@ -37,7 +37,7 @@ data PipelineF next
   | Dependencies Config (Dependencies -> next)
   | Compile Config [Dependency] next
   | Init Config next
-  | ConcatModules Config Dependencies next
+  | ConcatModules Config Dependencies ([FilePath] -> next)
   deriving (Functor)
 
 type Pipeline = Free PipelineF
@@ -57,5 +57,5 @@ compile config deps = liftF $ Compile config deps ()
 setup :: Config -> Pipeline ()
 setup config = liftF $ Init config ()
 
-concatModules :: Config -> Dependencies -> Pipeline ()
-concatModules config dependencies = liftF $ ConcatModules config dependencies ()
+concatModules :: Config -> Dependencies -> Pipeline [FilePath]
+concatModules config dependencies = liftF $ ConcatModules config dependencies id

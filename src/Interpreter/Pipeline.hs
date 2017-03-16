@@ -27,8 +27,8 @@ interpreter (Init config next) = do
   _ <- Init.setup config
   return next
 interpreter (ConcatModules config dependencies next) = do
-  _ <- ConcatModule.wrap config dependencies
-  return next
+  outputPaths <- ConcatModule.wrap config dependencies
+  return (next outputPaths)
 
 dryInterpreter :: PipelineF a -> Task a
 dryInterpreter (ReadCliArgs next) = lift (putStrLn "reading cli arguments") >> return (next noArgs)
@@ -36,4 +36,4 @@ dryInterpreter (ReadConfig _ next) = lift (putStrLn "reading config") >> return 
 dryInterpreter (Dependencies _ next) = lift (putStrLn "finding all dependencies") >> return (next [])
 dryInterpreter (Compile _ _ next) = lift (putStrLn "compiling") >> return next
 dryInterpreter (Init _ next) = lift (putStrLn "setting up") >> return next
-dryInterpreter (ConcatModules _ _ next) = lift (putStrLn "concating modules") >> return next
+dryInterpreter (ConcatModules _ _ next) = lift (putStrLn "concating modules") >> return (next [])

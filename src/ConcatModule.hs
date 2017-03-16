@@ -16,23 +16,22 @@ import System.FilePath as FP
 import Task
 import Utils.Files as F
 
-wrap :: C.Config -> D.Dependencies -> Task ()
-wrap config dependencies = do
-  traverse (wrapModules config) dependencies
-  return ()
+wrap :: C.Config -> D.Dependencies -> Task [FilePath]
+wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) dependencies
 
 
-wrapModules :: C.Config -> D.DependencyTree -> Task ()
+wrapModules :: C.Config -> D.DependencyTree -> Task (Maybe FilePath)
 wrapModules C.Config { output_js_directory, temp_directory } dependencyTree = lift $ do
   let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
   modules <- traverse (\name -> readFile $ temp_directory </> name) fileNames
   case modules of
-    [] -> return ()
+    [] -> return Nothing
     _ -> do
       let wrappedModules = fmap (wrapModule . T.pack) modules
       let root = Tree.rootLabel dependencyTree
       let outputPath = output_js_directory </> F.pathToFileName (D.filePath root) "js"
       writeFile outputPath $ T.unpack $ T.concat wrappedModules
+      return $ Just outputPath
 
 
 {-| Gets a unique list of compiled filenames from a dependency tree.
