@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
-
 module Interpreter.Pipeline
   ( dryInterpreter
   , interpreter

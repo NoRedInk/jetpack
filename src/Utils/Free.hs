@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
-
 module Utils.Free
   ( toLeft
   , toRight

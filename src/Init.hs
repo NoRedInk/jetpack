@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 {-| Setup working dir for jetpack.

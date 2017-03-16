@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
 module Utils.Tree (searchNode) where
 
 import Data.Tree
