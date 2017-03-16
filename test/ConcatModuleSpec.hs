@@ -72,23 +72,23 @@ mockConfig =
 
 mockDependencies :: D.Dependencies
 mockDependencies =
-  [Tree.Node (dependency "Foo")
-    [ Tree.Node (dependency "Moo") []
+  [Tree.Node (dependency "modules" "Foo")
+    [ Tree.Node (dependency "sources" "Moo") []
     ]
   ]
   where
-    dependency fileName = D.Dependency
+    dependency location fileName = D.Dependency
                     Ast.Js
                     (fileName <.> "js")
-                    ("test" </> "fixtures" </> "concat" </> "sources" </> "Page" </> fileName <.> "js")
+                    ("." </> "test" </> "fixtures" </> "concat" </> location</> "Page" </> fileName <.> "js")
                     Nothing
 
 expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
-    [ "function test@@@fixtures@@@concat@@@sources@@@Page@@@Foo_js_js(require, module, exports) {"
+    [ "function test@@@fixtures@@@concat@@@modules@@@Page@@@Foo_js_js(require, module, exports) {"
     , "4 + 2"
-    , "} /* END: test@@@fixtures@@@concat@@@sources@@@Page@@@Foo_js_js */"
+    , "} /* END: test@@@fixtures@@@concat@@@modules@@@Page@@@Foo_js_js */"
     , "function test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js(require, module, exports) {"
     , "console.log('foo')"
     , "} /* END: test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js */"

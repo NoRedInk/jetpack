@@ -21,7 +21,7 @@ wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) depend
 
 
 wrapModules :: C.Config -> D.DependencyTree -> Task (Maybe FilePath)
-wrapModules C.Config { source_directory, output_js_directory, temp_directory } dependencyTree = lift $ do
+wrapModules C.Config { module_directory, output_js_directory, temp_directory } dependencyTree = lift $ do
   let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
   modules <- traverse (readModules temp_directory) fileNames
   case modules of
@@ -29,7 +29,7 @@ wrapModules C.Config { source_directory, output_js_directory, temp_directory } d
     _ -> do
       let wrappedModules = fmap (uncurry wrapModule) modules
       let root = Tree.rootLabel dependencyTree
-      let outputPath = output_js_directory </> FP.makeRelative source_directory ("." </> D.filePath root)
+      let outputPath = output_js_directory </> FP.makeRelative module_directory (D.filePath root)
       createDirectoryIfMissing True $ FP.takeDirectory outputPath
       writeFile outputPath $ T.unpack $ T.concat wrappedModules
       return $ Just outputPath
