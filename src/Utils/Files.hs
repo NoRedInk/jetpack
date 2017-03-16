@@ -41,7 +41,7 @@ findAllFilesIn path = do
 
 {-| Converts a path into a flat filename.
     >>> pathToFileName ("." </> "foo" </> "bar" <.> "elm") "js"
-    "foo@@@bar.elm.js"
+    "foo___bar.elm.js"
 
     >>> pathToFileName ("." </> "bar" <.> "elm") "js"
     "bar.elm.js"
@@ -53,7 +53,7 @@ pathToFileName filePath extension =
     newFileName =
       T.unpack
         $ T.concat
-        $ L.intersperse "@@@"
+        $ L.intersperse "___"
         $ L.filter ((/=) ".")
         $ L.map T.pack
         $ splitDirectories filePath

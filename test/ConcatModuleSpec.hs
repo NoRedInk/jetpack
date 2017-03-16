@@ -86,12 +86,12 @@ mockDependencies =
 expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
-    [ "function test@@@fixtures@@@concat@@@modules@@@Page@@@Foo_js_js(require, module, exports) {"
+    [ "function test___fixtures___concat___modules___Page___Foo_js_js(require, module, exports) {"
     , "4 + 2"
-    , "} /* END: test@@@fixtures@@@concat@@@modules@@@Page@@@Foo_js_js */"
-    , "function test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js(require, module, exports) {"
+    , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
+    , "function test___fixtures___concat___sources___Page___Moo_js_js(require, module, exports) {"
     , "console.log('foo')"
-    , "} /* END: test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js */"
+    , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
     ]
   ]
 
@@ -105,8 +105,8 @@ suite =
         wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase "#getCompiledDependencyFileNames" $ do
         getCompiledDependencyFileNames mockDependencyTree @?=
-          [ Just "ui@@@src@@@index.js.js"
-          , Just "ui@@@src@@@main.js.js"
+          [ Just "ui___src___index.js.js"
+          , Just "ui___src___main.js.js"
           , Nothing
           , Nothing
           ]

@@ -44,7 +44,7 @@ readModules temp_directory name = do
 
 {-| Gets a unique list of compiled filenames from a dependency tree.
     getCompiledDependencyFileNames dependencyTree
-    [Just "ui@@@src@@@index.js.js", Just "ui@@@src@@@Main.elm.js"]
+    [Just "ui___src___index.js.js", Just "ui___src___Main.elm.js"]
 -}
 getCompiledDependencyFileNames :: D.DependencyTree -> [Maybe FP.FilePath]
 getCompiledDependencyFileNames =
