@@ -26,11 +26,11 @@ mockModule =
 wrappedModule :: T.Text
 wrappedModule =
   T.unlines
-  [ "function(require, module, exports) {"
+  [ "function testFunction(require, module, exports) {"
   , "var foo = require('foo.js');"
   , ""
   , "foo(42)"
-  , "}"
+  , "} /* END: testFunction */"
   ]
 
 mockDependencyTree :: D.DependencyTree
@@ -85,16 +85,24 @@ mockDependencies =
 
 expectedOutput :: [String]
 expectedOutput =
-  ["function(require, module, exports) {\n4 + 2\n}\nfunction(require, module, exports) {\nconsole.log('foo')\n}\n"]
+  [ T.unpack $ T.unlines
+    [ "function test@@@fixtures@@@concat@@@sources@@@Page@@@Foo_js_js(require, module, exports) {"
+    , "4 + 2"
+    , "} /* END: test@@@fixtures@@@concat@@@sources@@@Page@@@Foo_js_js */"
+    , "function test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js(require, module, exports) {"
+    , "console.log('foo')"
+    , "} /* END: test@@@fixtures@@@concat@@@sources@@@Page@@@Moo_js_js */"
+    ]
+  ]
 
 suite :: TestTree
 suite =
   testGroup
     "ConcatModule"
     [ testCase "#wrapModule" $ do
-        wrapModule "" @?= ""
+        wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
-        wrapModule mockModule @?= wrappedModule
+        wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase "#getCompiledDependencyFileNames" $ do
         getCompiledDependencyFileNames mockDependencyTree @?=
           [ Just "ui@@@src@@@index.js.js"
@@ -107,8 +115,8 @@ suite =
         case e of
           Left _  -> assertFailure ""
           Right paths -> do
-            paths @=? ["./test/fixtures/concat/js/Page/Foo.js"]
+            paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
             actual <- traverse readFile paths
-            actual @=? expectedOutput
+            actual @?= expectedOutput
             traverse_ removeFile paths
     ]

@@ -23,17 +23,24 @@ wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) depend
 wrapModules :: C.Config -> D.DependencyTree -> Task (Maybe FilePath)
 wrapModules C.Config { source_directory, output_js_directory, temp_directory } dependencyTree = lift $ do
   let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
-  modules <- traverse (\name -> readFile $ temp_directory </> name) fileNames
+  modules <- traverse (readModules temp_directory) fileNames
   case modules of
     [] -> return Nothing
     _ -> do
-      let wrappedModules = fmap (wrapModule . T.pack) modules
+      let wrappedModules = fmap (uncurry wrapModule) modules
       let root = Tree.rootLabel dependencyTree
       let outputPath = output_js_directory </> FP.makeRelative source_directory ("." </> D.filePath root)
       createDirectoryIfMissing True $ FP.takeDirectory outputPath
       writeFile outputPath $ T.unpack $ T.concat wrappedModules
       return $ Just outputPath
 
+readModules :: FilePath -> FilePath -> IO (T.Text, T.Text)
+readModules temp_directory name = do
+  content <- readFile $ temp_directory </> name
+  return
+    ( T.replace "." "_" $ T.pack $ name
+    , T.pack content
+    )
 
 {-| Gets a unique list of compiled filenames from a dependency tree.
     getCompiledDependencyFileNames dependencyTree
@@ -55,14 +62,17 @@ getCompiledDependencyFileNames =
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings
-    >>> wrapModule "console.log(42);"
-    "function(require, module, exports) {\nconsole.log(42);}\n"
+    >>> wrapModule "foo" "console.log(42);"
+    "function foo(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
 -}
-wrapModule :: T.Text -> T.Text
-wrapModule "" = ""
-wrapModule body =
+wrapModule :: T.Text -> T.Text -> T.Text
+wrapModule _ "" = ""
+wrapModule fnName body =
   T.concat
-    [ "function(require, module, exports) {\n"
+    [ T.concat ["function ", fnName, "(require, module, exports) {\n"]
     , body
-    , "}\n"
+    , "} /* END: "
+    , fnName
+    , " */"
+    , "\n"
     ]
