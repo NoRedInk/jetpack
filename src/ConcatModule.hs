@@ -11,6 +11,7 @@ import Data.Text as T
 import Data.Tree as Tree
 import Dependencies as D
 import Parser.Ast as Ast
+import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
 import Utils.Files as F
@@ -20,7 +21,7 @@ wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) depend
 
 
 wrapModules :: C.Config -> D.DependencyTree -> Task (Maybe FilePath)
-wrapModules C.Config { output_js_directory, temp_directory } dependencyTree = lift $ do
+wrapModules C.Config { source_directory, output_js_directory, temp_directory } dependencyTree = lift $ do
   let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
   modules <- traverse (\name -> readFile $ temp_directory </> name) fileNames
   case modules of
@@ -28,7 +29,8 @@ wrapModules C.Config { output_js_directory, temp_directory } dependencyTree = li
     _ -> do
       let wrappedModules = fmap (wrapModule . T.pack) modules
       let root = Tree.rootLabel dependencyTree
-      let outputPath = output_js_directory </> F.pathToFileName (D.filePath root) "js"
+      let outputPath = output_js_directory </> FP.makeRelative source_directory ("." </> D.filePath root)
+      createDirectoryIfMissing True $ FP.takeDirectory outputPath
       writeFile outputPath $ T.unpack $ T.concat wrappedModules
       return $ Just outputPath
 
@@ -58,9 +60,9 @@ getCompiledDependencyFileNames =
 -}
 wrapModule :: T.Text -> T.Text
 wrapModule "" = ""
-wrapModule mod =
+wrapModule body =
   T.concat
     [ "function(require, module, exports) {\n"
-    , mod
+    , body
     , "}\n"
     ]

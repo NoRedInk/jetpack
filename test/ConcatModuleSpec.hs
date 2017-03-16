@@ -72,15 +72,15 @@ mockConfig =
 
 mockDependencies :: D.Dependencies
 mockDependencies =
-  [Tree.Node (dependency "foo")
-    [ Tree.Node (dependency "moo") []
+  [Tree.Node (dependency "Foo")
+    [ Tree.Node (dependency "Moo") []
     ]
   ]
   where
     dependency fileName = D.Dependency
                     Ast.Js
                     (fileName <.> "js")
-                    ("ui" </> "src" </> fileName <.> "js")
+                    ("test" </> "fixtures" </> "concat" </> "sources" </> "Page" </> fileName <.> "js")
                     Nothing
 
 expectedOutput :: [String]
@@ -107,7 +107,7 @@ suite =
         case e of
           Left _  -> assertFailure ""
           Right paths -> do
-            paths @=? ["./test/fixtures/concat/js/ui@@@src@@@foo.js.js"]
+            paths @=? ["./test/fixtures/concat/js/Page/Foo.js"]
             actual <- traverse readFile paths
             actual @=? expectedOutput
             traverse_ removeFile paths
