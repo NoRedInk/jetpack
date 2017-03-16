@@ -90,6 +90,7 @@ expectedOutput =
     , "4 + 2"
     , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
     , "function test___fixtures___concat___sources___Page___Moo_js_js(require, module, exports) {"
+    , "require('./foo')"
     , "console.log('foo')"
     , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
     ]
@@ -103,13 +104,6 @@ suite =
         wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
-    , testCase "#getCompiledDependencyFileNames" $ do
-        getCompiledDependencyFileNames mockDependencyTree @?=
-          [ Just "ui___src___index.js.js"
-          , Just "ui___src___main.js.js"
-          , Nothing
-          , Nothing
-          ]
     , testCase "#wrap" $ do
         e <- runExceptT $ wrap mockConfig mockDependencies
         case e of

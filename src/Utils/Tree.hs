@@ -1,4 +1,4 @@
-module Utils.Tree (searchNode) where
+module Utils.Tree (searchNode, foldTree, roots) where
 
 import Data.Tree
 
@@ -21,3 +21,19 @@ searchNode p = find . pure
   where find (x:_)  | p x  = Just x
         find (x:xs) = find (xs ++ subForest x)
         find []     = Nothing
+
+{-| Fold over a tree.
+    >>> let myTree = Node 1 [ Node 11 [], Node 12 [ Node 21 [ Node 31 [] ] , Node 22 [] ] ]
+    >>> foldTree (\a as -> show a : fmap show as) myTree
+    ["1","11","12","11","12","21","22","21","31","31","22"]
+-}
+foldTree :: Monoid m => (a -> [a] -> m) -> Tree a -> m
+foldTree f (Node x ts) = mconcat $ f x (roots ts) : fmap (foldTree f) ts
+
+{-| Get all rootLabels of a Forest.
+    >>> let myForest = [ Node 11 [], Node 12 [ Node 21 [ Node 31 [] ] , Node 22 [] ], Node 13 [] ]
+    >>> roots myForest
+    [11,12,13]
+-}
+roots :: Forest a -> [a]
+roots = fmap rootLabel

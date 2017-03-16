@@ -3,62 +3,55 @@
 
 module ConcatModule where
 
-import Config as C
+import Config
 import Control.Monad.Trans.Class (lift)
-import Data.List.Utils as LU
+import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
-import Data.Text as T
-import Data.Tree as Tree
-import Dependencies as D
-import Parser.Ast as Ast
+import qualified Data.Text as T
+import qualified Data.Tree as Tree
+import Dependencies
+import qualified Parser.Ast as Ast
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
-import Utils.Files as F
+import qualified Utils.Files as F
+import qualified Utils.Tree as UT
 
-wrap :: C.Config -> D.Dependencies -> Task [FilePath]
+wrap :: Config -> Dependencies -> Task [FilePath]
 wrap config dependencies = fmap catMaybes $ traverse (wrapModules config) dependencies
 
+wrapModules :: Config -> DependencyTree -> Task (Maybe FilePath)
+wrapModules config dep = do
+  let nodesWithDeps = UT.foldTree (\a as -> [(a , as)]) dep
+  fns <- traverse (wrapper config) $ LU.uniq nodesWithDeps
+  writeModule config dep $ catMaybes fns
 
-wrapModules :: C.Config -> D.DependencyTree -> Task (Maybe FilePath)
-wrapModules C.Config { module_directory, output_js_directory, temp_directory } dependencyTree = lift $ do
-  let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
-  modules <- traverse (readModules temp_directory) fileNames
-  case modules of
-    [] -> return Nothing
-    _ -> do
-      let wrappedModules = fmap (uncurry wrapModule) modules
-      let root = Tree.rootLabel dependencyTree
-      let outputPath = output_js_directory </> FP.makeRelative module_directory (D.filePath root)
-      createDirectoryIfMissing True $ FP.takeDirectory outputPath
-      writeFile outputPath $ T.unpack $ T.concat wrappedModules
-      return $ Just outputPath
+wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper Config {temp_directory} (d@Dependency {filePath}, _ds) = lift $ do
+  if compilesToJs d
+    then do
+      let name = F.pathToFileName filePath "js"
+      content <- readFile $ temp_directory </> name
+      let fnName = T.replace "." "_" $ T.pack $ name
+      let wrapped = wrapModule fnName $ T.pack content
+      return $ Just wrapped
+    else return Nothing
 
-readModules :: FilePath -> FilePath -> IO (T.Text, T.Text)
-readModules temp_directory name = do
-  content <- readFile $ temp_directory </> name
-  return
-    ( T.replace "." "_" $ T.pack $ name
-    , T.pack content
-    )
+compilesToJs :: Dependency -> Bool
+compilesToJs Dependency { filePath, fileType } =
+  case fileType of
+    Ast.Js     -> FP.takeExtension filePath /= ".css"
+    Ast.Elm    -> True
+    Ast.Coffee -> True
+    _          -> False
 
-{-| Gets a unique list of compiled filenames from a dependency tree.
-    getCompiledDependencyFileNames dependencyTree
-    [Just "ui___src___index.js.js", Just "ui___src___Main.elm.js"]
--}
-getCompiledDependencyFileNames :: D.DependencyTree -> [Maybe FP.FilePath]
-getCompiledDependencyFileNames =
-  fmap toFileName . LU.uniq . Tree.flatten
-    where toFileName dep@Dependency { filePath } =
-                case D.fileType dep of
-                  Ast.Js ->
-                    if FP.takeExtension filePath == ".css" then
-                      Nothing
-                    else
-                      Just $ F.pathToFileName filePath "js"
-                  Ast.Elm -> Just $ F.pathToFileName filePath "js"
-                  Ast.Coffee -> Just $ F.pathToFileName filePath "js"
-                  _      -> Nothing
+writeModule :: Config -> DependencyTree -> [T.Text] -> Task (Maybe FilePath)
+writeModule Config { output_js_directory, module_directory} dependencyTree fns = lift $ do
+  let Dependency {filePath} = Tree.rootLabel dependencyTree
+  let outputPath = output_js_directory </> FP.makeRelative module_directory filePath
+  createDirectoryIfMissing True $ FP.takeDirectory outputPath
+  writeFile outputPath $ T.unpack $ T.concat fns
+  return $ Just outputPath
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings
