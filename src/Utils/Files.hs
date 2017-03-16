@@ -58,4 +58,3 @@ pathToFileName filePath extension =
         $ L.filter ((/=) ".")
         $ L.map T.pack
         $ splitDirectories filePath
-

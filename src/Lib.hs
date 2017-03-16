@@ -40,6 +40,7 @@ program = do
   deps <- dependencies config
   let modules = uniq $ concatMap Tree.flatten deps
   _ <- compile config modules
+  _ <- concatModules config deps
   return ()
 
 runProgram :: Pipeline a -> Task a

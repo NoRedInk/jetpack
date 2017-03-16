@@ -1,27 +1,57 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ConcatModule where
 
+import Config as C
+import Control.Monad.Trans.Class (lift)
 import Data.List.Utils as LU
+import Data.Maybe (catMaybes)
 import Data.Text as T
 import Data.Tree as Tree
 import Dependencies as D
-import Utils.Files as F
+import Parser.Ast as Ast
 import System.FilePath as FP
+import Task
+import Utils.Files as F
+
+wrap :: C.Config -> D.Dependencies -> Task ()
+wrap config dependencies = do
+  traverse (wrapModules config) dependencies
+  return ()
 
 
-wrapModules :: D.DependencyTree -> T.Text
-wrapModules =
-    T.concat . fmap T.pack . getCompiledDependencyFileNames
+wrapModules :: C.Config -> D.DependencyTree -> Task ()
+wrapModules C.Config { output_js_directory, temp_directory } dependencyTree = lift $ do
+  let fileNames = catMaybes $ getCompiledDependencyFileNames dependencyTree
+  modules <- traverse (\name -> readFile $ temp_directory </> name) fileNames
+  case modules of
+    [] -> return ()
+    _ -> do
+      let wrappedModules = fmap (wrapModule . T.pack) modules
+      let root = Tree.rootLabel dependencyTree
+      let outputPath = output_js_directory </> F.pathToFileName (D.filePath root) "js"
+      writeFile outputPath $ T.unpack $ T.concat wrappedModules
+
 
 {-| Gets a unique list of compiled filenames from a dependency tree.
     getCompiledDependencyFileNames dependencyTree
-    ["ui@@@src@@@index.js.js", "ui@@@src@@@Main.elm.js"]
+    [Just "ui@@@src@@@index.js.js", Just "ui@@@src@@@Main.elm.js"]
 -}
-getCompiledDependencyFileNames :: D.DependencyTree -> [FP.FilePath]
+getCompiledDependencyFileNames :: D.DependencyTree -> [Maybe FP.FilePath]
 getCompiledDependencyFileNames =
-    fmap ((\filePath -> F.pathToFileName filePath "js") . D.filePath) . LU.uniq . Tree.flatten
+  fmap toFileName . LU.uniq . Tree.flatten
+    where toFileName dep@Dependency { filePath } =
+                case D.fileType dep of
+                  Ast.Js ->
+                    if FP.takeExtension filePath == ".css" then
+                      Nothing
+                    else
+                      Just $ F.pathToFileName filePath "js"
+                  Ast.Elm -> Just $ F.pathToFileName filePath "js"
+                  Ast.Coffee -> Just $ F.pathToFileName filePath "js"
+                  _      -> Nothing
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings

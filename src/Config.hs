@@ -35,7 +35,7 @@ defaultConfig =
     ("." </> "ui")
     sassLoadPaths
     ("." </> ".jetpack" </> "build_artifacts")
-    ("." </> "app" </> "assets" </> "javascript" </> "webpack")
+    ("." </> "app" </> "assets" </> "javascripts" </> "webpack")
     ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
   where
     sassLoadPaths =
