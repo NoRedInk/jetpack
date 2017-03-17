@@ -35,9 +35,11 @@ compileModules config@Config {log_directory} modules = do
       , pgPendingChar = '░'
       , pgFormat = "Compiling ╢:bar╟ :current/:total"
       }
-    runExceptT
+    e <- runExceptT
       $ Async.forConcurrently modules
       $ compile pg config
+    complete pg
+    return e
   case e of
     Left err -> throwError err
     Right output  -> do
