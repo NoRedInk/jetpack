@@ -1,5 +1,6 @@
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 {-|
 -}
@@ -47,17 +48,19 @@ compileModules config@Config {log_directory} modules = do
       lift $ writeFile (log_directory </> "compile.log") $ T.unpack log
       return ()
 
-{-| Compile a dependency.
- 1. find compiler
- 2. create output path
- 3. compile to that output path
--}
 compile :: ProgressBar -> Config -> Dependency -> Task [T.Text]
-compile pg config (Dependency Ast.Elm _ p _)    = (runCompiler $ elmCompiler pg config) p $ buildArtifactPath config "js" p
-compile pg config (Dependency Ast.Js _ p _)     = (runCompiler $ jsCompiler pg) p $ buildArtifactPath config "js" p
-compile pg config (Dependency Ast.Coffee _ p _) = (runCompiler $ coffeeCompiler pg) p $ buildArtifactPath config "js" p -- todo get rid of ui here
-compile pg config (Dependency Ast.Sass _ p _)   = (runCompiler $ sassCompiler pg config) p $ buildArtifactPath config "css" p
+compile pg config Dependency {fileType, filePath} = do
+  let (c, outputType) = compiler fileType config pg
+  let outputPath = buildArtifactPath config outputType filePath
+  (runCompiler c) filePath outputPath
 
+compiler :: Ast.SourceType -> Config -> ProgressBar -> (Compiler, String)
+compiler fileType config pg =
+  case fileType of
+    Ast.Elm    -> (elmCompiler pg config, "js")
+    Ast.Js     -> (jsCompiler pg, "js")
+    Ast.Coffee -> (coffeeCompiler pg, "js")
+    Ast.Sass   -> (sassCompiler pg config, "css")
 
 buildArtifactPath :: Config -> String -> FilePath -> String
 buildArtifactPath Config{temp_directory} extension inputPath =
