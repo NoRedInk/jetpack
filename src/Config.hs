@@ -22,6 +22,7 @@ data Config = Config
   , elm_root_directory   :: FilePath
   , sass_load_paths      :: [FilePath]
   , temp_directory       :: FilePath
+  , log_directory        :: FilePath
   , output_js_directory  :: FilePath
   , output_css_directory :: FilePath
   } deriving (Show, Eq, Generic)
@@ -34,6 +35,7 @@ defaultConfig =
     ("." </> "ui")
     sassLoadPaths
     ("." </> ".jetpack" </> "build_artifacts")
+    ("." </> ".jetpack" </> "logs")
     -- ("." </> "app" </> "assets" </> "javascripts" </> "webpack")
     ("." </> ".jetpack" </> "js")
     ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")

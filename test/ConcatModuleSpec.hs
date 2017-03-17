@@ -66,6 +66,7 @@ mockConfig =
     ("." </> "test" </> "fixtures" </> "concat" </> "sources")
     []
     ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+    ("." </> "test" </> "fixtures" </> "concat" </> "logs")
     ("." </> "test" </> "fixtures" </> "concat" </> "js")
     ("." </> "test" </> "fixtures" </> "concat" </> "css")
 

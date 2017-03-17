@@ -25,6 +25,7 @@ suite =
               ("app" </> "sources")
               []
               ("app" </> "tmp")
+              ("app" </> "logs")
               ("app" </> "js")
               ("app" </> "css")
     , testCase "#load failure" $ do
