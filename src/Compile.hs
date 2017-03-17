@@ -26,10 +26,16 @@ newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task () }
 compileModules :: Config -> [Dependency] -> Task ()
 compileModules config modules = do
   e <- lift $ displayConsoleRegions $ do
-    pg <- newProgressBar def { pgTotal = toInteger $ length modules
-                             , pgOnCompletion = Just "Compiled :percent after :elapsed seconds"
-                             }
-    runExceptT $ Async.forConcurrently modules $ (compile pg config)
+    pg <- newProgressBar def
+      { pgTotal = toInteger $ length modules
+      , pgOnCompletion = Just "Compiled :percent after :elapsed seconds"
+      , pgCompletedChar = '█'
+      , pgPendingChar = '░'
+      , pgFormat = "Compiling ╢:bar╟ :current/:total"
+      }
+    runExceptT
+      $ Async.forConcurrently modules
+      $ compile pg config
   case e of
     Left err -> throwError err
     Right _  -> return ()
