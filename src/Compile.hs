@@ -56,7 +56,7 @@ compile :: ProgressBar -> Config -> Dependency -> Task [T.Text]
 compile pg config (Dependency Ast.Elm _ p _)    = (runCompiler $ elmCompiler pg config) p $ buildArtifactPath config "js" p
 compile pg config (Dependency Ast.Js _ p _)     = (runCompiler $ jsCompiler pg) p $ buildArtifactPath config "js" p
 compile pg config (Dependency Ast.Coffee _ p _) = (runCompiler $ coffeeCompiler pg) p $ buildArtifactPath config "js" p -- todo get rid of ui here
-compile pg config (Dependency Ast.Sass _ p _)   = (runCompiler $ sassCompiler pg) p $ buildArtifactPath config "css" p
+compile pg config (Dependency Ast.Sass _ p _)   = (runCompiler $ sassCompiler pg config) p $ buildArtifactPath config "css" p
 
 
 buildArtifactPath :: Config -> String -> FilePath -> String
@@ -89,21 +89,11 @@ jsCompiler pg = Compiler $ \input output -> lift $ do
   let commandFinished = T.pack $ show currentTime
   return [commandFinished, T.concat ["moved ", T.pack input, " => ", T.pack output]]
 
-sassCompiler :: ProgressBar -> Compiler
-sassCompiler pg = Compiler $ \input output -> do
+sassCompiler :: ProgressBar -> Config -> Compiler
+sassCompiler pg Config {sass_load_paths} = Compiler $ \input output -> do
+  let loadPath = L.intercalate ":" sass_load_paths
   let sassc = "sassc " ++ input ++ " " ++ output ++ " --load-path " ++ loadPath -- <= include stuff that is needed in load-path
   runCmd pg sassc Nothing
-  where
-    loadPath = L.intercalate ":"
-      -- TODO move this to config
-      [ "node_modules"
-      , "vendor" </> "assets" </> "components" </> "animatewithsass"
-      , "app" </> "assets" </> "modules" </> "css"
-      , "app" </> "assets" </> "stylesheets" </> "webpack"
-      , "ui" </> "src"
-      , "node_modules" </> "bourbon" </> "app" </> "assets" </> "stylesheets"
-      , "node_modules" </> "bourbon-neat" </> "app" </> "assets" </> "stylesheets"
-      ]
 
 runCmd :: ProgressBar -> String -> Maybe String -> Task [T.Text]
 runCmd pg cmd maybeCwd = do

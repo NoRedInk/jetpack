@@ -50,7 +50,6 @@ defaultConfig =
       , "node_modules" </> "bourbon-neat" </> "app" </> "assets" </> "stylesheets"
       ]
 
-
 instance ToJSON Config
 
 instance FromJSON Config
