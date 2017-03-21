@@ -1,1 +1,2 @@
-4 + 2
+var moo = require('./moo');
+moo(4, 2);

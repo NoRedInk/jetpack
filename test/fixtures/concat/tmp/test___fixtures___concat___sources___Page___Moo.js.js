@@ -1,2 +1,3 @@
-require('./foo')
-console.log('foo')
+module.exports = function(a, b) {
+  console.log(a + b + "");
+};

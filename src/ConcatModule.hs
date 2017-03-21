@@ -62,13 +62,13 @@ writeModule Config { output_js_directory, module_directory} dependencyTree fns =
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings
     >>> wrapModule "foo" "console.log(42);"
-    "function foo(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
+    "modules.foo = function(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
 -}
 wrapModule :: T.Text -> T.Text -> T.Text
 wrapModule _ "" = ""
 wrapModule fnName body =
   T.concat
-    [ T.concat ["function ", fnName, "(require, module, exports) {\n"]
+    [ T.concat ["modules.", fnName, " = function(require, module, exports) {\n"]
     , body
     , "} /* END: "
     , fnName
