@@ -81,7 +81,7 @@ mockDependencies =
   where
     dependency location fileName = D.Dependency
                     Ast.Js
-                    (fileName <.> "js")
+                    ("." </> fileName)
                     ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </> fileName <.> "js")
                     Nothing
 
@@ -91,7 +91,7 @@ expectedOutput =
     [ "(function() {"
     , "/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
     , "function test___fixtures___concat___modules___Page___Foo_js_js(require, module, exports) {"
-    , "var moo = require('./moo');"
+    , "var moo = require(test___fixtures___concat___sources___Page___Moo_js_js);"
     , "moo(4, 2);"
     , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
     , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"

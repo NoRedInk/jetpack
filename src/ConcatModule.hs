@@ -17,6 +17,7 @@ import qualified Parser.Ast as Ast
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
+import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
@@ -33,15 +34,24 @@ uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper Config {temp_directory} (d@Dependency {filePath}, _ds) = lift $ do
+wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = lift $ do
   if compilesToJs d
     then do
       let name = F.pathToFileName filePath "js"
       content <- readFile $ temp_directory </> name
       let fnName = F.pathToFunctionName filePath "js"
-      let wrapped = wrapModule fnName $ T.pack content
+      let replacedContent = foldr replaceRequire (T.pack content) ds
+      let wrapped = wrapModule fnName replacedContent
       return $ Just wrapped
     else return Nothing
+
+replaceRequire :: Dependency -> T.Text -> T.Text
+replaceRequire Dependency {requiredAs, filePath} body =
+  T.pack
+  $ subRegex
+    (mkRegex $ T.unpack $ T.concat ["['\"]", T.pack requiredAs, "['\"]"])
+    (T.unpack body) fnName
+  where fnName = T.unpack $ F.pathToFunctionName filePath "js"
 
 compilesToJs :: Dependency -> Bool
 compilesToJs Dependency { filePath, fileType } =
