@@ -26,7 +26,8 @@ mockModule =
 wrappedModule :: T.Text
 wrappedModule =
   T.unlines
-  [ "modules.testFunction = function(require, module, exports) {"
+  [ "/* START: testFunction */"
+  , "function testFunction(require, module, exports) {"
   , "var foo = require('foo.js');"
   , ""
   , "foo(42)"
@@ -88,17 +89,19 @@ expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
     [ "(function() {"
-    , "var modules = {};"
-    , "modules.test___fixtures___concat___modules___Page___Foo_js_js = function(require, module, exports) {"
+    , "/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
+    , "function test___fixtures___concat___modules___Page___Foo_js_js(require, module, exports) {"
     , "var moo = require('./moo');"
     , "moo(4, 2);"
     , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
-    , "modules.test___fixtures___concat___sources___Page___Moo_js_js = function(require, module, exports) {"
+    , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
+    , "function test___fixtures___concat___sources___Page___Moo_js_js(require, module, exports) {"
     , "module.exports = function(a, b) {"
     , "  console.log(a + b + \"\");"
     , "};"
     , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
     , ""
+    , "test___fixtures___concat___modules___Page___Foo_js_js();"
     , "})();"
     ]
   ]

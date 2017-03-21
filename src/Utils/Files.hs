@@ -11,6 +11,7 @@ module Utils.Files
   ( fileExistsTask
   , findAllFilesIn
   , pathToFileName
+  , pathToFunctionName
   ) where
 
 import Control.Monad.Except
@@ -57,3 +58,7 @@ pathToFileName filePath extension =
         $ L.filter ((/=) ".")
         $ L.map T.pack
         $ splitDirectories filePath
+
+pathToFunctionName :: FilePath -> String -> T.Text
+pathToFunctionName filePath extension =
+  T.replace "." "_" $ T.pack $ pathToFileName filePath extension

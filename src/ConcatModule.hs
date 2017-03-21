@@ -38,7 +38,7 @@ wrapper Config {temp_directory} (d@Dependency {filePath}, _ds) = lift $ do
     then do
       let name = F.pathToFileName filePath "js"
       content <- readFile $ temp_directory </> name
-      let fnName = T.replace "." "_" $ T.pack $ name
+      let fnName = F.pathToFunctionName filePath "js"
       let wrapped = wrapModule fnName $ T.pack content
       return $ Just wrapped
     else return Nothing
@@ -55,32 +55,32 @@ writeModule :: Config -> DependencyTree -> [T.Text] -> Task (Maybe FilePath)
 writeModule Config { output_js_directory, module_directory} dependencyTree fns = lift $ do
   let Dependency {filePath} = Tree.rootLabel dependencyTree
   let outputPath = output_js_directory </> FP.makeRelative module_directory filePath
+  let rootName = F.pathToFunctionName filePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory outputPath
-  writeFile outputPath $ T.unpack $ addBoilerplate fns
+  writeFile outputPath $ T.unpack $ addBoilerplate rootName fns
   return $ Just outputPath
 
-addBoilerplate :: [T.Text] -> T.Text
-addBoilerplate fns =
-  T.concat
-  [ "(function() {\n"
-  , "var modules = {};\n"
+addBoilerplate :: T.Text -> [T.Text] -> T.Text
+addBoilerplate root fns =
+  T.unlines
+  [ "(function() {"
   , T.concat fns
-  , "\n})();\n"
+  , T.concat [root, "();"] -- calling the entry point
+  , "})();"
   ]
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings
     >>> wrapModule "foo" "console.log(42);"
-    "modules.foo = function(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
+    "/* START: foo */\nfunction foo(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
 -}
 wrapModule :: T.Text -> T.Text -> T.Text
 wrapModule _ "" = ""
 wrapModule fnName body =
   T.concat
-    [ T.concat ["modules.", fnName, " = function(require, module, exports) {\n"]
+    [ "/* START: " , fnName , " */" , "\n"
+    , T.concat ["function ", fnName, "(require, module, exports) {\n"]
     , body
-    , "} /* END: "
-    , fnName
-    , " */"
+    , "} /* END: " , fnName , " */"
     , "\n"
     ]
