@@ -56,8 +56,17 @@ writeModule Config { output_js_directory, module_directory} dependencyTree fns =
   let Dependency {filePath} = Tree.rootLabel dependencyTree
   let outputPath = output_js_directory </> FP.makeRelative module_directory filePath
   createDirectoryIfMissing True $ FP.takeDirectory outputPath
-  writeFile outputPath $ T.unpack $ T.concat fns
+  writeFile outputPath $ T.unpack $ addBoilerplate fns
   return $ Just outputPath
+
+addBoilerplate :: [T.Text] -> T.Text
+addBoilerplate fns =
+  T.concat
+  [ "(function() {\n"
+  , "var modules = {};\n"
+  , T.concat fns
+  , "\n})();\n"
+  ]
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings

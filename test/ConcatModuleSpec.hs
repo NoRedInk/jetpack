@@ -87,7 +87,9 @@ mockDependencies =
 expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
-    [ "modules.test___fixtures___concat___modules___Page___Foo_js_js = function(require, module, exports) {"
+    [ "(function() {"
+    , "var modules = {};"
+    , "modules.test___fixtures___concat___modules___Page___Foo_js_js = function(require, module, exports) {"
     , "var moo = require('./moo');"
     , "moo(4, 2);"
     , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
@@ -96,6 +98,8 @@ expectedOutput =
     , "  console.log(a + b + \"\");"
     , "};"
     , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
+    , ""
+    , "})();"
     ]
   ]
 
