@@ -13,11 +13,8 @@
 -}
 module Parser.Import where
 
-import Data.Functor (void)
-import qualified Data.Maybe as M
 import qualified Data.Text as T
 import Parser.Ast as Ast
-import System.FilePath (splitExtension, (<.>))
 import Text.Parsec
 import qualified Utils.Parser as UP
 
