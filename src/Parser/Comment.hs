@@ -11,12 +11,29 @@
 module Parser.Comment
   ( eatJsComments
   , eatCoffeeComments
+  , eatElmComments
   ) where
 
 import Data.Functor (void)
 import qualified Data.List as L
 import qualified Data.Text as T
 import Text.Parsec
+
+{-| Removes block and line comments from text.
+    >>> :{
+    eatElmComments $
+      T.unlines
+        [ "import Page.Foo.Bar"
+        , "-- import Maybe.Extra"
+        , "type Msg = NoOp"
+        , "{- some comment -}"
+        , "foo = 42"
+        ]
+    :}
+    "import Page.Foo.Bar\ntype Msg = NoOp\n\nfoo = 42\n"
+-}
+eatElmComments :: T.Text -> T.Text
+eatElmComments = eatComments elmBlockCommentParser elmLineCommentParser
 
 {-| Removes block and line comments from text.
     >>> :{
@@ -63,6 +80,15 @@ eatCommentsParser parser = do
   xs <- sepBy (notCommentParser parser) parser
   optional parser
   return $ T.pack $ L.intercalate "" xs
+
+elmBlockCommentParser :: Parsec T.Text st ()
+elmBlockCommentParser =
+  string "{-" >> manyTill anyChar (try $ string "-}") >> return ()
+
+elmLineCommentParser :: Parsec T.Text st ()
+elmLineCommentParser =
+  string "--" >> manyTill anyChar (void newline <|> eof) >> return ()
+
 
 jsBlockCommentParser :: Parsec T.Text st ()
 jsBlockCommentParser =
