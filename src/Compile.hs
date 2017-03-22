@@ -7,7 +7,7 @@
 module Compile where
 
 import Config (Config (..))
-import Control.Concurrent.Async.Lifted as Async
+-- import Control.Concurrent.Async.Lifted as Async (forConcurrently)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Trans.Class (lift)
 import Data.List as L
@@ -39,8 +39,7 @@ compileModules config@Config {log_directory} modules = do
       , pgFormat = "Compiling ╢:bar╟ :current/:total"
       }
     e <- runExceptT
-      $ Async.forConcurrently modules
-      $ compile pg config
+      $ traverse (compile pg config) modules
     complete pg
     return e
   case e of
