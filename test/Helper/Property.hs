@@ -32,7 +32,7 @@ digitFreqList :: [(Int, QC.Gen Char)]
 digitFreqList = [(10, QC.choose ('0', '9'))]
 
 symbolsFreqList :: [(Int, QC.Gen Char)]
-symbolsFreqList = [(5, QC.elements ['-', '+', ';', '*', '%'])]
+symbolsFreqList = [(5, QC.elements ['+', ';', '*', '%'])]
 
 letter :: QC.Gen Char
 letter = QC.frequency alphaFreqList

@@ -67,6 +67,8 @@ properties =
     , testProperty "#eatJsComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) /=
         (codeWithJsComments b1 b2 b3)
+    , testProperty "#eatJsComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) == code b1 b2 b3
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatCoffeeComments $
          Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) ==
@@ -74,9 +76,24 @@ properties =
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) /=
         (codeWithCoffeeComments b1 b2 b3)
+    , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) == code b1 b2 b3
+    , testProperty "#eatElmComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatElmComments $
+         Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) ==
+        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3)
+    , testProperty "#eatElmComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) /=
+        (codeWithElmComments b1 b2 b3)
+    , testProperty "#eatElmComments" $ \b1 b2 b3 ->
+        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) == code b1 b2 b3
     ]
   where
+    code (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+      T.unlines [b1, T.concat [b2, "\n"], b3]
     codeWithJsComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
-      T.concat [b1, "// hello", b2, "/* \nworld\n */", b3]
+      T.unlines [b1, "// hello", b2, "/*\n world \n*/", b3]
     codeWithCoffeeComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
-      T.concat [b1, "# hello", b2, "\n###\nworld\n###\n", b3]
+      T.unlines [b1, "# hello", b2, "###\nworld\n###", b3]
+    codeWithElmComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+      T.unlines [b1, "-- hello", b2, "{-\nworld\n-}", b3]
