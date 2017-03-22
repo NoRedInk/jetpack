@@ -106,14 +106,11 @@ extractRequire str = parse requireParser "Error" str
 
 requireParser :: Parsec T.Text u (FilePath, String)
 requireParser = do
-  _ <- ignoreTillRequire
+  _ <- UP.eatTill requireKeyword
   _ <- requireKeyword
   _ <- spaces
   content <- choice [UP.betweenParens UP.stringContent, UP.stringContent]
   return $ splitExtension content
-
-ignoreTillRequire :: Parsec T.Text u String
-ignoreTillRequire = manyTill anyChar (lookAhead $ try requireKeyword)
 
 requireKeyword :: Parsec T.Text u String
 requireKeyword = string "require"

@@ -3,6 +3,7 @@
 module Utils.Parser
   ( stringContent
   , betweenParens
+  , eatTill
   ) where
 
 import qualified Data.Text as T
@@ -58,3 +59,10 @@ quotes = between $ P.char '\''
 
 doubleQuotes :: P.Parsec T.Text u String -> P.Parsec T.Text u String
 doubleQuotes = between $ P.char '"'
+
+{-| parses text between parens
+    >>> P.parse (eatTill $ P.string "end") "invalid" "beginn foo end"
+    Right "beginn foo "
+-}
+eatTill :: P.Parsec T.Text u String -> P.Parsec T.Text u String
+eatTill p = P.manyTill P.anyChar (P.lookAhead $ P.try p)
