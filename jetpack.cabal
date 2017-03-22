@@ -26,6 +26,7 @@ library
                        Parser.Ast,
                        Parser.Comment,
                        Parser.Require,
+                       Parser.Import,
                        Parser.PackageJson,
                        Pipeline,
                        Init,
