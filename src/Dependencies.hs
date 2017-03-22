@@ -129,6 +129,7 @@ depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
+requireToDep _path (Ast.Import _n)  = undefined
 
 updateDepPath :: FilePath -> Dependency -> Dependency
 updateDepPath newPath (Dependency t r _ l) = Dependency t r newPath l

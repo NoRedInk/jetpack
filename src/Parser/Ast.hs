@@ -6,17 +6,19 @@ module Parser.Ast
   ) where
 
 import Data.Aeson as Aeson
+import Data.Text as T
 import GHC.Generics (Generic)
 import System.FilePath ()
 
 
-data Require = Require
-  { fileType :: SourceType
-  , fileName :: FilePath
-  } deriving (Eq)
+data Require
+  = Require SourceType FilePath
+  | Import T.Text
+  deriving (Eq)
 
 instance Show Require where
   show (Require t n) = "(Require " ++ show n ++ " " ++ show t ++ ")"
+  show (Import n)    = "(Import " ++ show n ++ ")"
 
 data SourceType
   = Coffee
