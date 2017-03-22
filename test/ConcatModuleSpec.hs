@@ -27,7 +27,7 @@ wrappedModule :: T.Text
 wrappedModule =
   T.unlines
   [ "/* START: testFunction */"
-  , "function testFunction(require, module, exports) {"
+  , "function testFunction(module, exports) {"
   , "var foo = require('foo.js');"
   , ""
   , "foo(42)"
@@ -71,6 +71,8 @@ mockConfig =
     ("." </> "test" </> "fixtures" </> "concat" </> "js")
     ("." </> "test" </> "fixtures" </> "concat" </> "css")
 
+mockDependency :: FilePath -> FilePath -> D.Dependency
+mockDependency f p = D.Dependency Ast.Js f p Nothing
 
 mockDependencies :: D.Dependencies
 mockDependencies =
@@ -78,31 +80,32 @@ mockDependencies =
     [ Tree.Node (dependency "sources" "Moo") []
     ]
   ]
-  where
-    dependency location fileName = D.Dependency
-                    Ast.Js
-                    ("." </> fileName)
-                    ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </> fileName <.> "js")
-                    Nothing
+  where dependency location fileName = mockDependency ("." </> fileName) ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </> fileName <.> "js")
 
 expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
-    [ "(function() {"
-    , "/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
-    , "function test___fixtures___concat___modules___Page___Foo_js_js(require, module, exports) {"
-    , "var moo = require(test___fixtures___concat___sources___Page___Moo_js_js);"
-    , "moo(4, 2);"
-    , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
-    , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
-    , "function test___fixtures___concat___sources___Page___Moo_js_js(require, module, exports) {"
-    , "module.exports = function(a, b) {"
-    , "  console.log(a + b + \"\");"
-    , "};"
-    , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
-    , ""
-    , "test___fixtures___concat___modules___Page___Foo_js_js();"
-    , "})();"
+    ["(function() {"
+    ,"function require(fn) {"
+    ,"  var m = { exports : {}}"
+    ,"  var e = {}"
+    ,"  fn(m, e);  "
+    ,"  return e || m.exports;"
+    ,"}"
+    ,"/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
+    ,"function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
+    ,"var moo = require(test___fixtures___concat___sources___Page___Moo_js_js);"
+    ,"moo(4, 2);"
+    ,"} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
+    ,"/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
+    ,"function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
+    ,"module.exports = function(a, b) {"
+    ,"  console.log(a + b + \"\");"
+    ,"};"
+    ,"} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
+    ,""
+    ,"require(test___fixtures___concat___modules___Page___Foo_js_js);"
+    ,"})();"
     ]
   ]
 
@@ -114,6 +117,12 @@ suite =
         wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
+    , testCase "#replaceRequire replaces require(string) with require(function)" $ do
+        replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require('foo')"
+        @?= "var x = require(ui___src___foo_js)"
+    , testCase "#replaceRequire replaces require(string) with require(function)" $ do
+        replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
+        @?= "var x = require(ui___src___foo_js)"
     , testCase "#wrap" $ do
         e <- runExceptT $ wrap mockConfig mockDependencies
         case e of

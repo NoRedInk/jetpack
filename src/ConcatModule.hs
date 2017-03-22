@@ -74,22 +74,28 @@ addBoilerplate :: T.Text -> [T.Text] -> T.Text
 addBoilerplate root fns =
   T.unlines
   [ "(function() {"
+  , "function require(fn) {"
+  , "  var m = { exports : {}}"
+  , "  var e = {}"
+  , "  fn(m, e);  "
+  , "  return e || m.exports;"
+  , "}"
   , T.concat fns
-  , T.concat [root, "();"] -- calling the entry point
+  , T.concat ["require(", root, ");"] -- calling the entry point
   , "})();"
   ]
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> :set -XOverloadedStrings
     >>> wrapModule "foo" "console.log(42);"
-    "/* START: foo */\nfunction foo(require, module, exports) {\nconsole.log(42);} /* END: foo */\n"
+    "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);} /* END: foo */\n"
 -}
 wrapModule :: T.Text -> T.Text -> T.Text
 wrapModule _ "" = ""
 wrapModule fnName body =
   T.concat
     [ "/* START: " , fnName , " */" , "\n"
-    , T.concat ["function ", fnName, "(require, module, exports) {\n"]
+    , T.concat ["function ", fnName, "(module, exports) {\n"]
     , body
     , "} /* END: " , fnName , " */"
     , "\n"
