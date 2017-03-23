@@ -49,7 +49,7 @@ replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
   T.pack
   $ subRegex
-    (mkRegex $ T.unpack $ T.concat ["['\"]", T.pack requiredAs, "['\"]"])
+    (mkRegex $ T.unpack $ T.concat ["['\"]", requiredAs, "['\"]"])
     (T.unpack body) fnName
   where fnName = T.unpack $ F.pathToFunctionName filePath "js"
 

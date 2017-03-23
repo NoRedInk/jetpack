@@ -45,18 +45,18 @@ mockDependencyTree =
   where
     dependency fileName = D.Dependency
                     (D.EntryPoint Ast.Js)
-                    (fileName <.> "js")
-                    ("ui" </> "src" </> fileName <.> "js")
+                    (T.concat [fileName, ".js"])
+                    ("ui" </> "src" </> (T.unpack fileName) <.> "js")
                     Nothing
     cssEntry = D.Dependency
                     (D.EntryPoint Ast.Js)
-                    ("foo" <.> "css")
+                    (T.concat ["foo", ".css"])
                     ("ui" </> "src" </> "foo" <.> "css")
                     Nothing
     cssDependency fileName = D.Dependency
                     (D.EntryPoint Ast.Sass)
-                    (fileName <.> "sass")
-                    ("ui" </> "src" </> fileName <.> "sass")
+                    (T.concat [fileName, ".sass"])
+                    ("ui" </> "src" </> (T.unpack fileName) <.> "sass")
                     Nothing
 
 mockConfig :: Config
@@ -71,7 +71,7 @@ mockConfig =
     ("." </> "test" </> "fixtures" </> "concat" </> "js")
     ("." </> "test" </> "fixtures" </> "concat" </> "css")
 
-mockDependency :: FilePath -> FilePath -> D.Dependency
+mockDependency :: T.Text -> FilePath -> D.Dependency
 mockDependency f p = D.Dependency (D.EntryPoint Ast.Js) f p Nothing
 
 mockDependencies :: D.Dependencies
@@ -80,7 +80,7 @@ mockDependencies =
     [ Tree.Node (dependency "sources" "Moo") []
     ]
   ]
-  where dependency location fileName = mockDependency ("." </> fileName) ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </> fileName <.> "js")
+  where dependency location fileName = mockDependency (T.concat ["./", fileName]) ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </> (T.unpack fileName) <.> "js")
 
 expectedOutput :: [String]
 expectedOutput =

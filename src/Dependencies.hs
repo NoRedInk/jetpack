@@ -79,6 +79,7 @@ import System.FilePath
     , (<.>)
     , (</>)
     )
+import System.FilePath.Glob (glob)
 import System.Posix.Files
 import Task (Task)
 import Utils.Files (fileExistsTask, findAllFilesIn)
@@ -86,7 +87,7 @@ import Utils.Tree (searchNode)
 
 data Dependency = Dependency
   { fileType             :: FileType
-  , requiredAs           :: FilePath
+  , requiredAs           :: T.Text
   , filePath             :: FilePath
   , lastModificationTime :: Maybe UTCTime
   } deriving (Eq, Generic)
@@ -132,14 +133,14 @@ toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency module_directory path  = lift $ do
   status <- getFileStatus $ module_directory </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency (EntryPoint Ast.Js) path path $ Just lastModificationTime
+  return $ Dependency (EntryPoint Ast.Js) (T.pack path) path $ Just lastModificationTime
 
 depsTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
 depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
-requireToDep path (Ast.Require t n) = Dependency (EntryPoint t) n path Nothing
-requireToDep _path (Ast.Import _n)  = undefined
+requireToDep path (Ast.Require t n) = Dependency (EntryPoint t) (T.pack n) path Nothing
+requireToDep _ (Ast.Import n)    = Dependency (Child Ast.Elm) n ("." </> (T.unpack $ T.replace "." "/" n)) Nothing
 
 updateDepPath :: FilePath -> Dependency -> Dependency
 updateDepPath newPath (Dependency t r _ l) = Dependency t r newPath l
@@ -165,6 +166,7 @@ findRequires config cache parent = do
     <|> findInRootNodeModules parent
     <|> findInVendorComponents parent
     <|> findInVendorJavascripts parent
+    <|> globElm config parent
     <|> moduleNotFound config (requiredAs parent)
   case fileType of
     EntryPoint Ast.Js     -> parseModule cache dep Parser.Require.jsRequires
@@ -233,7 +235,25 @@ findInVendorJavascripts parent =
   where
     vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
 
-tryPlainJsExtAndIndex :: FilePath -> FilePath -> Dependency -> Task Dependency
+globElm :: Config -> Dependency -> Task Dependency
+globElm Config {source_directory} parent@Dependency {fileType, requiredAs} =
+  case fileType of
+    Child Ast.Elm -> do
+      -- TODO use filepath
+      let globi = T.concat [T.pack source_directory, "/**/", requiredAs, ".elm"]
+      paths <- lift $ glob $ T.unpack globi
+      -- TODO filter module == requiredAs
+      case paths of
+        [] -> throwError []
+        x:_ -> do
+          _ <- lift $ print requiredAs
+          _ <- lift $ print x
+          cwd <- lift Dir.getCurrentDirectory
+          let p = T.pack $ makeRelative (cwd </> source_directory) x
+          findInPath source_directory p parent
+    _ -> throwError []
+
+tryPlainJsExtAndIndex :: FilePath -> T.Text -> Dependency -> Task Dependency
 tryPlainJsExtAndIndex basePath fileName require =
   -- check if we have a package.json.
   -- it contains information about the main file
@@ -241,31 +261,32 @@ tryPlainJsExtAndIndex basePath fileName require =
   -- js
   <|> findInPath basePath "" require
   <|> findInPath basePath fileName require
-  <|> findInPath basePath (fileName <.> "js") require
-  <|> findInPath basePath (fileName </> "index.js") require
-  <|> findInPath basePath (fileName </> fileName) require
-  <|> findInPath basePath (fileName </> fileName <.> "js") require
+  <|> findInPath basePath (T.concat [fileName, ".js"]) require
+  <|> findInPath basePath (T.concat [fileName, "/index.js"]) require
+  <|> findInPath basePath (T.concat [fileName, "/", fileName]) require
+  <|> findInPath basePath (T.concat [fileName, "/", fileName, ".js"]) require
   -- coffeescript
   <|> findInPath basePath fileName require
-  <|> findInPath basePath (fileName <.> "coffee") require
-  <|> findInPath basePath (fileName </> "index.coffee") require
+  <|> findInPath basePath (T.concat [fileName, ".coffee"]) require
+  <|> findInPath basePath (T.concat [fileName, "/index.coffee"]) require
 
-tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task Dependency
-tryMainFromPackageJson basePath fileName require = do
+tryMainFromPackageJson :: FilePath -> T.Text -> Dependency -> Task Dependency
+tryMainFromPackageJson basePath f require = do
+  let fileName = T.unpack f
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
   PackageJson maybeMain maybeBrowser <- PackageJson.load packageJsonPath
   case maybeBrowser <|> maybeMain of
     Just entryPoint ->
-      findInPath basePath (fileName </> T.unpack entryPoint) require
+      findInPath basePath (T.pack (fileName </> T.unpack entryPoint)) require
     Nothing -> throwError []
 
-moduleNotFound :: Config -> FilePath -> Task Dependency
+moduleNotFound :: Config -> T.Text -> Task Dependency
 moduleNotFound Config {module_directory, source_directory} fileName =
   throwError [ModuleNotFound module_directory source_directory $ show fileName]
 
-findInPath :: FilePath -> FilePath -> Dependency -> Task Dependency
+findInPath :: FilePath -> T.Text -> Dependency -> Task Dependency
 findInPath basePath path require = do
-  let searchPath = basePath </> path
+  let searchPath = basePath </> (T.unpack path)
   _ <- fileExistsTask searchPath
   updateDepTime $ updateDepType $ updateDepPath searchPath require
 

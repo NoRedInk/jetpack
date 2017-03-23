@@ -7,6 +7,7 @@ module DependenciesSpec where
 import Config
 import Control.Monad.Except (runExceptT)
 import Data.List as L
+import Data.Text as T
 import Data.Tree as Tree
 import Dependencies
 import Error
@@ -52,27 +53,27 @@ suite =
           Right deps ->
             fmap (fmap dropLastMod . Tree.flatten) deps @?=
               [ [ ( EntryPoint Ast.Js
-                , "" </> "test.js"
+                , T.pack "test.js"
                 , "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
                 )
               , ( EntryPoint Ast.Coffee
-                , "" </> "index"
+                , T.pack "index"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
                 )
               , ( EntryPoint Ast.Js
-                , "" </> "lodash"
+                , T.pack "lodash"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
                 )
               , ( EntryPoint Ast.Js
-                , "." </> "lodash.dist.js"
+                , T.pack "./lodash.dist.js"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
                 )
               , ( EntryPoint Ast.Js
-                , "." </> "lodash"
+                , T.pack "./lodash"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
                 )
               , ( EntryPoint Ast.Js
-                , "" </> "debug"
+                , T.pack "debug"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
                 )
               ]
@@ -89,5 +90,5 @@ suite =
               "\"index\""
     ]
 
-dropLastMod :: Dependency -> (FileType, FilePath, FilePath)
+dropLastMod :: Dependency -> (FileType, T.Text, FilePath)
 dropLastMod Dependency { fileType, requiredAs, filePath } = (fileType, requiredAs, filePath)
