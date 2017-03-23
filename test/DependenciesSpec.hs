@@ -51,27 +51,27 @@ suite =
             assertFailure $ "This shouldn't fail"
           Right deps ->
             fmap (fmap dropLastMod . Tree.flatten) deps @?=
-            [ [ ( Ast.Js
+              [ [ ( EntryPoint Ast.Js
                 , "" </> "test.js"
                 , "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
                 )
-              , ( Ast.Coffee
+              , ( EntryPoint Ast.Coffee
                 , "" </> "index"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
                 )
-              , ( Ast.Js
+              , ( EntryPoint Ast.Js
                 , "" </> "lodash"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
                 )
-              , ( Ast.Js
+              , ( EntryPoint Ast.Js
                 , "." </> "lodash.dist.js"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
                 )
-              , ( Ast.Js
+              , ( EntryPoint Ast.Js
                 , "." </> "lodash"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
                 )
-              , ( Ast.Js
+              , ( EntryPoint Ast.Js
                 , "" </> "debug"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
                 )
@@ -89,5 +89,5 @@ suite =
               "\"index\""
     ]
 
-dropLastMod :: Dependency -> (Ast.SourceType, FilePath, FilePath)
+dropLastMod :: Dependency -> (FileType, FilePath, FilePath)
 dropLastMod Dependency { fileType, requiredAs, filePath } = (fileType, requiredAs, filePath)

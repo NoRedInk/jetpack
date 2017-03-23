@@ -48,6 +48,7 @@ module Dependencies
   ( find
   , Dependencies
   , Dependency(..)
+  , FileType(..)
   , DependencyTree
   ) where
 
@@ -66,6 +67,7 @@ import qualified Data.Tree as Tree
 import Error
 import GHC.Generics (Generic)
 import qualified Parser.Ast as Ast
+import qualified Parser.Import
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import Safe
@@ -83,14 +85,22 @@ import Utils.Files (fileExistsTask, findAllFilesIn)
 import Utils.Tree (searchNode)
 
 data Dependency = Dependency
-  { fileType             :: Ast.SourceType
+  { fileType             :: FileType
   , requiredAs           :: FilePath
   , filePath             :: FilePath
   , lastModificationTime :: Maybe UTCTime
   } deriving (Eq, Generic)
 
+data FileType
+  = EntryPoint Ast.SourceType
+  | Child Ast.SourceType
+  deriving (Eq, Generic, Show)
+
+
 instance FromJSON Dependency
 instance ToJSON Dependency
+instance FromJSON FileType
+instance ToJSON FileType
 
 instance Show Dependency where
   show (Dependency t r p l) =
@@ -122,13 +132,13 @@ toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency module_directory path  = lift $ do
   status <- getFileStatus $ module_directory </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency Ast.Js path path $ Just lastModificationTime
+  return $ Dependency (EntryPoint Ast.Js) path path $ Just lastModificationTime
 
 depsTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
 depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
-requireToDep path (Ast.Require t n) = Dependency t n path Nothing
+requireToDep path (Ast.Require t n) = Dependency (EntryPoint t) n path Nothing
 requireToDep _path (Ast.Import _n)  = undefined
 
 updateDepPath :: FilePath -> Dependency -> Dependency
@@ -136,7 +146,7 @@ updateDepPath newPath (Dependency t r _ l) = Dependency t r newPath l
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
-  where newType = Parser.Require.getFileType $ takeExtension p
+  where newType = EntryPoint $ Parser.Require.getFileType $ takeExtension p
 
 updateDepTime :: Dependency -> Task Dependency
 updateDepTime (Dependency t r p _) = lift $ do
@@ -157,12 +167,11 @@ findRequires config cache parent = do
     <|> findInVendorJavascripts parent
     <|> moduleNotFound config (requiredAs parent)
   case fileType of
-    Ast.Js ->
-      parseModule cache dep Parser.Require.jsRequires
-    Ast.Coffee ->
-      parseModule cache dep Parser.Require.coffeeRequires
-    Ast.Elm -> return (dep, [])
-    Ast.Sass -> return (dep, [])
+    EntryPoint Ast.Js     -> parseModule cache dep Parser.Require.jsRequires
+    EntryPoint Ast.Coffee -> parseModule cache dep Parser.Require.coffeeRequires
+    EntryPoint Ast.Elm    -> parseModule cache dep Parser.Import.imports
+    Child Ast.Elm         -> parseModule cache dep Parser.Import.imports
+    _                     -> return (dep, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep =

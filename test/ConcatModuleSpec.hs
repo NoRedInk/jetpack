@@ -44,17 +44,17 @@ mockDependencyTree =
     ]
   where
     dependency fileName = D.Dependency
-                    Ast.Js
+                    (D.EntryPoint Ast.Js)
                     (fileName <.> "js")
                     ("ui" </> "src" </> fileName <.> "js")
                     Nothing
     cssEntry = D.Dependency
-                    Ast.Js
+                    (D.EntryPoint Ast.Js)
                     ("foo" <.> "css")
                     ("ui" </> "src" </> "foo" <.> "css")
                     Nothing
     cssDependency fileName = D.Dependency
-                    Ast.Sass
+                    (D.EntryPoint Ast.Sass)
                     (fileName <.> "sass")
                     ("ui" </> "src" </> fileName <.> "sass")
                     Nothing
@@ -72,7 +72,7 @@ mockConfig =
     ("." </> "test" </> "fixtures" </> "concat" </> "css")
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
-mockDependency f p = D.Dependency Ast.Js f p Nothing
+mockDependency f p = D.Dependency (D.EntryPoint Ast.Js) f p Nothing
 
 mockDependencies :: D.Dependencies
 mockDependencies =

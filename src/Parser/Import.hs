@@ -13,10 +13,32 @@
 -}
 module Parser.Import where
 
+import Data.Maybe as M
 import qualified Data.Text as T
 import Parser.Ast as Ast
+import Parser.Comment as Comment
 import Text.Parsec
-import qualified Utils.Parser as UP
+
+
+{-| returns all imports of a file
+    >>> :{
+    imports $
+      T.unlines
+      [ "module Main exposing (..)"
+      , "import Html exposing (Html, text)"
+      , "import Maybe.Extra"
+      , "-- import Dict.Extra"
+      , "foo = \"import Dict.Extra\""
+      , ""
+      , "main : Html a"
+      , "main ="
+      , "  text \"Hello, World!\""
+      ]
+    :}
+    [(Import "Html"),(Import "Maybe.Extra")]
+-}
+imports :: T.Text -> [Ast.Require]
+imports = M.mapMaybe import' . T.lines . Comment.eatElmComments
 
 {-| Parses a `import`s.
    >>> import' "import Page.Foo.Bar exposing (view)"
@@ -38,6 +60,11 @@ import' content =
    >>> extractImport "import Page"
    Right "Page"
 
+   >>> extractImport " import Page"
+   Left "Error" (line 1, column 1):
+   unexpected " "
+   expecting "import"
+
    >>> extractImport "importPage"
    Left "Error" (line 1, column 7):
    unexpected "P"
@@ -48,10 +75,6 @@ extractImport str = parse importParser "Error" str
 
 importParser :: Parsec T.Text u String
 importParser = do
-  _ <- UP.eatTill importKeyword
-  _ <- importKeyword
+  _ <- string "import"
   _ <- many1 space
   many1 $ oneOf "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_."
-
-importKeyword :: Parsec T.Text u String
-importKeyword = string "import"

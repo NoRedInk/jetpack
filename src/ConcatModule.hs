@@ -56,10 +56,10 @@ replaceRequire Dependency {requiredAs, filePath} body =
 compilesToJs :: Dependency -> Bool
 compilesToJs Dependency { filePath, fileType } =
   case fileType of
-    Ast.Js     -> FP.takeExtension filePath /= ".css"
-    Ast.Elm    -> True
-    Ast.Coffee -> True
-    _          -> False
+    EntryPoint Ast.Js     -> FP.takeExtension filePath /= ".css"
+    EntryPoint Ast.Elm    -> True
+    EntryPoint Ast.Coffee -> True
+    _                     -> False
 
 writeModule :: Config -> DependencyTree -> [T.Text] -> Task (Maybe FilePath)
 writeModule Config { output_js_directory, module_directory} dependencyTree fns = lift $ do
