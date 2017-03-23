@@ -76,6 +76,26 @@ suite =
                 , T.pack "debug"
                 , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
                 )
+              , ( EntryPoint Ast.Elm
+                , T.pack "Main.elm"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "Main.elm"
+                )
+              , ( Extern Ast.Elm
+                , T.pack "List"
+                , "." </> "List"
+                )
+              , ( Child Ast.Elm
+                , T.pack "Foo"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "Foo.elm"
+                )
+              , ( Child Ast.Elm
+                , T.pack "Page.Moo"
+                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "Page" </> "Moo.elm"
+                )
+              , ( Extern Ast.Elm
+                , T.pack "Dict"
+                , "." </> "Dict"
+                )
               ]
             ]
     , testCase "#find failing" $ do

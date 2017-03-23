@@ -13,7 +13,6 @@ import Control.Monad.Trans.Class (lift)
 import Data.List as L
 import Data.Text as T
 import Data.Time.Clock
-import Data.Time.Clock.POSIX
 import Dependencies (Dependency (..), FileType (..))
 import GHC.IO.Handle
 import Parser.Ast as Ast
@@ -21,7 +20,6 @@ import System.Console.AsciiProgress
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
-import System.Posix.Files
 import System.Process
 import Task (Task)
 import Utils.Files (pathToFileName)
@@ -50,19 +48,13 @@ compileModules config@Config {log_directory} modules = do
       return ()
 
 compile :: ProgressBar -> Config -> Dependency -> Task [T.Text]
-compile pg config Dependency {fileType, filePath, lastModificationTime} = do
+compile pg config Dependency {fileType, filePath} = do
   let maybeCompiler = compiler fileType config pg
   case maybeCompiler of
     Nothing -> return []
     Just (c, outputType) -> do
       let outputPath = buildArtifactPath config outputType filePath
-      status <- lift $ getFileStatus filePath
-      let fileChanged = lastModificationTime /= Just (posixSecondsToUTCTime $ modificationTimeHiRes status)
-      -- TODO move this into a precompile step
-      if fileChanged || fileType == EntryPoint Ast.Elm then
-        (runCompiler c) filePath outputPath
-      else
-        return []
+      (runCompiler c) filePath outputPath
 
 compiler :: FileType -> Config -> ProgressBar -> Maybe (Compiler, String)
 compiler fileType config pg =

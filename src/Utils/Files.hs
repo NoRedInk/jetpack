@@ -21,7 +21,7 @@ import Data.Text as T
 import Error (Error (..))
 import System.Directory (doesFileExist)
 import System.FilePath (splitDirectories, (<.>), (</>))
-import System.FilePath.Glob (glob)
+import System.FilePath.Find
 import Task (Task)
 
 {-| Checks if file exists and returns a failing task if it doesn't
@@ -37,8 +37,8 @@ fileExistsTask path = do
 -}
 findAllFilesIn :: FilePath -> Task [FilePath]
 findAllFilesIn path = do
-  let globi = path </> "**" </> "*.*"
-  lift $ glob globi
+  let globi = filePath ~~? "**" </> "*.*"
+  lift $ System.FilePath.Find.find always globi path
 
 {-| Converts a path into a flat filename.
     >>> pathToFileName ("." </> "foo" </> "bar" <.> "elm") "js"

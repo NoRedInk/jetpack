@@ -1,2 +1,2 @@
 _ = require "lodash"
-# var Main = require("Main.elm")
+var Main = require("Main.elm")
