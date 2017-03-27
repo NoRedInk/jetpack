@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports    #-}
 
 {-| Helpers for working with files/paths/dirs)
 
@@ -21,7 +22,7 @@ import Data.Text as T
 import Error (Error (..))
 import System.Directory (doesFileExist)
 import System.FilePath (splitDirectories, (<.>), (</>))
-import System.FilePath.Glob (glob)
+import "Glob" System.FilePath.Glob (glob)
 import Task (Task)
 
 {-| Checks if file exists and returns a failing task if it doesn't
