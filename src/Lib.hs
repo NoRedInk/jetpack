@@ -33,10 +33,10 @@ program :: Pipeline ()
 program = do
   args <- readCliArgs -- TODO we propably want to read cli args before running the program.
   config <- readConfig (configPath args)
-  _ <- setup config
+  toolPaths <- setup config
   deps <- dependencies config
   let modules = uniq $ concatMap Tree.flatten deps
-  _ <- compile config modules
+  _ <- compile config toolPaths modules
   _ <- concatModules config deps
   return ()
 

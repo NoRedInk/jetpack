@@ -31,7 +31,8 @@ library
                        Pipeline,
                        Init,
                        ConcatModule,
-                       Task
+                       Task,
+                       ToolPaths
   other-modules:       Utils.Files,
                        Utils.Parser,
                        Utils.Text,

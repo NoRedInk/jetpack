@@ -18,6 +18,7 @@ import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import Dependencies (Dependencies, Dependency)
 import System.FilePath ()
+import ToolPaths
 
 -- TODO move this to args parser
 data Args = Args
@@ -33,8 +34,8 @@ data PipelineF next
   = ReadCliArgs (Args -> next)
   | ReadConfig (Maybe FilePath) (Config -> next)
   | Dependencies Config (Dependencies -> next)
-  | Compile Config [Dependency] next
-  | Init Config next
+  | Compile Config ToolPaths [Dependency] next
+  | Init Config (ToolPaths -> next)
   | ConcatModules Config Dependencies ([FilePath] -> next)
   deriving (Functor)
 
@@ -49,11 +50,11 @@ readConfig maybePath = liftF $ ReadConfig maybePath id
 dependencies :: Config -> Pipeline Dependencies
 dependencies config = liftF $ Dependencies config id
 
-compile :: Config -> [Dependency] -> Pipeline ()
-compile config deps = liftF $ Compile config deps ()
+compile :: Config -> ToolPaths -> [Dependency] -> Pipeline ()
+compile config toolPaths deps = liftF $ Compile config toolPaths deps ()
 
-setup :: Config -> Pipeline ()
-setup config = liftF $ Init config ()
+setup :: Config -> Pipeline ToolPaths
+setup config = liftF $ Init config id
 
 concatModules :: Config -> Dependencies -> Pipeline [FilePath]
 concatModules config dependencies = liftF $ ConcatModules config dependencies id

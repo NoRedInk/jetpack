@@ -22,12 +22,13 @@ import System.Exit
 import System.FilePath ((</>))
 import System.Process
 import Task (Task)
+import ToolPaths
 import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
-compileModules :: Config -> [Dependency] -> Task ()
-compileModules config@Config {log_directory} modules = do
+compileModules :: Config -> ToolPaths ->  [Dependency] -> Task ()
+compileModules config@Config {log_directory} toolPaths modules = do
   e <- lift $ displayConsoleRegions $ do
     pg <- newProgressBar def
       { pgTotal = toInteger $ L.length modules
@@ -37,7 +38,7 @@ compileModules config@Config {log_directory} modules = do
       , pgFormat = "Compiling ╢:bar╟ :current/:total"
       }
     e <- runExceptT
-      $ traverse (compile pg config) modules
+      $ traverse (compile pg config toolPaths) modules
     complete pg
     return e
   case e of
@@ -47,19 +48,19 @@ compileModules config@Config {log_directory} modules = do
       lift $ writeFile (log_directory </> "compile.log") $ T.unpack log
       return ()
 
-compile :: ProgressBar -> Config -> Dependency -> Task [T.Text]
-compile pg config Dependency {fileType, filePath} = do
-  let (c, outputType) = compiler fileType config pg
+compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task [T.Text]
+compile pg config toolPaths Dependency {fileType, filePath} = do
+  let (c, outputType) = compiler fileType config toolPaths pg
   let outputPath = buildArtifactPath config outputType filePath
   (runCompiler c) filePath outputPath
 
-compiler :: Ast.SourceType -> Config -> ProgressBar -> (Compiler, String)
-compiler fileType config pg =
+compiler :: Ast.SourceType -> Config -> ToolPaths -> ProgressBar -> (Compiler, String)
+compiler fileType config ToolPaths{elmMake, sassc, coffee} pg =
   case fileType of
-    Ast.Elm    -> (elmCompiler pg config, "js")
+    Ast.Elm    -> (elmCompiler pg config elmMake, "js")
     Ast.Js     -> (jsCompiler pg, "js")
-    Ast.Coffee -> (coffeeCompiler pg, "js")
-    Ast.Sass   -> (sassCompiler pg config, "css")
+    Ast.Coffee -> (coffeeCompiler pg coffee, "js")
+    Ast.Sass   -> (sassCompiler pg config sassc, "css")
 
 buildArtifactPath :: Config -> String -> FilePath -> String
 buildArtifactPath Config{temp_directory} extension inputPath =
@@ -69,17 +70,17 @@ buildArtifactPath Config{temp_directory} extension inputPath =
 -- COMPILERS --
 ---------------
 
-elmCompiler :: ProgressBar -> Config -> Compiler
-elmCompiler pg Config{elm_root_directory} = Compiler $ \input output -> do
+elmCompiler :: ProgressBar -> Config -> FilePath -> Compiler
+elmCompiler pg Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
-  let elmMake = "elm-make " ++ "../" ++ input ++ " --output " ++ "../" ++ output
-  runCmd pg elmMake $ Just elm_root_directory
+  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output
+  runCmd pg cmd $ Just elm_root_directory
 
-coffeeCompiler :: ProgressBar -> Compiler
-coffeeCompiler pg = Compiler $ \input output -> do
-  let coffee = "coffee -p " ++ input ++ " > " ++ output
-  runCmd pg coffee Nothing
+coffeeCompiler :: ProgressBar -> FilePath -> Compiler
+coffeeCompiler pg coffee = Compiler $ \input output -> do
+  let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
+  runCmd pg cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -91,11 +92,11 @@ jsCompiler pg = Compiler $ \input output -> lift $ do
   let commandFinished = T.pack $ show currentTime
   return [commandFinished, T.concat ["moved ", T.pack input, " => ", T.pack output]]
 
-sassCompiler :: ProgressBar -> Config -> Compiler
-sassCompiler pg Config {sass_load_paths} = Compiler $ \input output -> do
+sassCompiler :: ProgressBar -> Config -> FilePath -> Compiler
+sassCompiler pg Config {sass_load_paths} sassc = Compiler $ \input output -> do
   let loadPath = L.intercalate ":" sass_load_paths
-  let sassc = "sassc " ++ input ++ " " ++ output ++ " --load-path " ++ loadPath -- <= include stuff that is needed in load-path
-  runCmd pg sassc Nothing
+  let cmd = sassc ++ " " ++ input ++ " " ++ output ++ " --load-path " ++ loadPath -- <= include stuff that is needed in load-path
+  runCmd pg cmd Nothing
 
 runCmd :: ProgressBar -> String -> Maybe String -> Task [T.Text]
 runCmd pg cmd maybeCwd = do

@@ -43,7 +43,7 @@ defaultConfig =
     ("." </> ".jetpack" </> "js")
     ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
     (Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make"))
-    (Just ("." </> "ui" </> "node_modules" </> ".bin" </> "coffee"))
+    (Just ("." </> "node_modules" </> ".bin" </> "coffee"))
     Nothing
   where
     sassLoadPaths =

@@ -1,25 +1,20 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-| Setup working dir for jetpack.
 -}
 module Init where
 
 import Config
-import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
-import Error (Error (BinNotFound))
 import System.Directory (createDirectoryIfMissing, doesFileExist)
-import System.Exit
 import System.FilePath
-import System.Process (system)
 import Task (Task)
+import qualified ToolPaths
 
-requiredBins :: [String]
-requiredBins = ["coffee", "sassc", "elm-make"]
-
-setup :: Config -> Task ()
-setup Config { temp_directory, log_directory, output_js_directory, output_css_directory } =  do
-  _ <- traverse binExists requiredBins
+setup :: Config -> Task ToolPaths.ToolPaths
+setup config@Config { temp_directory, log_directory, output_js_directory, output_css_directory } =  do
+  requiredBins <- ToolPaths.find config
   _ <- lift $ traverse (createDirectoryIfMissing True)
     [ temp_directory
     , log_directory
@@ -27,6 +22,7 @@ setup Config { temp_directory, log_directory, output_js_directory, output_css_di
     , output_css_directory
     ]
   createDepsJsonIfMissing temp_directory
+  return requiredBins
 
 createDepsJsonIfMissing :: FilePath -> Task ()
 createDepsJsonIfMissing tempDirectory = lift $ do
@@ -35,10 +31,3 @@ createDepsJsonIfMissing tempDirectory = lift $ do
   if exists
     then return ()
     else writeFile depsJSONPath "[]"
-
-binExists :: String -> Task ()
-binExists bin = do
-  exitCode <- lift $ system ("which " ++ bin)
-  case exitCode of
-    ExitSuccess   -> return ()
-    ExitFailure _ -> throwError [BinNotFound bin]
