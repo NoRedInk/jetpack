@@ -33,18 +33,19 @@ data Config = Config
 defaultConfig :: Config
 defaultConfig =
   Config
-    ("." </> "app" </> "assets" </> "modules")
-    ("." </> "ui" </> "src")
-    ("." </> "ui")
-    sassLoadPaths
-    ("." </> ".jetpack" </> "build_artifacts")
-    ("." </> ".jetpack" </> "logs")
-    -- ("." </> "app" </> "assets" </> "javascripts" </> "webpack")
-    ("." </> ".jetpack" </> "js")
-    ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
-    (Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make"))
-    (Just ("." </> "node_modules" </> ".bin" </> "coffee"))
-    Nothing
+    { module_directory = "." </> "app" </> "assets" </> "modules"
+    , source_directory = "." </> "ui" </> "src"
+    , elm_root_directory = "." </> "ui"
+    , sass_load_paths = sassLoadPaths
+    , temp_directory = "." </> ".jetpack" </> "build_artifacts"
+    , log_directory = "." </> ".jetpack" </> "logs"
+      -- ("." </> "app" </> "assets" </> "javascripts" </> "webpack")
+    , output_js_directory = "." </> ".jetpack" </> "js"
+    , output_css_directory = "." </> "app" </> "assets" </> "stylesheets" </> "webpack"
+    , elm_make_path = Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make")
+    , sassc_path = Nothing
+    , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
+    }
   where
     sassLoadPaths =
       [ "node_modules"
