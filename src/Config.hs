@@ -25,6 +25,9 @@ data Config = Config
   , log_directory        :: FilePath
   , output_js_directory  :: FilePath
   , output_css_directory :: FilePath
+  , elm_make_path        :: Maybe FilePath
+  , sassc_path           :: Maybe FilePath
+  , coffee_path          :: Maybe FilePath
   } deriving (Show, Eq, Generic)
 
 defaultConfig :: Config
@@ -39,6 +42,9 @@ defaultConfig =
     -- ("." </> "app" </> "assets" </> "javascripts" </> "webpack")
     ("." </> ".jetpack" </> "js")
     ("." </> "app" </> "assets" </> "stylesheets" </> "webpack")
+    (Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make"))
+    (Just ("." </> "ui" </> "node_modules" </> ".bin" </> "coffee"))
+    Nothing
   where
     sassLoadPaths =
       [ "node_modules"

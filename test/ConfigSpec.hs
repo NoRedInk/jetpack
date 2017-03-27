@@ -28,6 +28,9 @@ suite =
               ("app" </> "logs")
               ("app" </> "js")
               ("app" </> "css")
+              Nothing
+              Nothing
+              Nothing
     , testCase "#load failure" $ do
         e <- runExceptT $ do Config.load "./test"
         case e of

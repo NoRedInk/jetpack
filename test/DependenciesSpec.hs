@@ -26,6 +26,9 @@ basicsFixtures =
     ("." </> "test" </> "fixtures" </> "basics" </> "logs")
     ("." </> "test" </> "fixtures" </> "basics" </> "js")
     ("." </> "test" </> "fixtures" </> "basics" </> "css")
+    Nothing
+    Nothing
+    Nothing
 
 failingFixtures :: Config
 failingFixtures =
@@ -38,6 +41,9 @@ failingFixtures =
     ("." </> "test" </> "fixtures" </> "failing" </> "logs")
     ("." </> "test" </> "fixtures" </> "failing" </> "js")
     ("." </> "test" </> "fixtures" </> "failing" </> "css")
+    Nothing
+    Nothing
+    Nothing
 
 suite :: TestTree
 suite =
