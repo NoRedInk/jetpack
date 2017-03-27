@@ -79,7 +79,7 @@ import System.FilePath
     )
 import System.Posix.Files
 import Task (Task)
-import Utils.Files (fileExistsTask, findAllFilesIn)
+import Utils.Files (fileExistsTask, findFilesIn)
 import Utils.Tree (searchNode)
 
 data Dependency = Dependency
@@ -102,12 +102,12 @@ type Dependencies = [DependencyTree]
 
 {-| Find all dependencies for files in `module_directory`.
 -}
-find :: Config -> Task Dependencies
-find config@Config {module_directory, temp_directory} = do
+find :: Config -> Maybe FilePath -> Task Dependencies
+find config@Config {module_directory, temp_directory} maybeUserGlob = do
   depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
   let cache = fromMaybe [] $ Aeson.decode depsJson :: Dependencies
   cwd <- lift Dir.getCurrentDirectory
-  paths <- findAllFilesIn module_directory
+  paths <- findFilesIn module_directory $ fromMaybe ( "**" </> "*.*" ) maybeUserGlob
   let relativePaths = fmap (makeRelative $ cwd </> module_directory) paths
   if null relativePaths
     then

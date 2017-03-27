@@ -10,7 +10,7 @@
 
 module Utils.Files
   ( fileExistsTask
-  , findAllFilesIn
+  , findFilesIn
   , pathToFileName
   , pathToFunctionName
   ) where
@@ -36,9 +36,9 @@ fileExistsTask path = do
 
 {-| Returns a list of files in the given direcory and all it's subdirectories.
 -}
-findAllFilesIn :: FilePath -> Task [FilePath]
-findAllFilesIn path = do
-  let globi = path </> "**" </> "*.*"
+findFilesIn :: FilePath -> FilePath -> Task [FilePath]
+findFilesIn path userGlob = do
+  let globi = path </> userGlob
   lift $ glob globi
 
 {-| Converts a path into a flat filename.

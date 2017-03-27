@@ -11,7 +11,7 @@ import Data.Tree as Tree
 import Dependencies
 import Error
 import Parser.Ast as Ast
-import System.FilePath (joinPath, splitPath, (</>))
+import System.FilePath ((</>))
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -50,7 +50,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runExceptT $ do Dependencies.find basicsFixtures
+        e <- runExceptT $ do Dependencies.find basicsFixtures Nothing
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -84,7 +84,7 @@ suite =
               ]
             ]
     , testCase "#find failing" $ do
-        e <- runExceptT $ do Dependencies.find failingFixtures
+        e <- runExceptT $ do Dependencies.find failingFixtures Nothing
         case e of
           Right _ -> assertFailure $ "This shouldn't fail"
           Left errors ->

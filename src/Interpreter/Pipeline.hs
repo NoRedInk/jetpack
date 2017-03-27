@@ -9,13 +9,16 @@ import Control.Monad.Trans.Class (lift)
 import qualified Dependencies
 import qualified Init
 import Pipeline
+import Safe
+import System.Environment
 import Task (Task)
 
 interpreter :: PipelineF a -> Task a
 interpreter (ReadCliArgs next) = lift (putStrLn "TODO") >> return (next noArgs)
 interpreter (ReadConfig _ next) = lift (putStrLn "TODO") >> return (next Config.defaultConfig)
 interpreter (Dependencies config next) = do
-  deps <- Dependencies.find config
+  userGlobArg <- lift $ headMay <$> getArgs
+  deps <- Dependencies.find config userGlobArg
   return $ next deps
 interpreter (Compile config toolPaths deps next) = do
   Compile.compileModules config toolPaths deps
