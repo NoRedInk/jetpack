@@ -9,6 +9,7 @@ import Control.Monad.Except (runExceptT)
 import Data.List as L
 import Data.Tree as Tree
 import Dependencies
+import DependencyTree
 import Error
 import Parser.Ast as Ast
 import System.FilePath ((</>))
@@ -50,7 +51,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runExceptT $ do Dependencies.find basicsFixtures Nothing
+        e <- runExceptT $ do DependencyTree.find basicsFixtures Nothing
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -84,7 +85,7 @@ suite =
               ]
             ]
     , testCase "#find failing" $ do
-        e <- runExceptT $ do Dependencies.find failingFixtures Nothing
+        e <- runExceptT $ do DependencyTree.find failingFixtures Nothing
         case e of
           Right _ -> assertFailure $ "This shouldn't fail"
           Left errors ->
