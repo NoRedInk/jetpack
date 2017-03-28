@@ -122,7 +122,7 @@ updateDepTime (Dependency t r p _) = lift $ do
 
 findRequires :: Config -> Dependencies -> Dependency -> Task (Dependency, [Dependency])
 findRequires config cache parent = do
-  resolved <- Resolver.findRequires config parent
+  resolved <- Resolver.resolve config parent
   dep <- updateDepTime $ updateDepType resolved
   case fileType dep of
     Ast.Js     -> parseModule cache dep Parser.Require.jsRequires
