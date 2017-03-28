@@ -4,6 +4,7 @@ module Lib
   ( run
   ) where
 
+import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Except
 import Control.Monad.Free (Free, foldFree)
@@ -34,7 +35,7 @@ program = do
   args <- readCliArgs -- TODO we propably want to read cli args before running the program.
   config <- readConfig (configPath args)
   toolPaths <- setup config
-  deps <- dependencies config
+  deps <- dependencies config args
   let modules = uniq $ concatMap Tree.flatten deps
   _ <- compile config toolPaths modules
   _ <- concatModules config deps
