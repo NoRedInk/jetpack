@@ -43,7 +43,7 @@ defaultConfig =
     , output_js_directory = "." </> ".jetpack" </> "js"
     , output_css_directory = "." </> "app" </> "assets" </> "stylesheets" </> "webpack"
     , elm_make_path = Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make")
-    , sassc_path = Nothing
+    , sassc_path = Just ("." </> "ui" </> "bin" </> "sass")
     , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
     }
   where
