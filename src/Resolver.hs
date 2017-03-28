@@ -34,10 +34,7 @@ findRelative parent =
 
 findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
-  tryPlainJsExtAndIndex
-    (filePath parent </> "node_modules")
-    (requiredAs parent)
-    parent
+  tryPlainJsExtAndIndex (filePath parent </> "node_modules") (requiredAs parent) parent
 
 findInModules :: Config -> Dependency -> Task Dependency
 findInModules Config { module_directory } parent =
@@ -79,16 +76,17 @@ tryPlainJsExtAndIndex basePath fileName require =
   -- it contains information about the main file
   tryMainFromPackageJson basePath fileName require
   -- js
-  <|> moduleExists basePath "" require
-  <|> moduleExists basePath fileName require
-  <|> moduleExists basePath (fileName <.> "js") require
-  <|> moduleExists basePath (fileName </> "index.js") require
-  <|> moduleExists basePath (fileName </> fileName) require
-  <|> moduleExists basePath (fileName </> fileName <.> "js") require
+  <|> moduleExistsInBase "" require
+  <|> moduleExistsInBase fileName require
+  <|> moduleExistsInBase (fileName <.> "js") require
+  <|> moduleExistsInBase (fileName </> "index.js") require
+  <|> moduleExistsInBase (fileName </> fileName) require
+  <|> moduleExistsInBase (fileName </> fileName <.> "js") require
   -- coffeescript
-  <|> moduleExists basePath fileName require
-  <|> moduleExists basePath (fileName <.> "coffee") require
-  <|> moduleExists basePath (fileName </> "index.coffee") require
+  <|> moduleExistsInBase fileName require
+  <|> moduleExistsInBase (fileName <.> "coffee") require
+  <|> moduleExistsInBase (fileName </> "index.coffee") require
+  where moduleExistsInBase = moduleExists basePath
 
 tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryMainFromPackageJson basePath fileName require = do
@@ -105,8 +103,5 @@ moduleNotFound Config {module_directory, source_directory} fileName =
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =
-  fileExistsTask searchPath >> return (updateDepPath searchPath require)
+  fileExistsTask searchPath >> return (require { filePath = searchPath })
   where searchPath = basePath </> path
-
-updateDepPath :: FilePath -> Dependency -> Dependency
-updateDepPath newPath (Dependency t r _ l) = Dependency t r newPath l
