@@ -45,7 +45,7 @@ In each directory we search for the following names.
 
 -}
 module DependencyTree
-  ( find
+  ( build
   ) where
 
 import Config
@@ -81,21 +81,29 @@ import Utils.Tree (searchNode)
 
 {-| Find all dependencies for files in `module_directory`.
 -}
-find :: Config -> Maybe FilePath -> Task Dependencies
-find config@Config {module_directory, temp_directory} maybeUserGlob = do
-  depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
-  let cache = fromMaybe [] $ Aeson.decode depsJson :: Dependencies
-  cwd <- lift Dir.getCurrentDirectory
-  paths <- findFilesIn module_directory $ fromMaybe ( "**" </> "*.*" ) maybeUserGlob
-  let relativePaths = fmap (makeRelative $ cwd </> module_directory) paths
-  if null relativePaths
+build :: Config -> Maybe FilePath -> Task Dependencies
+build config@Config {module_directory, temp_directory} maybeUserGlob = do
+  cache <- readTreeCache temp_directory
+  entryPointPaths <- findEntryPoints module_directory maybeUserGlob
+  if null entryPointPaths
     then
       throwError [NoModulesPresent $ show module_directory]
     else do
-      modules <- traverse (toDependency module_directory) relativePaths
+      modules <- traverse (toDependency module_directory) entryPointPaths
       deps <- Async.forConcurrently modules (depsTree config cache)
       lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
       return deps
+
+findEntryPoints :: FilePath -> Maybe FilePath -> Task [FilePath]
+findEntryPoints moduleDirectory maybeUserGlob = do
+  paths <- findFilesIn moduleDirectory $ fromMaybe ( "**" </> "*.*" ) maybeUserGlob
+  cwd <- lift Dir.getCurrentDirectory
+  return $ (makeRelative $ cwd </> moduleDirectory) <$> paths
+
+readTreeCache :: FilePath -> Task Dependencies
+readTreeCache temp_directory = lift $ do
+  depsJson <- BL.readFile $ temp_directory </> "deps" <.> "json"
+  return $ fromMaybe [] $ Aeson.decode depsJson
 
 toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency module_directory path  = lift $ do

@@ -51,7 +51,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runExceptT $ do DependencyTree.find basicsFixtures Nothing
+        e <- runExceptT $ do DependencyTree.build basicsFixtures Nothing
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -85,7 +85,7 @@ suite =
               ]
             ]
     , testCase "#find failing" $ do
-        e <- runExceptT $ do DependencyTree.find failingFixtures Nothing
+        e <- runExceptT $ do DependencyTree.build failingFixtures Nothing
         case e of
           Right _ -> assertFailure $ "This shouldn't fail"
           Left errors ->
