@@ -12,18 +12,18 @@ module Pipeline
   , concatModules
   ) where
 
+import CliArguments (Args)
 import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import Dependencies (Dependencies, Dependency)
 import System.FilePath ()
 import ToolPaths
-import CliArguments (Args)
 
 
 data PipelineF next
   = ReadCliArgs (Args -> next)
   | ReadConfig (Maybe FilePath) (Config -> next)
-  | Dependencies Config (Dependencies -> next)
+  | Dependencies Config Args (Dependencies -> next)
   | Compile Config ToolPaths [Dependency] next
   | Init Config (ToolPaths -> next)
   | ConcatModules Config Dependencies ([FilePath] -> next)
@@ -37,8 +37,8 @@ readCliArgs = liftF $ ReadCliArgs id
 readConfig :: Maybe FilePath -> Pipeline Config
 readConfig maybePath = liftF $ ReadConfig maybePath id
 
-dependencies :: Config -> Pipeline Dependencies
-dependencies config = liftF $ Dependencies config id
+dependencies :: Config -> Args -> Pipeline Dependencies
+dependencies config args = liftF $ Dependencies config args id
 
 compile :: Config -> ToolPaths -> [Dependency] -> Pipeline ()
 compile config toolPaths deps = liftF $ Compile config toolPaths deps ()
