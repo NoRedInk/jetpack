@@ -2,13 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pipeline
-  ( Args(..)
-  , Pipeline
+  ( Pipeline
   , PipelineF(..)
   , readCliArgs
   , readConfig
   , dependencies
-  , noArgs
   , compile
   , setup
   , concatModules
@@ -19,16 +17,8 @@ import Control.Monad.Free (Free, liftF)
 import Dependencies (Dependencies, Dependency)
 import System.FilePath ()
 import ToolPaths
+import CliArguments (Args)
 
--- TODO move this to args parser
-data Args = Args
-  { dry        :: Bool
-  , verbose    :: Bool
-  , configPath :: Maybe FilePath
-  }
-
-noArgs :: Args
-noArgs = Args False False Nothing
 
 data PipelineF next
   = ReadCliArgs (Args -> next)

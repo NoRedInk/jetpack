@@ -19,6 +19,7 @@ import Pipeline
 import qualified System.Exit
 import Task
 import Utils.Free (toLeft, toRight)
+import CliArguments (Args(..))
 
 run :: IO ()
 run = do
