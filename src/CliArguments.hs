@@ -4,16 +4,20 @@ module CliArguments
   , readArguments
   ) where
 
-import System.FilePath()
-import System.Environment
 import Safe (headMay)
+import System.Environment
+import System.FilePath ()
 
 data Args = Args
   { entryPointGlob :: Maybe String
-  , configPath :: Maybe FilePath }
+  , configPath     :: Maybe FilePath
+  }
 
 defaultArguments :: Args
-defaultArguments = Args {entryPointGlob = Nothing, configPath = Nothing}
+defaultArguments = Args
+  { entryPointGlob = Nothing
+  , configPath = Nothing
+  }
 
 readArguments :: IO Args
 readArguments = do
@@ -22,6 +26,4 @@ readArguments = do
     { configPath = Nothing
     , entryPointGlob = userGlobArg
     }
-
-
 
