@@ -1,4 +1,5 @@
 # stack installation from https://github.com/samdoshi/docker-haskell-stack
+# copied from https://github.com/avh4/elm-format. Thanks <3
 FROM buildpack-deps:latest
 
 ENV STACK_VERSION 1.4.0

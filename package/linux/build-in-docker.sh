@@ -1,4 +1,5 @@
 #!/bin/bash
+# copied from https://github.com/avh4/elm-format. Thanks <3
 
 set -ex
 

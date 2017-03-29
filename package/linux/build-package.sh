@@ -1,8 +1,9 @@
 #!/bin/bash
+# copied from https://github.com/avh4/elm-format. Thanks <3
 
 set -ex
 
-VERSION="$(git describe --abbrev=8)"
+VERSION="0.0.3"
 PLATFORM="linux-x64"
 
 ## Run tests
