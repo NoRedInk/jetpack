@@ -95,7 +95,7 @@ jsCompiler pg = Compiler $ \input output -> lift $ do
 sassCompiler :: ProgressBar -> Config -> FilePath -> Compiler
 sassCompiler pg Config {sass_load_paths} sassc = Compiler $ \input output -> do
   let loadPath = L.intercalate ":" sass_load_paths
-  let cmd = sassc ++ " " ++ input ++ " " ++ output ++ " --load-path " ++ loadPath -- <= include stuff that is needed in load-path
+  let cmd = "SASS_PATH=" ++ loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
   runCmd pg cmd Nothing
 
 runCmd :: ProgressBar -> String -> Maybe String -> Task [T.Text]
