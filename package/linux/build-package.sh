@@ -3,7 +3,6 @@
 
 set -ex
 
-VERSION="0.0.3"
 PLATFORM="linux-x64"
 
 ## Run tests
@@ -16,7 +15,7 @@ stack test
 
 stack build
 
-BUILD="jetpack-${VERSION}-${PLATFORM}"
+BUILD="jetpack-${PLATFORM}"
 mkdir -p dist/package-scripts
 JETPACK="$(stack path --local-install-root)/bin/jetpack"
 cp "$JETPACK" dist/package-scripts/jetpack
