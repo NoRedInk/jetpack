@@ -54,6 +54,7 @@ pathToFileName filePath extension =
   where
     newFileName =
       T.unpack
+        $ T.replace "-" "_"
         $ T.concat
         $ L.intersperse "___"
         $ L.filter ((/=) ".")

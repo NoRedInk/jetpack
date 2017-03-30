@@ -88,13 +88,24 @@ mockDependencies =
 expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
-    ["(function() {"
-    ,"function require(fn) {"
-    ,"  var m = { exports : {}}"
-    ,"  var e = {}"
-    ,"  fn(m, e);  "
-    ,"  return e || m.exports;"
-    ,"}"
+    [ "(function() {"
+    , "var hasOwnProperty = Object.prototype.hasOwnProperty;"
+    , "function isEmpty(obj) {"
+    , "  if (obj == null) return true;"
+    , "  if (obj.length > 0)    return false;"
+    , "  if (obj.length === 0)  return true;"
+    , "  if (typeof obj !== \"object\") return true;"
+    , "  for (var key in obj) {"
+    , "    if (hasOwnProperty.call(obj, key)) return false;"
+    , "  }"
+    , "  return true;"
+    , "}"
+    , "function require(fn) {"
+    , "  var m = { exports : {}};"
+    , "  var e = {};"
+    , "  fn(m, e);  "
+    , "  return isEmpty(m.exports)? e: m.exports;"
+    , "}"
     ,"/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
     ,"function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
     ,"var moo = require(test___fixtures___concat___sources___Page___Moo_js_js);"
@@ -111,6 +122,7 @@ expectedOutput =
     ,"})();"
     ]
   ]
+
 
 suite :: TestTree
 suite =
