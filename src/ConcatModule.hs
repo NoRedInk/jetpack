@@ -93,6 +93,7 @@ addBoilerplate root fns =
   , "  }"
   , "  return to;"
   , "};"
+  , "var jetpackCache = {};"
   , "function jetpackRequire(fn) {"
   , "  var m = { exports : {}};"
   , "  var e = {};"
@@ -100,8 +101,13 @@ addBoilerplate root fns =
   , "    console.error(\"Required function isn't a jetpack module.\", fn)"
   , "    return;"
   , "  }"
+  , "  if (jetpackCache[fn.name]) {"
+  , "    return jetpackCache[fn.name];"
+  , "  }"
   , "  fn(m, e);  "
-  , "  return objectAssign(m.exports, e);"
+  , "  var mod = objectAssign(m.exports, e);"
+  , "  jetpackCache[fn.name] = mod;"
+  , "  return mod;"
   , "}"
   , T.concat fns
   , T.concat ["jetpackRequire(", root, ");"] -- calling the entry point
