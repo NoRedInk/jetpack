@@ -49,8 +49,8 @@ replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
   T.pack
   $ subRegex
-    (mkRegex $ T.unpack $ T.concat ["['\"]", T.pack requiredAs, "['\"]"])
-    (T.unpack body) fnName
+    (mkRegex $ "require\\(['\"]" ++ requiredAs ++ "['\"]\\)")
+    (T.unpack body) $ "jetpackRequire(" ++ fnName ++ ")"
   where fnName = T.unpack $ F.pathToFunctionName filePath "js"
 
 compilesToJs :: Dependency -> Bool
@@ -74,25 +74,37 @@ addBoilerplate :: T.Text -> [T.Text] -> T.Text
 addBoilerplate root fns =
   T.unlines
   [ "(function() {"
-  , "var hasOwnProperty = Object.prototype.hasOwnProperty;"
-  , "function isEmpty(obj) {"
-  , "  if (obj == null) return true;"
-  , "  if (obj.length > 0)    return false;"
-  , "  if (obj.length === 0)  return true;"
-  , "  if (typeof obj !== \"object\") return true;"
-  , "  for (var key in obj) {"
-  , "    if (hasOwnProperty.call(obj, key)) return false;"
+  , "function objectAssign(target, varArgs) { // .length of function is 2"
+  , "  'use strict';"
+  , "  if (target == null) { // TypeError if undefined or null"
+  , "    throw new TypeError('Cannot convert undefined or null to object');"
   , "  }"
-  , "  return true;"
-  , "}"
-  , "function require(fn) {"
+  , "  var to = Object(target);"
+  , "  for (var index = 1; index < arguments.length; index++) {"
+  , "    var nextSource = arguments[index];"
+  , "    if (nextSource != null) { // Skip over if undefined or null"
+  , "      for (var nextKey in nextSource) {"
+  , "        // Avoid bugs when hasOwnProperty is shadowed"
+  , "        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {"
+  , "          to[nextKey] = nextSource[nextKey];"
+  , "        }"
+  , "      }"
+  , "    }"
+  , "  }"
+  , "  return to;"
+  , "};"
+  , "function jetpackRequire(fn) {"
   , "  var m = { exports : {}};"
   , "  var e = {};"
+  , "  if (typeof fn !== \"function\") {"
+  , "    console.error(\"Required function isn't a jetpack module.\", fn)"
+  , "    return;"
+  , "  }"
   , "  fn(m, e);  "
-  , "  return isEmpty(m.exports)? e: m.exports;"
+  , "  return objectAssign(m.exports, e);"
   , "}"
   , T.concat fns
-  , T.concat ["require(", root, ");"] -- calling the entry point
+  , T.concat ["jetpackRequire(", root, ");"] -- calling the entry point
   , "})();"
   ]
 

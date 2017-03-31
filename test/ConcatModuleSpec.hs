@@ -89,26 +89,38 @@ expectedOutput :: [String]
 expectedOutput =
   [ T.unpack $ T.unlines
     [ "(function() {"
-    , "var hasOwnProperty = Object.prototype.hasOwnProperty;"
-    , "function isEmpty(obj) {"
-    , "  if (obj == null) return true;"
-    , "  if (obj.length > 0)    return false;"
-    , "  if (obj.length === 0)  return true;"
-    , "  if (typeof obj !== \"object\") return true;"
-    , "  for (var key in obj) {"
-    , "    if (hasOwnProperty.call(obj, key)) return false;"
+    , "function objectAssign(target, varArgs) { // .length of function is 2"
+    , "  'use strict';"
+    , "  if (target == null) { // TypeError if undefined or null"
+    , "    throw new TypeError('Cannot convert undefined or null to object');"
     , "  }"
-    , "  return true;"
-    , "}"
-    , "function require(fn) {"
+    , "  var to = Object(target);"
+    , "  for (var index = 1; index < arguments.length; index++) {"
+    , "    var nextSource = arguments[index];"
+    , "    if (nextSource != null) { // Skip over if undefined or null"
+    , "      for (var nextKey in nextSource) {"
+    , "        // Avoid bugs when hasOwnProperty is shadowed"
+    , "        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {"
+    , "          to[nextKey] = nextSource[nextKey];"
+    , "        }"
+    , "      }"
+    , "    }"
+    , "  }"
+    , "  return to;"
+    , "};"
+    , "function jetpackRequire(fn) {"
     , "  var m = { exports : {}};"
     , "  var e = {};"
+    , "  if (typeof fn !== \"function\") {"
+    , "    console.error(\"Required function isn't a jetpack module.\", fn)"
+    , "    return;"
+    , "  }"
     , "  fn(m, e);  "
-    , "  return isEmpty(m.exports)? e: m.exports;"
+    , "  return objectAssign(m.exports, e);"
     , "}"
     ,"/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
     ,"function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
-    ,"var moo = require(test___fixtures___concat___sources___Page___Moo_js_js);"
+    ,"var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js);"
     ,"moo(4, 2);"
     ,"} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
     ,"/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
@@ -118,7 +130,7 @@ expectedOutput =
     ,"};"
     ,"} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
     ,""
-    ,"require(test___fixtures___concat___modules___Page___Foo_js_js);"
+    ,"jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js);"
     ,"})();"
     ]
   ]
@@ -132,12 +144,12 @@ suite =
         wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
-    , testCase "#replaceRequire replaces require(string) with require(function)" $ do
+    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require('foo')"
-        @?= "var x = require(ui___src___foo_js)"
-    , testCase "#replaceRequire replaces require(string) with require(function)" $ do
+        @?= "var x = jetpackRequire(ui___src___foo_js)"
+    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
-        @?= "var x = require(ui___src___foo_js)"
+        @?= "var x = jetpackRequire(ui___src___foo_js)"
     , testCase "#wrap" $ do
         e <- runExceptT $ wrap mockConfig mockDependencies
         case e of
