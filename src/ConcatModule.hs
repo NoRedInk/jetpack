@@ -45,6 +45,7 @@ wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = lift $ do
       return $ Just wrapped
     else return Nothing
 
+-- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
   T.pack
