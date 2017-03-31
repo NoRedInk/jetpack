@@ -19,7 +19,6 @@ module Parser.Require
   , getFileType
   ) where
 
-import qualified Data.Maybe as M
 import qualified Data.Text as T
 import Parser.Ast as Ast
 import Parser.Comment as Comment
@@ -47,7 +46,7 @@ import qualified Utils.Parser as UP
     [(Require "lodash" Js),(Require "Foo.Bar.Main.elm" Elm)]
 -}
 requires :: Ast.SourceType -> T.Text -> [Ast.Require]
-requires sourceType = M.mapMaybe require . T.lines . eatComments
+requires sourceType = concatMap require . T.lines . eatComments
   where
     eatComments =
       case sourceType of
@@ -68,19 +67,19 @@ coffeeRequires = requires Ast.Coffee
 {-| Parses a require statement and returns the filename and the type base on the extensions.
 
     >>> require "require('lodash')"
-    Just (Require "lodash" Js)
+    [(Require "lodash" Js)]
 
     >>> require "require('Main.elm')"
-    Just (Require "Main.elm" Elm)
+    [(Require "Main.elm" Elm)]
 
     >>> require "require('Main.elm';"
-    Nothing
+    []
 -}
-require :: T.Text -> Maybe Ast.Require
+require :: T.Text -> [Ast.Require]
 require content =
   case extractRequire content of
-    Right (path, ext) -> Just $ Ast.Require (getFileType ext) $ path <.> ext
-    Left _            -> Nothing
+    Right rs -> fmap (\(path, ext) -> Ast.Require (getFileType ext) $ path <.> ext) rs
+    Left _            -> []
 
 {-| Converts a file extension into a union type.
 
@@ -101,8 +100,8 @@ getFileType _         = Js
 
 {-| running the parser
 -}
-extractRequire :: T.Text -> Either ParseError (FilePath, String)
-extractRequire str = parse requireParser "Error" str
+extractRequire :: T.Text -> Either ParseError [(FilePath, String)]
+extractRequire str = parse (many $ try requireParser) "Error" str
 
 requireParser :: Parsec T.Text u (FilePath, String)
 requireParser = do

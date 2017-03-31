@@ -87,7 +87,7 @@ suite =
     , testCase "#find failing" $ do
         e <- runExceptT $ do DependencyTree.build failingFixtures Nothing
         case e of
-          Right _ -> assertFailure $ "This shouldn't fail"
+          Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->
             L.last errors @?=
             ModuleNotFound
