@@ -63,13 +63,51 @@ compilesToJs Dependency { filePath, fileType } =
     _          -> False
 
 writeModule :: Config -> DependencyTree -> [T.Text] -> Task (Maybe FilePath)
-writeModule Config { output_js_directory, module_directory} dependencyTree fns = lift $ do
-  let Dependency {filePath} = Tree.rootLabel dependencyTree
-  let outputPath = output_js_directory </> FP.makeRelative module_directory filePath
-  let rootName = F.pathToFunctionName filePath "js"
-  createDirectoryIfMissing True $ FP.takeDirectory outputPath
-  writeFile outputPath $ T.unpack $ addBoilerplate rootName fns
-  return $ Just outputPath
+writeModule config dependencyTree fns = do
+  let root@Dependency { filePath } = Tree.rootLabel dependencyTree
+  if compilesToJs root
+     then writeJsModule config filePath fns
+     else writeCssModule config filePath $ UT.roots $ Tree.subForest dependencyTree
+
+writeJsModule :: Config -> FilePath -> [T.Text] -> Task (Maybe FilePath)
+writeJsModule Config { output_js_directory, module_directory} rootFilePath fns = lift $ do
+  let out = outputPath $ Output
+              { outDir = output_js_directory
+              , moduleDir = module_directory
+              , name = rootFilePath
+              }
+  let rootName = F.pathToFunctionName rootFilePath "js"
+  createDirectoryIfMissing True $ FP.takeDirectory out
+  writeFile out $ T.unpack $ addBoilerplate rootName fns
+  return $ Just out
+
+writeCssModule :: Config -> FilePath -> [Dependency] -> Task (Maybe FilePath)
+writeCssModule Config { output_css_directory, module_directory, temp_directory} rootFilePath deps = lift $ do
+  let out = outputPath $ Output
+              { outDir = output_css_directory
+              , moduleDir = module_directory
+              , name = rootFilePath
+              }
+  createDirectoryIfMissing True $ FP.takeDirectory out
+  let cssPaths = fmap
+                 ( (</>) temp_directory
+                 . (flip F.pathToFileName "css")
+                 . filePath
+                 ) deps
+  css <- traverse readFile cssPaths
+  writeFile out $ T.unpack $ T.unlines $ fmap T.pack css
+  return $ Just out
+
+
+data Output = Output
+  { outDir    :: FilePath
+  , moduleDir :: FilePath
+  , name      :: FilePath
+  }
+
+outputPath :: Output -> FilePath
+outputPath Output { outDir, moduleDir, name } =
+  outDir </> FP.makeRelative moduleDir name
 
 addBoilerplate :: T.Text -> [T.Text] -> T.Text
 addBoilerplate root fns =
