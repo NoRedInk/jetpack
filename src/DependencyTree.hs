@@ -144,14 +144,9 @@ findInCache dep =
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
 findInCache_ dep =
-  fmap toTuple . searchNode (isSameDep dep . Tree.rootLabel)
+  fmap toTuple . searchNode ((==) dep . Tree.rootLabel)
   where toTuple Tree.Node{rootLabel, subForest} =
           (rootLabel, fmap Tree.rootLabel subForest)
-        isSameDep :: Dependency -> Dependency -> Bool
-        isSameDep a b =
-          filePath a == filePath b
-          && fileType a == fileType b
-          && lastModificationTime a == lastModificationTime b
 
 parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
 parseModule cache dep@Dependency {filePath} parser =
