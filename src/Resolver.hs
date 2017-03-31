@@ -22,10 +22,10 @@ resolve config dep = do
     <|> findRelativeNodeModules dep
     <|> findInModules config dep
     <|> findInSources config dep
-    <|> findInNodeModules config dep
-    <|> findInRootNodeModules dep
     <|> findInVendorComponents dep
     <|> findInVendorJavascripts dep
+    <|> findInNodeModules config dep
+    <|> findInRootNodeModules dep
     <|> moduleNotFound config (requiredAs dep)
 
 findRelative :: Dependency -> Task Dependency
