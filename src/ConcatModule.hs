@@ -48,11 +48,10 @@ wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = lift $ do
 -- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
-  T.pack
-  $ subRegex
-    (mkRegex $ "require\\(['\"]" ++ requiredAs ++ "['\"]\\)")
-    (T.unpack body) $ "jetpackRequire(" ++ fnName ++ ")"
+  T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
   where fnName = T.unpack $ F.pathToFunctionName filePath "js"
+        requireRegex = mkRegex $ "require\\(['\"]" ++ requiredAs ++ "['\"]\\)"
+        jetpackRequire = "jetpackRequire(" ++ fnName ++ ")"
 
 compilesToJs :: Dependency -> Bool
 compilesToJs Dependency { filePath, fileType } =
