@@ -75,7 +75,7 @@ build :: Config -> [FilePath] -> Task Dependencies
 build config@Config {module_directory, temp_directory} entryPoints = do
   cache <- readTreeCache temp_directory
   modules <- traverse (toDependency module_directory) entryPoints
-  deps <- Async.forConcurrently modules (depsTree config cache)
+  deps <- Async.forConcurrently modules $ Tree.unfoldTreeM $ findRequires config cache
   lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
   return deps
 
@@ -89,9 +89,6 @@ toDependency module_directory path  = lift $ do
   status <- getFileStatus $ module_directory </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
-
-depsTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
-depsTree config cache = Tree.unfoldTreeM $ findRequires config cache
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing

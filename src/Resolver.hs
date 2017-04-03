@@ -8,17 +8,21 @@ module Resolver (resolve) where
 import Config (Config (..))
 import Control.Applicative ((<|>))
 import Control.Monad.Except (throwError)
+import Control.Monad.Trans.Class (lift)
 import qualified Data.Text as T
+import Data.Time.Clock.POSIX
 import Dependencies (Dependency (..))
 import Error (Error (ModuleNotFound))
 import Parser.PackageJson as PackageJson
+import qualified Parser.Require
 import System.FilePath (takeExtension, (<.>), (</>))
+import System.Posix.Files
 import Task (Task)
 import Utils.Files (fileExistsTask)
 
 resolve :: Config -> Dependency -> Task Dependency
 resolve config dep = do
-  findRelative dep
+  resolved <- findRelative dep
     <|> findRelativeNodeModules dep
     <|> findInModules config dep
     <|> findInSources config dep
@@ -27,6 +31,7 @@ resolve config dep = do
     <|> findInNodeModules config dep
     <|> findInRootNodeModules dep
     <|> moduleNotFound config (requiredAs dep)
+  updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
 findRelative parent =
@@ -131,3 +136,13 @@ moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =
   fileExistsTask searchPath >> return (require { filePath = searchPath })
   where searchPath = basePath </> path
+
+updateDepType :: Dependency -> Dependency
+updateDepType (Dependency _ r p l) = Dependency newType r p l
+  where newType = Parser.Require.getFileType $ takeExtension p
+
+updateDepTime :: Dependency -> Task Dependency
+updateDepTime (Dependency t r p _) = lift $ do
+  status <- getFileStatus p
+  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
+  return $ Dependency t r p $ Just lastModificationTime
