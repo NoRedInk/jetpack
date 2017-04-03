@@ -50,7 +50,6 @@ module DependencyTree
 
 import Config
 import Control.Concurrent.Async.Lifted as Async
-import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -60,45 +59,25 @@ import Data.Time.Clock ()
 import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
 import Dependencies
-import Error
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
 import qualified Resolver
 import Safe
-import qualified System.Directory as Dir
-import System.FilePath
-    ( makeRelative
-    , takeDirectory
-    , takeExtension
-    , (<.>)
-    , (</>)
-    )
+import System.FilePath (takeDirectory, takeExtension, (<.>), (</>))
 import System.Posix.Files
 import Task (Task)
-import Utils.Files (findFilesIn)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for files in `module_directory`.
 -}
-build :: Config -> Maybe FilePath -> Task Dependencies
-build config@Config {module_directory, temp_directory} maybeUserGlob = do
+build :: Config -> [FilePath] -> Task Dependencies
+build config@Config {module_directory, temp_directory} entryPoints = do
   cache <- readTreeCache temp_directory
-  entryPointPaths <- findEntryPoints module_directory maybeUserGlob
-  if null entryPointPaths
-    then
-      throwError [NoModulesPresent $ show module_directory]
-    else do
-      modules <- traverse (toDependency module_directory) entryPointPaths
-      deps <- Async.forConcurrently modules (depsTree config cache)
-      lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
-      return deps
-
-findEntryPoints :: FilePath -> Maybe FilePath -> Task [FilePath]
-findEntryPoints moduleDirectory maybeUserGlob = do
-  paths <- findFilesIn moduleDirectory $ fromMaybe ( "**" </> "*.*" ) maybeUserGlob
-  cwd <- lift Dir.getCurrentDirectory
-  return $ (makeRelative $ cwd </> moduleDirectory) <$> paths
+  modules <- traverse (toDependency module_directory) entryPoints
+  deps <- Async.forConcurrently modules (depsTree config cache)
+  lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
+  return deps
 
 readTreeCache :: FilePath -> Task Dependencies
 readTreeCache temp_directory = lift $ do

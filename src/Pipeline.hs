@@ -1,16 +1,7 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Pipeline
-  ( Pipeline
-  , PipelineF(..)
-  , readCliArgs
-  , readConfig
-  , dependencies
-  , compile
-  , setup
-  , concatModules
-  ) where
+module Pipeline where
 
 import CliArguments (Args)
 import Config (Config)
@@ -23,7 +14,8 @@ import ToolPaths
 data PipelineF next
   = ReadCliArgs (Args -> next)
   | ReadConfig (Maybe FilePath) (Config -> next)
-  | Dependencies Config Args (Dependencies -> next)
+  | FindEntryPoints Config Args ([FilePath] -> next)
+  | Dependencies Config [FilePath] (Dependencies -> next)
   | Compile Config ToolPaths [Dependency] next
   | Init Config (ToolPaths -> next)
   | ConcatModules Config Dependencies ([FilePath] -> next)
@@ -37,8 +29,11 @@ readCliArgs = liftF $ ReadCliArgs id
 readConfig :: Maybe FilePath -> Pipeline Config
 readConfig maybePath = liftF $ ReadConfig maybePath id
 
-dependencies :: Config -> Args -> Pipeline Dependencies
-dependencies config args = liftF $ Dependencies config args id
+findEntryPoints :: Config -> Args -> Pipeline [FilePath]
+findEntryPoints config args = liftF $ FindEntryPoints config args id
+
+dependencies :: Config -> [FilePath] -> Pipeline Dependencies
+dependencies config entryPoints = liftF $ Dependencies config entryPoints id
 
 compile :: Config -> ToolPaths -> [Dependency] -> Pipeline ()
 compile config toolPaths deps = liftF $ Compile config toolPaths deps ()

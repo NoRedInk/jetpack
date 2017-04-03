@@ -22,6 +22,7 @@ library
                        Config,
                        Dependencies,
                        DependencyTree,
+                       EntryPoints,
                        Error,
                        Init,
                        Interpreter.Logger,

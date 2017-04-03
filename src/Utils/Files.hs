@@ -1,16 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PackageImports    #-}
 
 {-| Helpers for working with files/paths/dirs)
-
-### imports for doctests
-    >>> :set -XOverloadedStrings
-    >>> import System.FilePath ((</>), (<.>))
 -}
 
 module Utils.Files
   ( fileExistsTask
-  , findFilesIn
   , pathToFileName
   , pathToFunctionName
   ) where
@@ -21,8 +15,7 @@ import Data.List as L
 import Data.Text as T
 import Error (Error (..))
 import System.Directory (doesFileExist)
-import System.FilePath (splitDirectories, (<.>), (</>))
-import "Glob" System.FilePath.Glob (glob)
+import System.FilePath (splitDirectories, (<.>))
 import Task (Task)
 
 {-| Checks if file exists and returns a failing task if it doesn't
@@ -34,14 +27,8 @@ fileExistsTask path = do
     True  -> lift $ return ()
     False -> throwError $ [FileNotFound (show path)]
 
-{-| Returns a list of files in the given direcory and all it's subdirectories.
--}
-findFilesIn :: FilePath -> FilePath -> Task [FilePath]
-findFilesIn path userGlob = do
-  let globi = path </> userGlob
-  lift $ glob globi
-
 {-| Converts a path into a flat filename.
+    >>> import System.FilePath ((</>), (<.>))
     >>> pathToFileName ("." </> "foo" </> "bar" <.> "elm") "js"
     "foo___bar.elm.js"
 
