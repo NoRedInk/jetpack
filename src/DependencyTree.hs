@@ -139,8 +139,7 @@ findRequires config cache parent = do
     Ast.Sass   -> return (dep, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
-findInCache dep =
-  headMay . M.catMaybes . fmap (findInCache_ dep)
+findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
 findInCache_ dep =
