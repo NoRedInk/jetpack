@@ -19,7 +19,7 @@ suite =
           Left _ -> assertFailure $ "Couldn't decode jetpack.json"
           Right config ->
             config @=?
-            Config.Config
+            Just ( Config.Config
               ("app" </> "modules")
               ("app" </> "sources")
               ("app" </> "sources")
@@ -31,11 +31,5 @@ suite =
               Nothing
               Nothing
               Nothing
-    , testCase "#load failure" $ do
-        e <- runExceptT $ do Config.load "./test"
-        case e of
-          Left msg ->
-            fmap Error.description msg @=?
-            ["Couldn't find file: \"./test/jetpack.json\""]
-          Right config -> assertFailure $ "This shouldn't succeed"
+            )
     ]

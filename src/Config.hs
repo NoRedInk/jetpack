@@ -2,6 +2,7 @@
 
 module Config
   ( Config(..)
+  , readConfig
   , load
   , defaultConfig
   ) where
@@ -12,9 +13,9 @@ import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Error (Error (..))
 import GHC.Generics (Generic)
+import qualified System.Directory as Dir
 import System.FilePath ((</>))
 import Task (Task)
-import Utils.Files (fileExistsTask)
 
 data Config = Config
   { module_directory     :: FilePath
@@ -29,6 +30,14 @@ data Config = Config
   , sassc_path           :: Maybe FilePath
   , coffee_path          :: Maybe FilePath
   } deriving (Show, Eq, Generic)
+
+readConfig :: Task Config
+readConfig = do
+  cwd <- lift Dir.getCurrentDirectory
+  maybeLocalConfig <- load cwd
+  case maybeLocalConfig of
+    Just config -> return config
+    Nothing     -> return defaultConfig
 
 defaultConfig :: Config
 defaultConfig =
@@ -62,11 +71,14 @@ instance FromJSON Config
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
-load :: FilePath -> Task Config
+load :: FilePath -> Task (Maybe Config)
 load root = do
   let path = root </> "jetpack.json"
-  _ <- fileExistsTask path
-  content <- lift $ BL.readFile path
-  case Aeson.decode content of
-    Just config -> lift $ return config
-    Nothing     -> throwError $ [JsonInvalid path]
+  exists <- lift $ Dir.doesFileExist path
+  if exists
+    then do
+      content <- lift $ BL.readFile path
+      case Aeson.decode content of
+        Just config -> return $ Just config
+        Nothing     -> throwError $ [JsonInvalid path]
+    else return Nothing
