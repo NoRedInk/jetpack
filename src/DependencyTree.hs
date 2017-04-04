@@ -69,7 +69,7 @@ import System.Posix.Files
 import Task (Task)
 import Utils.Tree (searchNode)
 
-{-| Find all dependencies for files in `module_directory`.
+{-| Find all dependencies for the given entry points
 -}
 build :: Config -> [FilePath] -> Task Dependencies
 build config@Config {module_directory, temp_directory} entryPoints = do
