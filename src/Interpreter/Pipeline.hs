@@ -7,10 +7,13 @@ import qualified Compile
 import ConcatModule
 import qualified Config
 import Control.Monad.Trans.Class (lift)
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
 import qualified DependencyTree
 import qualified EntryPoints
 import qualified Init
 import Pipeline
+import System.FilePath ((<.>), (</>))
 import Task (Task)
 
 interpreter :: PipelineF a -> Task a
@@ -23,3 +26,11 @@ interpreter command =
     Compile config toolPaths deps next     -> Compile.compileModules config toolPaths deps >> return next
     Init config next                       -> next <$> Init.setup config
     ConcatModules config dependencies next -> next <$> ConcatModule.wrap config dependencies
+    OutputCreatedModules config paths next -> createdModulesJson config paths >> return next
+
+createdModulesJson :: Config.Config -> [FilePath] -> Task ()
+createdModulesJson config paths = lift $ do
+  let encodedPaths = Aeson.encode paths
+  let jsonPath = Config.temp_directory config </> "modules" <.> "json"
+  BL.writeFile jsonPath encodedPaths
+  return ()

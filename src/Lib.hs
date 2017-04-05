@@ -38,8 +38,9 @@ program = do
   entryPoints <- findEntryPoints config args
   deps        <- dependencies config entryPoints
   let modules = uniq $ concatMap Tree.flatten deps
-  _ <- compile config toolPaths modules
-  _ <- concatModules config deps
+  _       <- compile config toolPaths modules
+  modules <- concatModules config deps
+  _       <- outputCreatedModules config modules
   return ()
 
 runProgram :: Pipeline a -> Task a
