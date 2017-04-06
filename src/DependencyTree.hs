@@ -64,7 +64,7 @@ import Parser.PackageJson ()
 import qualified Parser.Require
 import qualified Resolver
 import Safe
-import System.FilePath (takeDirectory, takeExtension, (<.>), (</>))
+import System.FilePath (takeDirectory, (<.>), (</>))
 import System.Posix.Files
 import Task (Task)
 import Utils.Tree (searchNode)
@@ -94,25 +94,14 @@ requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 requireToDep _path (Ast.Import _n)  = undefined
 
-updateDepType :: Dependency -> Dependency
-updateDepType (Dependency _ r p l) = Dependency newType r p l
-  where newType = Parser.Require.getFileType $ takeExtension p
-
-updateDepTime :: Dependency -> Task Dependency
-updateDepTime (Dependency t r p _) = lift $ do
-  status <- getFileStatus p
-  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency t r p $ Just lastModificationTime
-
 findRequires :: Config -> Dependencies -> Dependency -> Task (Dependency, [Dependency])
 findRequires config cache parent = do
   resolved <- Resolver.resolve config parent
-  dep <- updateDepTime $ updateDepType resolved
-  case fileType dep of
-    Ast.Js     -> parseModule cache dep Parser.Require.jsRequires
-    Ast.Coffee -> parseModule cache dep Parser.Require.coffeeRequires
-    Ast.Elm    -> return (dep, [])
-    Ast.Sass   -> return (dep, [])
+  case fileType resolved of
+    Ast.Js     -> parseModule cache resolved Parser.Require.jsRequires
+    Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires
+    Ast.Elm    -> return (resolved, [])
+    Ast.Sass   -> return (resolved, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
