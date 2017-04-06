@@ -138,12 +138,12 @@ suite =
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
         @?= "var x = jetpackRequire(ui___src___foo_js)"
     , testCase "#wrap" $ do
-        e <- runExceptT $ wrap mockConfig mockDependencies
-        case e of
-          Left _  -> assertFailure ""
-          Right paths -> do
-            paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
-            actual <- traverse readFile paths
-            actual @?= expectedOutput
-            traverse_ removeFile paths
+    e <- runExceptT $ traverse (wrap mockConfig) mockDependencies
+    case e of
+      Left _  -> assertFailure ""
+      Right paths -> do
+        paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
+        actual <- traverse readFile paths
+        actual @?= expectedOutput
+        traverse_ removeFile paths
     ]

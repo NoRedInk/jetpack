@@ -6,7 +6,6 @@
 module ConcatModule where
 
 import Config
-import qualified Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
@@ -21,12 +20,8 @@ import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: Config -> Dependencies -> Task [FilePath]
-wrap config dependencies =
-  catMaybes <$> Async.mapConcurrently (wrapModules config) dependencies
-
-wrapModules :: Config -> DependencyTree -> Task (Maybe FilePath)
-wrapModules config dep = do
+wrap :: Config -> DependencyTree -> Task FilePath
+wrap config dep = do
   wrapped <- traverse (wrapper config) $ uniqNodes dep
   writeModule config dep $ catMaybes wrapped
 
@@ -61,14 +56,14 @@ compilesToJs Dependency { filePath, fileType } =
     Ast.Coffee -> True
     _          -> False
 
-writeModule :: Config -> DependencyTree -> [T.Text] -> Task (Maybe FilePath)
+writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
 writeModule config dependencyTree fns = do
   let root@Dependency { filePath } = Tree.rootLabel dependencyTree
   if compilesToJs root
      then writeJsModule config filePath fns
      else writeCssModule config filePath $ UT.roots $ Tree.subForest dependencyTree
 
-writeJsModule :: Config -> FilePath -> [T.Text] -> Task (Maybe FilePath)
+writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
 writeJsModule Config { output_js_directory, module_directory} rootFilePath fns = lift $ do
   let out = outputPath $ Output
               { outDir = output_js_directory
@@ -78,9 +73,9 @@ writeJsModule Config { output_js_directory, module_directory} rootFilePath fns =
   let rootName = F.pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   writeFile out $ T.unpack $ addBoilerplate rootName fns
-  return $ Just out
+  return out
 
-writeCssModule :: Config -> FilePath -> [Dependency] -> Task (Maybe FilePath)
+writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
 writeCssModule Config { output_css_directory, module_directory, temp_directory} rootFilePath deps = lift $ do
   let out = outputPath $ Output
               { outDir = output_css_directory
@@ -95,7 +90,7 @@ writeCssModule Config { output_css_directory, module_directory, temp_directory} 
                  ) deps
   css <- traverse readFile cssPaths
   writeFile out $ T.unpack $ T.unlines $ fmap T.pack css
-  return $ Just out
+  return out
 
 
 data Output = Output

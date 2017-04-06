@@ -7,20 +7,16 @@ module Lib
 import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Except
-import Control.Monad.Free (Free, foldFree)
-import Data.Functor.Sum (Sum (..))
+import Control.Monad.Free (foldFree)
 import Data.List as L
 import Data.List.Utils (uniq)
 import Data.Tree as Tree
 import qualified Error
-import qualified Interpreter.Logger as LogI
 import qualified Interpreter.Pipeline as PipelineI
-import qualified Logger
 import Pipeline
 import System.Console.AsciiProgress
 import qualified System.Exit
 import Task
-import Utils.Free (toLeft, toRight)
 
 run :: IO ()
 run = do
@@ -33,6 +29,7 @@ run = do
 
 program :: Pipeline ()
 program = do
+  _           <- clearLog
   args        <- readCliArgs
   config      <- readConfig (configPath args)
   toolPaths   <- setup config
@@ -45,20 +42,15 @@ program = do
   let modules = uniq $ concatMap Tree.flatten deps
 
   pg <- startProgress "Compiling" $ L.length modules
-  _ <- traverse (compile pg config toolPaths) modules
+  logOutput <- traverse (compile pg config toolPaths) modules
+  _ <- traverse appendLog logOutput
   _ <- endProgress pg
 
-  modules <- concatModules config deps
-  _       <- outputCreatedModules config modules
+  pg      <- startProgress "Write modules" $ L.length deps
+  modules <- traverse (concatModule config) deps
+  _       <- outputCreatedModules pg config modules
+  _       <- endProgress pg
   return ()
 
 runProgram :: Pipeline a -> Task a
-runProgram = foldFree executor . foldFree interpreter
-
-interpreter :: PipelineF a -> Free (Sum Logger.LogF Task) a
-interpreter op =
-  toLeft (LogI.interpreter op) *> toRight (lift $ PipelineI.interpreter op)
-
-executor :: Sum Logger.LogF Task a -> Task a
-executor (InL l@(Logger.Log _ _ next)) = lift $ Logger.executor l >> return next
-executor (InR io) = io
+runProgram = foldFree PipelineI.interpreter

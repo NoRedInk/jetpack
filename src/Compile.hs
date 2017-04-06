@@ -7,7 +7,6 @@
 module Compile where
 
 import Config (Config (..))
--- import Control.Concurrent.Async.Lifted as Async (forConcurrently)
 import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
 import Data.List as L

@@ -2,46 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger
-  ( Log
-  , LogF(..)
-  , logger
-  , info
-  , warn
-  , err
-  , executor
+  ( clearLog, appendLog
   ) where
 
-import Control.Monad.Free (Free, liftF)
+import Control.Monad.Trans.Class (lift)
 import Data.Text as T
+import Task
 
-data LogF a =
-  Log Level
-      T.Text
-      a
-  deriving (Functor)
+appendLog :: T.Text -> Task ()
+appendLog msg = lift $ appendFile ".jetpack.log" $ T.unpack msg
 
-type Log = Free LogF
-
-data Level
-  = Warning
-  | Info
-  | Error
-  deriving (Show)
-
-logger :: Level -> T.Text -> Log ()
-logger level msg = liftF $ Log level msg ()
-
-warn :: T.Text -> Log ()
-warn = logger Warning
-
-info :: T.Text -> Log ()
-info = logger Info
-
-err :: T.Text -> Log ()
-err = logger Error
-
-executor :: LogF a -> IO ()
-executor (Log _level _msg _) = -- putStrLn output
-  return ()
-  -- where
-  --   output = show level ++ ": " ++ T.unpack msg
+clearLog :: Task ()
+clearLog  = lift $ writeFile ".jetpack.log" ""

@@ -31,8 +31,7 @@ toAbsPathOrBin defaultBin Nothing = return defaultBin
 
 binExists :: String -> Task String
 binExists bin = do
-  -- TODO run this command silently
-  exitCode <- lift $ system ("which " ++ bin)
+  exitCode <- lift $ system ("which " ++ bin ++ " >/dev/null")
   case exitCode of
     ExitSuccess   -> return bin
     ExitFailure _ -> throwError [BinNotFound bin]

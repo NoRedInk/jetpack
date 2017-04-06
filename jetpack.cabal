@@ -25,7 +25,6 @@ library
                        EntryPoints,
                        Error,
                        Init,
-                       Interpreter.Logger,
                        Interpreter.Pipeline,
                        Logger,
                        Parser.Ast,

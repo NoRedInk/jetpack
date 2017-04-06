@@ -14,6 +14,7 @@ import qualified Data.Text as T
 import qualified DependencyTree
 import qualified EntryPoints
 import qualified Init
+import qualified Logger
 import Pipeline
 import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
@@ -22,20 +23,18 @@ import Task (Task)
 interpreter :: PipelineF a -> Task a
 interpreter command =
   case command of
-    ReadCliArgs next                       -> next <$> lift readArguments
-    ReadConfig _ next                      -> next <$> Config.readConfig
-    FindEntryPoints config args next       -> next <$> EntryPoints.find config args
-    Dependencies pg config entryPoints next          -> next <$> DependencyTree.build pg config entryPoints
-    Compile pg config toolPaths dep next     -> do
-      _output <- Compile.compile pg config toolPaths dep
-      -- TODO fix log
-      -- _ <- lift $ writeLog "compile.log" config output
-      return next
-    Init config next                       -> next <$> Init.setup config
-    ConcatModules config dependencies next -> next <$> ConcatModule.wrap config dependencies
-    OutputCreatedModules config paths next -> createdModulesJson config paths >> return next
-    StartProgress title total next -> next <$> (lift $ createProgress total title)
-    EndProgress pg next -> (lift $ complete pg) >> return next
+    ReadCliArgs next                          -> next <$> lift readArguments
+    ReadConfig _ next                         -> next <$> Config.readConfig
+    FindEntryPoints config args next          -> next <$> EntryPoints.find config args
+    Dependencies pg config entryPoints next   -> next <$> DependencyTree.build pg config entryPoints
+    Compile pg config toolPaths dep next      -> next <$> Compile.compile pg config toolPaths dep
+    Init config next                          -> next <$> Init.setup config
+    ConcatModule config dep next              -> next <$> ConcatModule.wrap config dep
+    OutputCreatedModules pg config paths next -> createdModulesJson pg config paths >> return next
+    StartProgress title total next            -> next <$> (lift $ createProgress total title)
+    EndProgress pg next                       -> (lift $ complete pg) >> return next
+    AppendLog msg next                        -> Logger.appendLog msg >> return next
+    ClearLog next                             -> Logger.clearLog >> return next
 
 
 -- writeLog :: FilePath -> Config ->  [T.Text] -> IO ()
@@ -44,18 +43,19 @@ interpreter command =
 --   _ <- writeFile (log_directory </> fileName) $ T.unpack logOutput
 --   return ()
 
-createdModulesJson :: Config.Config -> [FilePath] -> Task ()
-createdModulesJson config paths = lift $ do
+createdModulesJson :: ProgressBar -> Config.Config -> [FilePath] -> Task ()
+createdModulesJson pg config paths = lift $ do
   let encodedPaths = Aeson.encode paths
   let jsonPath = Config.temp_directory config </> "modules" <.> "json"
   BL.writeFile jsonPath encodedPaths
+  tick pg
   return ()
 
 createProgress :: Int -> T.Text -> IO ProgressBar
 createProgress total title = do
   newProgressBar def
       { pgTotal = toInteger total
-      , pgOnCompletion = Just (T.unpack title ++ " :percent after :elapsed seconds")
+      , pgOnCompletion = Just (T.unpack title ++ " finished after :elapsed seconds")
       , pgCompletedChar = '█'
       , pgPendingChar = '░'
       , pgFormat = T.unpack title ++ " ╢:bar╟ :current/:total"
