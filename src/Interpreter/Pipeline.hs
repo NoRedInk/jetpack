@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module Interpreter.Pipeline
   (interpreter
   ) where
@@ -5,7 +6,7 @@ module Interpreter.Pipeline
 import CliArguments (readArguments)
 import qualified Compile
 import ConcatModule
-import qualified Config
+import Config
 import Control.Monad.Except (ExceptT (..), runExceptT)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Aeson as Aeson
@@ -29,11 +30,19 @@ interpreter command =
     Dependencies config entryPoints next          -> next <$> DependencyTree.build config entryPoints
     Compile config toolPaths deps next     -> do
       let total = L.length deps
-      _ <- withProgress total command $ Compile.compileModules config toolPaths deps
+      output <- withProgress total command $ Compile.compileModules config toolPaths deps
+      _ <- lift $ writeLog "compile.log" config output
       return next
     Init config next                       -> next <$> Init.setup config
     ConcatModules config dependencies next -> next <$> ConcatModule.wrap config dependencies
     OutputCreatedModules config paths next -> createdModulesJson config paths >> return next
+
+
+writeLog :: FilePath -> Config ->  [T.Text] -> IO ()
+writeLog fileName Config{log_directory} content = do
+  let logOutput = T.unlines content
+  _ <- writeFile (log_directory </> fileName) $ T.unpack logOutput
+  return ()
 
 createdModulesJson :: Config.Config -> [FilePath] -> Task ()
 createdModulesJson config paths = lift $ do

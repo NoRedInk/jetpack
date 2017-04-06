@@ -28,18 +28,15 @@ import Utils.Files (pathToFileName)
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
 compileModules :: Config -> ToolPaths ->  [Dependency] -> ProgressBar -> Task [T.Text]
-compileModules config@Config {log_directory} toolPaths modules pg = do
-  output <- traverse (compile pg config toolPaths) modules
-  -- TODO move log out of this
-  let log = T.unlines $ fmap T.unlines output
-  _ <- lift $ writeFile (log_directory </> "compile.log") $ T.unpack log
-  return $ fmap T.unlines output
+compileModules config toolPaths modules pg = do
+  traverse (compile pg config toolPaths) modules
 
-compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task [T.Text]
+compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task T.Text
 compile pg config toolPaths Dependency {fileType, filePath} = do
   let (c, outputType) = compiler fileType config toolPaths pg
   let outputPath = buildArtifactPath config outputType filePath
-  (runCompiler c) filePath outputPath
+  log <- (runCompiler c) filePath outputPath
+  return $ T.unlines log
 
 compiler :: Ast.SourceType -> Config -> ToolPaths -> ProgressBar -> (Compiler, String)
 compiler fileType config ToolPaths{elmMake, sassc, coffee} pg =
