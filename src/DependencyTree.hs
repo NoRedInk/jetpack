@@ -64,6 +64,7 @@ import Parser.PackageJson ()
 import qualified Parser.Require
 import qualified Resolver
 import Safe
+import System.Console.AsciiProgress
 import System.FilePath (takeDirectory, (<.>), (</>))
 import System.Posix.Files
 import Task (Task)
@@ -71,13 +72,19 @@ import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: Config -> [FilePath] -> Task Dependencies
-build config@Config {module_directory, temp_directory} entryPoints = do
+build :: ProgressBar -> Config -> [FilePath] -> Task Dependencies
+build pg config@Config {module_directory, temp_directory} entryPoints = do
   cache <- readTreeCache temp_directory
   modules <- traverse (toDependency module_directory) entryPoints
-  deps <- Async.forConcurrently modules $ Tree.unfoldTreeM $ findRequires config cache
+  deps <- Async.forConcurrently modules $ buildTree pg config cache
   lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
   return deps
+
+buildTree :: ProgressBar -> Config -> Dependencies -> Dependency -> Task DependencyTree
+buildTree pg config cache dep = do
+  tree <- Tree.unfoldTreeM (findRequires config cache) dep
+  lift $ tick pg
+  return tree
 
 readTreeCache :: FilePath -> Task Dependencies
 readTreeCache temp_directory = lift $ do

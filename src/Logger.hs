@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger
@@ -41,6 +41,7 @@ err :: T.Text -> Log ()
 err = logger Error
 
 executor :: LogF a -> IO ()
-executor (Log level msg _) = putStrLn output
-  where
-    output = show level ++ ": " ++ T.unpack msg
+executor (Log _level _msg _) = -- putStrLn output
+  return ()
+  -- where
+  --   output = show level ++ ": " ++ T.unpack msg

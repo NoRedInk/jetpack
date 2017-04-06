@@ -27,10 +27,6 @@ import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
-compileModules :: Config -> ToolPaths ->  [Dependency] -> ProgressBar -> Task [T.Text]
-compileModules config toolPaths modules pg = do
-  traverse (compile pg config toolPaths) modules
-
 compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task T.Text
 compile pg config toolPaths Dependency {fileType, filePath} = do
   let (c, outputType) = compiler fileType config toolPaths pg

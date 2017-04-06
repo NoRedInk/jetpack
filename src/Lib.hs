@@ -17,13 +17,14 @@ import qualified Interpreter.Logger as LogI
 import qualified Interpreter.Pipeline as PipelineI
 import qualified Logger
 import Pipeline
+import System.Console.AsciiProgress
 import qualified System.Exit
 import Task
 import Utils.Free (toLeft, toRight)
 
 run :: IO ()
 run = do
-  e <- runExceptT $ runProgram program
+  e <- displayConsoleRegions $ runExceptT $ runProgram program
   case e of
     Left err -> do
       putStrLn "Compilation failed!"
@@ -36,9 +37,17 @@ program = do
   config      <- readConfig (configPath args)
   toolPaths   <- setup config
   entryPoints <- findEntryPoints config args
-  deps        <- dependencies config entryPoints
+
+  pg   <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
+  deps <- dependencies pg config entryPoints
+  _    <- endProgress pg
+
   let modules = uniq $ concatMap Tree.flatten deps
-  _       <- compile config toolPaths modules
+
+  pg <- startProgress "Compiling" $ L.length modules
+  _ <- traverse (compile pg config toolPaths) modules
+  _ <- endProgress pg
+
   modules <- concatModules config deps
   _       <- outputCreatedModules config modules
   return ()

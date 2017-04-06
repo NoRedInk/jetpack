@@ -12,6 +12,7 @@ import Dependencies
 import DependencyTree
 import Error
 import Parser.Ast as Ast
+import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -51,7 +52,8 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runExceptT $ do DependencyTree.build basicsFixtures ["test" <.> "js"]
+        pg <- newProgressBar def { pgWidth = 100 }
+        e <- runExceptT $ do DependencyTree.build pg basicsFixtures ["test" <.> "js"]
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -85,7 +87,8 @@ suite =
               ]
             ]
     , testCase "#find failing" $ do
-        e <- runExceptT $ do DependencyTree.build failingFixtures ["test" <.> "js"]
+        pg <- newProgressBar def { pgWidth = 100 }
+        e <- runExceptT $ do DependencyTree.build pg failingFixtures ["test" <.> "js"]
         case e of
           Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->

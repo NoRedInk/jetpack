@@ -15,11 +15,13 @@ interpreter :: PipelineF a -> Logger.Log ()
 interpreter (ReadCliArgs _)              = Logger.info "readCliArgs"
 interpreter (ReadConfig _ _)             = Logger.info "readConfig"
 interpreter (FindEntryPoints _ _ _)      = Logger.info "findEntryPoints"
-interpreter (Dependencies _ _ _)         = Logger.info "dependencies"
-interpreter (Compile _ _ _ _)            = Logger.info "compile"
+interpreter (Dependencies _ _ _ _)       = Logger.info "dependencies"
+interpreter (Compile _ _ _ _ _ )         = Logger.info "compile"
 interpreter (Init _ _)                   = Logger.info "setup"
 interpreter (ConcatModules _ _ _)        = Logger.info "concatModules"
 interpreter (OutputCreatedModules _ _ _) = Logger.info "outputCreatedModules"
+interpreter (StartProgress _ _ _)        = Logger.info "startProgress"
+interpreter (EndProgress _ _)            = Logger.info "endProgress"
 
 -- treeInterpreter :: PipelineF a -> Log ()
 -- treeInterpreter (ReadCliArgs next) = info "readCliArgs"
