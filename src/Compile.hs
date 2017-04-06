@@ -8,7 +8,7 @@ module Compile where
 
 import Config (Config (..))
 -- import Control.Concurrent.Async.Lifted as Async (forConcurrently)
-import Control.Monad.Except (runExceptT, throwError)
+import Control.Monad.Except (throwError)
 import Control.Monad.Trans.Class (lift)
 import Data.List as L
 import Data.Text as T
@@ -27,26 +27,13 @@ import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
-compileModules :: Config -> ToolPaths ->  [Dependency] -> Task ()
-compileModules config@Config {log_directory} toolPaths modules = do
-  e <- lift $ displayConsoleRegions $ do
-    pg <- newProgressBar def
-      { pgTotal = toInteger $ L.length modules
-      , pgOnCompletion = Just "Compiled :percent after :elapsed seconds"
-      , pgCompletedChar = '█'
-      , pgPendingChar = '░'
-      , pgFormat = "Compiling ╢:bar╟ :current/:total"
-      }
-    e <- runExceptT
-      $ traverse (compile pg config toolPaths) modules
-    complete pg
-    return e
-  case e of
-    Left err -> throwError err
-    Right output  -> do
-      let log = T.unlines $ fmap T.unlines output
-      lift $ writeFile (log_directory </> "compile.log") $ T.unpack log
-      return ()
+compileModules :: Config -> ToolPaths ->  [Dependency] -> ProgressBar -> Task [T.Text]
+compileModules config@Config {log_directory} toolPaths modules pg = do
+  output <- traverse (compile pg config toolPaths) modules
+  -- TODO move log out of this
+  let log = T.unlines $ fmap T.unlines output
+  _ <- lift $ writeFile (log_directory </> "compile.log") $ T.unpack log
+  return $ fmap T.unlines output
 
 compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task [T.Text]
 compile pg config toolPaths Dependency {fileType, filePath} = do
