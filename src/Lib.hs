@@ -42,12 +42,12 @@ program = do
   let modules = uniq $ concatMap Tree.flatten deps
 
   pg <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile pg config toolPaths) modules
+  logOutput <- async $ fmap (compile pg config toolPaths) modules
   _ <- traverse (appendLog config) logOutput
   _ <- endProgress pg
 
   pg      <- startProgress "Write modules" $ L.length deps
-  modules <- traverse (concatModule config) deps
+  modules <- async $ fmap (concatModule config) deps
   _       <- outputCreatedModules pg config modules
   _       <- endProgress pg
   return ()

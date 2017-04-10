@@ -7,6 +7,8 @@ import CliArguments (readArguments)
 import qualified Compile
 import ConcatModule
 import Config
+import qualified Control.Concurrent.Async.Lifted as Concurrent
+import Control.Monad.Free (foldFree)
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -35,6 +37,7 @@ interpreter command =
     EndProgress pg next                       -> (lift $ complete pg) >> return next
     AppendLog config msg next                 -> Logger.appendLog (log_directory config) msg >> return next
     ClearLog config next                      -> Logger.clearLog (log_directory config) >> return next
+    Async commands next                       -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 
 -- writeLog :: FilePath -> Config ->  [T.Text] -> IO ()

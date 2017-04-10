@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings         #-}
 
 module Pipeline where
 
@@ -26,9 +26,27 @@ data PipelineF next
   | EndProgress ProgressBar next
   | AppendLog Config T.Text next
   | ClearLog Config next
-  deriving (Functor)
+  | forall a.Async [Pipeline a] ([a] -> next)
+
+instance Functor PipelineF where
+  fmap f (ReadCliArgs g) = ReadCliArgs (f . g)
+  fmap f (ReadConfig maybeFilePath g) = ReadConfig maybeFilePath (f . g)
+  fmap f (FindEntryPoints config args g) = FindEntryPoints config args (f . g)
+  fmap f (Dependencies progressBar config paths g) = Dependencies progressBar config paths (f . g)
+  fmap f (Compile progressBar config toolPaths dependency g) = Compile progressBar config toolPaths dependency (f . g)
+  fmap f (Init config g) = Init config (f . g)
+  fmap f (ConcatModule config dependencyTree g) = ConcatModule config dependencyTree (f . g)
+  fmap f (OutputCreatedModules progressBar config paths next) = OutputCreatedModules progressBar config paths (f next)
+  fmap f (StartProgress title total g) = StartProgress title total (f . g)
+  fmap f (EndProgress progressBar next) = EndProgress progressBar (f next)
+  fmap f (AppendLog config msg next) = AppendLog config msg (f next)
+  fmap f (ClearLog config next) = ClearLog config (f next)
+  fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
+
+async :: [Pipeline a] -> Pipeline [a]
+async commands = liftF $ Async commands id
 
 readCliArgs :: Pipeline Args
 readCliArgs = liftF $ ReadCliArgs id
