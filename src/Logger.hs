@@ -7,10 +7,11 @@ module Logger
 
 import Control.Monad.Trans.Class (lift)
 import Data.Text as T
+import System.FilePath ((</>))
 import Task
 
-appendLog :: T.Text -> Task ()
-appendLog msg = lift $ appendFile ".jetpack.log" $ T.unpack msg
+appendLog :: FilePath -> T.Text -> Task ()
+appendLog logDir msg = lift $ appendFile (logDir </> "jetpack.log") $ T.unpack msg
 
-clearLog :: Task ()
-clearLog  = lift $ writeFile ".jetpack.log" ""
+clearLog :: FilePath -> Task ()
+clearLog logDir = lift $ writeFile (logDir </> "jetpack.log") ""

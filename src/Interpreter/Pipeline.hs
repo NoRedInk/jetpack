@@ -33,8 +33,8 @@ interpreter command =
     OutputCreatedModules pg config paths next -> createdModulesJson pg config paths >> return next
     StartProgress title total next            -> next <$> (lift $ createProgress total title)
     EndProgress pg next                       -> (lift $ complete pg) >> return next
-    AppendLog msg next                        -> Logger.appendLog msg >> return next
-    ClearLog next                             -> Logger.clearLog >> return next
+    AppendLog config msg next                 -> Logger.appendLog (log_directory config) msg >> return next
+    ClearLog config next                      -> Logger.clearLog (log_directory config) >> return next
 
 
 -- writeLog :: FilePath -> Config ->  [T.Text] -> IO ()

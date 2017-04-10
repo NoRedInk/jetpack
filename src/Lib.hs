@@ -29,10 +29,10 @@ run = do
 
 program :: Pipeline ()
 program = do
-  _           <- clearLog
   args        <- readCliArgs
   config      <- readConfig (configPath args)
   toolPaths   <- setup config
+  _           <- clearLog config
   entryPoints <- findEntryPoints config args
 
   pg   <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
@@ -43,7 +43,7 @@ program = do
 
   pg <- startProgress "Compiling" $ L.length modules
   logOutput <- traverse (compile pg config toolPaths) modules
-  _ <- traverse appendLog logOutput
+  _ <- traverse (appendLog config) logOutput
   _ <- endProgress pg
 
   pg      <- startProgress "Write modules" $ L.length deps

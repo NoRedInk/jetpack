@@ -24,8 +24,8 @@ data PipelineF next
   | OutputCreatedModules ProgressBar Config [FilePath] next
   | StartProgress T.Text Int (ProgressBar -> next)
   | EndProgress ProgressBar next
-  | AppendLog T.Text next
-  | ClearLog next
+  | AppendLog Config T.Text next
+  | ClearLog Config next
   deriving (Functor)
 
 type Pipeline = Free PipelineF
@@ -60,8 +60,8 @@ startProgress title total = liftF $ StartProgress title total id
 endProgress :: ProgressBar -> Pipeline ()
 endProgress pg = liftF $ EndProgress pg ()
 
-appendLog :: T.Text -> Pipeline ()
-appendLog msg = liftF $ AppendLog msg ()
+appendLog :: Config -> T.Text -> Pipeline ()
+appendLog config msg = liftF $ AppendLog config msg ()
 
-clearLog :: Pipeline ()
-clearLog = liftF $ ClearLog ()
+clearLog :: Config -> Pipeline ()
+clearLog config = liftF $ ClearLog config ()
