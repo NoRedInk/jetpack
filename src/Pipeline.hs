@@ -16,8 +16,10 @@ import ToolPaths
 data PipelineF next
   = ReadCliArgs (Args -> next)
   | ReadConfig (Maybe FilePath) (Config -> next)
+  | ReadDependencyCache Config (Dependencies -> next)
+  | WriteDependencyCache Config Dependencies next
   | FindEntryPoints Config Args ([FilePath] -> next)
-  | Dependencies ProgressBar Config [FilePath] (Dependencies -> next)
+  | FindDependency ProgressBar Config Dependencies FilePath (DependencyTree -> next)
   | Compile ProgressBar Config ToolPaths Dependency (T.Text -> next)
   | Init Config (ToolPaths -> next)
   | ConcatModule Config DependencyTree (FilePath -> next)
@@ -31,8 +33,10 @@ data PipelineF next
 instance Functor PipelineF where
   fmap f (ReadCliArgs g) = ReadCliArgs (f . g)
   fmap f (ReadConfig maybeFilePath g) = ReadConfig maybeFilePath (f . g)
+  fmap f (ReadDependencyCache config g) = ReadDependencyCache config (f . g)
+  fmap f (WriteDependencyCache config deps next) = WriteDependencyCache config deps (f next)
   fmap f (FindEntryPoints config args g) = FindEntryPoints config args (f . g)
-  fmap f (Dependencies progressBar config paths g) = Dependencies progressBar config paths (f . g)
+  fmap f (FindDependency progressBar config cache path g) = FindDependency progressBar config cache path (f . g)
   fmap f (Compile progressBar config toolPaths dependency g) = Compile progressBar config toolPaths dependency (f . g)
   fmap f (Init config g) = Init config (f . g)
   fmap f (ConcatModule config dependencyTree g) = ConcatModule config dependencyTree (f . g)
@@ -54,11 +58,17 @@ readCliArgs = liftF $ ReadCliArgs id
 readConfig :: Maybe FilePath -> Pipeline Config
 readConfig maybePath = liftF $ ReadConfig maybePath id
 
+readDependencyCache :: Config -> Pipeline Dependencies
+readDependencyCache config = liftF $ ReadDependencyCache config id
+
+writeDependencyCache :: Config -> Dependencies -> Pipeline ()
+writeDependencyCache config deps = liftF $ WriteDependencyCache config deps ()
+
 findEntryPoints :: Config -> Args -> Pipeline [FilePath]
 findEntryPoints config args = liftF $ FindEntryPoints config args id
 
-dependencies :: ProgressBar -> Config -> [FilePath] -> Pipeline Dependencies
-dependencies pg config entryPoints = liftF $ Dependencies pg config entryPoints id
+findDependency :: ProgressBar -> Config -> Dependencies -> FilePath -> Pipeline DependencyTree
+findDependency pg config cache entryPoint = liftF $ FindDependency pg config cache entryPoint id
 
 compile :: ProgressBar -> Config -> ToolPaths -> Dependency -> Pipeline T.Text
 compile pg config toolPaths dep = liftF $ Compile pg config toolPaths dep id

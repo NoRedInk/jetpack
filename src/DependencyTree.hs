@@ -46,10 +46,11 @@ In each directory we search for the following names.
 -}
 module DependencyTree
   ( build
+  , readTreeCache
+  , writeTreeCache
   ) where
 
 import Config
-import Control.Concurrent.Async.Lifted as Async
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -72,13 +73,10 @@ import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: ProgressBar -> Config -> [FilePath] -> Task Dependencies
-build pg config@Config {module_directory, temp_directory} entryPoints = do
-  cache <- readTreeCache temp_directory
-  modules <- traverse (toDependency module_directory) entryPoints
-  deps <- Async.forConcurrently modules $ buildTree pg config cache
-  lift $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
-  return deps
+build :: ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
+build pg config cache entryPoint = do
+  dependency <- toDependency (Config.module_directory config) entryPoint
+  buildTree pg config cache dependency
 
 buildTree :: ProgressBar -> Config -> Dependencies -> Dependency -> Task DependencyTree
 buildTree pg config cache dep = do
@@ -87,9 +85,13 @@ buildTree pg config cache dep = do
   return tree
 
 readTreeCache :: FilePath -> Task Dependencies
-readTreeCache temp_directory = lift $ do
-  depsJson <- BL.readFile $ temp_directory </> "deps" <.> "json"
+readTreeCache tempDirectory = lift $ do
+  depsJson <- BL.readFile $ tempDirectory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
+
+writeTreeCache :: FilePath -> Dependencies -> Task ()
+writeTreeCache tempDirectory deps =
+  lift $ BL.writeFile (tempDirectory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency module_directory path  = lift $ do

@@ -27,8 +27,10 @@ interpreter command =
   case command of
     ReadCliArgs next                          -> next <$> lift readArguments
     ReadConfig _ next                         -> next <$> Config.readConfig
+    ReadDependencyCache config next           -> next <$> DependencyTree.readTreeCache (Config.temp_directory config)
+    WriteDependencyCache config deps next     -> DependencyTree.writeTreeCache (Config.temp_directory config) deps >> return next
     FindEntryPoints config args next          -> next <$> EntryPoints.find config args
-    Dependencies pg config entryPoints next   -> next <$> DependencyTree.build pg config entryPoints
+    FindDependency pg config cache entryPoint next  -> next <$> DependencyTree.build pg config cache entryPoint
     Compile pg config toolPaths dep next      -> next <$> Compile.compile pg config toolPaths dep
     Init config next                          -> next <$> Init.setup config
     ConcatModule config dep next              -> next <$> ConcatModule.wrap config dep

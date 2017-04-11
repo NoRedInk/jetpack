@@ -53,42 +53,41 @@ suite =
     "Dependencies"
     [ testCase "#find success" $ do
         pg <- newProgressBar def { pgWidth = 100 }
-        e <- runExceptT $ do DependencyTree.build pg basicsFixtures ["test" <.> "js"]
+        e <- runExceptT $ do DependencyTree.build pg basicsFixtures [] ("test" <.> "js")
         case e of
           Left msg -> do
             _ <- traverse print msg
             assertFailure $ "This shouldn't fail"
-          Right deps ->
-            fmap (fmap dropLastMod . Tree.flatten) deps @?=
-            [ [ ( Ast.Js
-                , "" </> "test.js"
-                , "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
-                )
-              , ( Ast.Coffee
-                , "" </> "index"
-                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
-                )
-              , ( Ast.Js
-                , "" </> "lodash"
-                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
-                )
-              , ( Ast.Js
-                , "." </> "lodash.dist.js"
-                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
-                )
-              , ( Ast.Js
-                , "." </> "lodash"
-                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
-                )
-              , ( Ast.Js
-                , "" </> "debug"
-                , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
-                )
-              ]
+          Right dep ->
+            (fmap dropLastMod $ Tree.flatten dep) @?=
+            [ ( Ast.Js
+              , "" </> "test.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "modules" </> "test.js"
+              )
+            , ( Ast.Coffee
+              , "" </> "index"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "index.coffee"
+              )
+            , ( Ast.Js
+              , "" </> "lodash"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
+              )
+            , ( Ast.Js
+              , "." </> "lodash.dist.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
+              )
+            , ( Ast.Js
+              , "." </> "lodash"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
+              )
+            , ( Ast.Js
+              , "" </> "debug"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
+              )
             ]
     , testCase "#find failing" $ do
         pg <- newProgressBar def { pgWidth = 100 }
-        e <- runExceptT $ do DependencyTree.build pg failingFixtures ["test" <.> "js"]
+        e <- runExceptT $ do DependencyTree.build pg failingFixtures [] ("test" <.> "js")
         case e of
           Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->

@@ -35,9 +35,11 @@ program = do
   _           <- clearLog config
   entryPoints <- findEntryPoints config args
 
-  pg   <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
-  deps <- dependencies pg config entryPoints
-  _    <- endProgress pg
+  pg    <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
+  cache <- readDependencyCache config
+  deps  <- async $ fmap (findDependency pg config cache) entryPoints
+  _     <- writeDependencyCache config deps
+  _     <- endProgress pg
 
   let modules = uniq $ concatMap Tree.flatten deps
 
