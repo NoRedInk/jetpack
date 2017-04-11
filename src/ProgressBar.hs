@@ -8,8 +8,9 @@ module ProgressBar
 
 import Control.Monad.State (get, modify)
 import qualified Data.Text as T
+import Env
 import System.Console.AsciiProgress as AP
-import Task (Env (..), Task, toTask)
+import Task (Task, toTask)
 
 step :: Task ()
 step = do

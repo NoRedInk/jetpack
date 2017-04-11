@@ -9,11 +9,12 @@ import Config
 
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath
-import Task (Task, toTask)
+import Task (Task, getConfig, toTask)
 import qualified ToolPaths
 
-setup :: Config -> Task ToolPaths.ToolPaths
-setup config@Config { temp_directory, log_directory, output_js_directory, output_css_directory } =  do
+setup :: Task ToolPaths.ToolPaths
+setup = do
+  config@Config { temp_directory, log_directory, output_js_directory, output_css_directory } <- Task.getConfig
   requiredBins <- ToolPaths.find config
   _ <- toTask $ traverse (createDirectoryIfMissing True)
     [ temp_directory

@@ -20,18 +20,19 @@ import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: Config -> DependencyTree -> Task FilePath
-wrap config dep = do
-  wrapped <- traverse (wrapper config) $ uniqNodes dep
-  writeModule config dep $ catMaybes wrapped
+wrap :: DependencyTree -> Task FilePath
+wrap dep = do
+  wrapped <- traverse wrapper $ uniqNodes dep
+  writeModule dep $ catMaybes wrapped
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = toTask $ do
+wrapper :: (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper (d@Dependency {filePath}, ds) = do
+  Config {temp_directory} <- Task.getConfig
   if compilesToJs d
-    then do
+    then toTask $ do
       let name = F.pathToFileName filePath "js"
       content <- readFile $ temp_directory </> name
       let fnName = F.pathToFunctionName filePath "js"
@@ -56,8 +57,9 @@ compilesToJs Dependency { filePath, fileType } =
     Ast.Coffee -> True
     _          -> False
 
-writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
-writeModule config dependencyTree fns = do
+writeModule :: DependencyTree -> [T.Text] -> Task FilePath
+writeModule dependencyTree fns = do
+  config <- Task.getConfig
   let root@Dependency { filePath } = Tree.rootLabel dependencyTree
   if compilesToJs root
      then writeJsModule config filePath fns

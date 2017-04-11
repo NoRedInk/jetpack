@@ -23,6 +23,7 @@ library
                        Dependencies,
                        DependencyTree,
                        EntryPoints,
+                       Env,
                        Error,
                        Init,
                        Interpreter.Pipeline,

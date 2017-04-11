@@ -3,6 +3,7 @@ module ConcatModuleSpec where
 
 import ConcatModule
 import Config
+import Control.Monad.State (modify)
 import Data.Foldable
 import Data.Text as T
 import Data.Tree as Tree
@@ -138,7 +139,9 @@ suite =
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
         @?= "var x = jetpackRequire(ui___src___foo_js)"
     , testCase "#wrap" $ do
-    e <- runTask $ traverse (wrap mockConfig) mockDependencies
+    e <- runTask $ do
+      modify (\env -> env { config = mockConfig })
+      traverse wrap mockDependencies
     case e of
       Left _  -> assertFailure ""
       Right paths -> do

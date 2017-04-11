@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger
@@ -6,12 +7,17 @@ module Logger
   ) where
 
 
+import Config
 import Data.Text as T
 import System.FilePath ((</>))
 import Task
 
-appendLog :: FilePath -> T.Text -> Task ()
-appendLog logDir msg = toTask $ appendFile (logDir </> "jetpack.log") $ T.unpack msg
+appendLog :: T.Text -> Task ()
+appendLog msg = do
+  Config {log_directory} <- Task.getConfig
+  toTask $ appendFile (log_directory </> "jetpack.log") $ T.unpack msg
 
-clearLog :: FilePath -> Task ()
-clearLog logDir = toTask $ writeFile (logDir </> "jetpack.log") ""
+clearLog :: Task ()
+clearLog = do
+  Config {log_directory} <- Task.getConfig
+  toTask $ writeFile (log_directory </> "jetpack.log") ""

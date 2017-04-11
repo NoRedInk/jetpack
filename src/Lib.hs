@@ -7,7 +7,6 @@ module Lib
 import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Free (foldFree)
-import Control.Monad.State
 import Data.List as L
 import Data.List.Utils (uniq)
 import Data.Tree as Tree
@@ -32,27 +31,27 @@ run = do
 program :: Pipeline ()
 program = do
   args        <- readCliArgs
-  config      <- readConfig (configPath args)
-  toolPaths   <- setup config
-  _           <- clearLog config
-  entryPoints <- findEntryPoints config args
+  _           <- readConfig (configPath args)
+  toolPaths   <- setup
+  _           <- clearLog
+  entryPoints <- findEntryPoints args
 
   _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
-  cache <- readDependencyCache config
-  deps  <- async $ fmap (findDependency config cache) entryPoints
-  _     <- writeDependencyCache config deps
+  cache <- readDependencyCache
+  deps  <- async $ fmap (findDependency cache) entryPoints
+  _     <- writeDependencyCache deps
   _     <- endProgress
 
   let modules = uniq $ concatMap Tree.flatten deps
 
   _ <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile config toolPaths) modules
-  _ <- traverse (appendLog config) logOutput
+  logOutput <- traverse (compile toolPaths) modules
+  _ <- traverse appendLog logOutput
   _ <- endProgress
 
   _       <- startProgress "Write modules" $ L.length deps
-  modules <- async $ fmap (concatModule config) deps
-  _       <- outputCreatedModules config modules
+  modules <- async $ fmap concatModule deps
+  _       <- outputCreatedModules modules
   _       <- endProgress
   return ()
 

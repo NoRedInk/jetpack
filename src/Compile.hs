@@ -19,14 +19,15 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task, toTask)
+import Task (Task, getConfig, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
-compile :: Config -> ToolPaths ->  Dependency -> Task T.Text
-compile config toolPaths Dependency {fileType, filePath} = do
+compile :: ToolPaths ->  Dependency -> Task T.Text
+compile toolPaths Dependency {fileType, filePath} = do
+  config <- Task.getConfig
   let (c, outputType) = compiler fileType config toolPaths
   let outputPath = buildArtifactPath config outputType filePath
   log <- (runCompiler c) filePath outputPath

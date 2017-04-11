@@ -17,20 +17,20 @@ import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.FilePath (takeExtension, (<.>), (</>))
 import System.Posix.Files
-import Task (Task, toTask)
+import Task (Task, getConfig, toTask)
 import Utils.Files (fileExistsTask)
 
-resolve :: Config -> Dependency -> Task Dependency
-resolve config dep = do
+resolve :: Dependency -> Task Dependency
+resolve dep = do
   resolved <- findRelative dep
     <|> findRelativeNodeModules dep
-    <|> findInModules config dep
-    <|> findInSources config dep
+    <|> findInModules dep
+    <|> findInSources dep
     <|> findInVendorComponents dep
     <|> findInVendorJavascripts dep
-    <|> findInNodeModules config dep
+    <|> findInNodeModules dep
     <|> findInRootNodeModules dep
-    <|> moduleNotFound config (requiredAs dep)
+    <|> moduleNotFound (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
@@ -41,15 +41,15 @@ findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
 
-findInModules :: Config -> Dependency -> Task Dependency
-findInModules Config { module_directory } parent =
+findInModules :: Dependency -> Task Dependency
+findInModules parent = do
+  Config {module_directory} <- Task.getConfig
   tryToFind module_directory (requiredAs parent) parent
 
-findInSources :: Config -> Dependency -> Task Dependency
-findInSources config parent =
-  tryToFind sourcePath (requiredAs parent) parent
-  where
-    sourcePath = Config.source_directory config
+findInSources :: Dependency -> Task Dependency
+findInSources parent = do
+  Config {source_directory} <- Task.getConfig
+  tryToFind source_directory (requiredAs parent) parent
 
 findInRootNodeModules :: Dependency -> Task Dependency
 findInRootNodeModules parent =
@@ -57,11 +57,11 @@ findInRootNodeModules parent =
   where
     nodeModulesInRoot = "." </> "node_modules"
 
-findInNodeModules :: Config -> Dependency -> Task Dependency
-findInNodeModules config parent =
+findInNodeModules :: Dependency -> Task Dependency
+findInNodeModules parent = do
+  Config {source_directory} <- Task.getConfig
+  let nodeModulesPath = source_directory </> ".." </> "node_modules"
   tryToFind nodeModulesPath (requiredAs parent) parent
-  where
-    nodeModulesPath = Config.source_directory config </> ".." </> "node_modules"
 
 findInVendorComponents :: Dependency -> Task Dependency
 findInVendorComponents parent =
@@ -128,8 +128,9 @@ tryMainFromPackageJson basePath fileName require = do
       moduleExists basePath (fileName </> T.unpack entryPoint) require
     Nothing -> throwError []
 
-moduleNotFound :: Config -> FilePath -> Task Dependency
-moduleNotFound Config {module_directory, source_directory} fileName =
+moduleNotFound :: FilePath -> Task Dependency
+moduleNotFound fileName = do
+  Config {source_directory, module_directory} <- Task.getConfig
   throwError [ModuleNotFound module_directory source_directory $ show fileName]
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency

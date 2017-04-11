@@ -51,7 +51,6 @@ module DependencyTree
   ) where
 
 import Config
-import Control.Monad.State
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
@@ -68,30 +67,33 @@ import qualified Resolver
 import Safe
 import System.FilePath (takeDirectory, (<.>), (</>))
 import System.Posix.Files
-import Task (Env (..), Task, toTask)
+import Task (Task, getConfig, toTask)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: Config -> Dependencies -> FilePath -> Task DependencyTree
-build config cache entryPoint = do
-  dependency <- toDependency (Config.module_directory config) entryPoint
-  buildTree config cache dependency
+build :: Dependencies -> FilePath -> Task DependencyTree
+build cache entryPoint = do
+  Config {module_directory} <- Task.getConfig
+  dependency <- toDependency module_directory entryPoint
+  buildTree cache dependency
 
-buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
-buildTree config cache dep = do
-  tree <- Tree.unfoldTreeM (findRequires config cache) dep
+buildTree :: Dependencies -> Dependency -> Task DependencyTree
+buildTree cache dep = do
+  tree <- Tree.unfoldTreeM (findRequires cache) dep
   _ <- ProgressBar.step
   return tree
 
-readTreeCache :: FilePath -> Task Dependencies
-readTreeCache tempDirectory = toTask $ do
-  depsJson <- BL.readFile $ tempDirectory </> "deps" <.> "json"
+readTreeCache :: Task Dependencies
+readTreeCache = do
+  Config{temp_directory} <- Task.getConfig
+  depsJson <- toTask $ BL.readFile $ temp_directory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
 
-writeTreeCache :: FilePath -> Dependencies -> Task ()
-writeTreeCache tempDirectory deps =
-  toTask $ BL.writeFile (tempDirectory </> "deps" <.> "json") $ Aeson.encode deps
+writeTreeCache :: Dependencies -> Task ()
+writeTreeCache  deps = do
+  Config{temp_directory} <- Task.getConfig
+  toTask $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency module_directory path  = toTask $ do
@@ -103,9 +105,9 @@ requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 requireToDep _path (Ast.Import _n)  = undefined
 
-findRequires :: Config -> Dependencies -> Dependency -> Task (Dependency, [Dependency])
-findRequires config cache parent = do
-  resolved <- Resolver.resolve config parent
+findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
+findRequires cache parent = do
+  resolved <- Resolver.resolve parent
   case fileType resolved of
     Ast.Js     -> parseModule cache resolved Parser.Require.jsRequires
     Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires

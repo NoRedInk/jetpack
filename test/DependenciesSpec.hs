@@ -6,6 +6,7 @@ module DependenciesSpec where
 
 import Config
 import Control.Monad.Except (runExceptT)
+import Control.Monad.State (modify)
 import Data.List as L
 import Data.Tree as Tree
 import Dependencies
@@ -53,7 +54,9 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        e <- runTask $ do DependencyTree.build basicsFixtures [] ("test" <.> "js")
+        e <- runTask $ do
+          modify (\env -> env { config = basicsFixtures })
+          DependencyTree.build [] ("test" <.> "js")
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -86,7 +89,9 @@ suite =
               )
             ]
     , testCase "#find failing" $ do
-        e <- runTask $ do DependencyTree.build failingFixtures [] ("test" <.> "js")
+        e <- runTask $ do
+          modify (\env -> env { config = failingFixtures })
+          DependencyTree.build [] ("test" <.> "js")
         case e of
           Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->

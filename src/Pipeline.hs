@@ -15,35 +15,35 @@ import ToolPaths
 data PipelineF next
   = ReadCliArgs (Args -> next)
   | ReadConfig (Maybe FilePath) (Config -> next)
-  | ReadDependencyCache Config (Dependencies -> next)
-  | WriteDependencyCache Config Dependencies next
-  | FindEntryPoints Config Args ([FilePath] -> next)
-  | FindDependency Config Dependencies FilePath (DependencyTree -> next)
-  | Compile Config ToolPaths Dependency (T.Text -> next)
-  | Init Config (ToolPaths -> next)
-  | ConcatModule Config DependencyTree (FilePath -> next)
-  | OutputCreatedModules Config [FilePath] next
+  | ReadDependencyCache (Dependencies -> next)
+  | WriteDependencyCache Dependencies next
+  | FindEntryPoints Args ([FilePath] -> next)
+  | FindDependency Dependencies FilePath (DependencyTree -> next)
+  | Compile ToolPaths Dependency (T.Text -> next)
+  | Init (ToolPaths -> next)
+  | ConcatModule DependencyTree (FilePath -> next)
+  | OutputCreatedModules [FilePath] next
   | StartProgress T.Text Int next
   | EndProgress next
-  | AppendLog Config T.Text next
-  | ClearLog Config next
+  | AppendLog T.Text next
+  | ClearLog next
   | forall a.Async [Pipeline a] ([a] -> next)
 
 instance Functor PipelineF where
   fmap f (ReadCliArgs g) = ReadCliArgs (f . g)
   fmap f (ReadConfig maybeFilePath g) = ReadConfig maybeFilePath (f . g)
-  fmap f (ReadDependencyCache config g) = ReadDependencyCache config (f . g)
-  fmap f (WriteDependencyCache config deps next) = WriteDependencyCache config deps (f next)
-  fmap f (FindEntryPoints config args g) = FindEntryPoints config args (f . g)
-  fmap f (FindDependency config cache path g) = FindDependency config cache path (f . g)
-  fmap f (Compile config toolPaths dependency g) = Compile config toolPaths dependency (f . g)
-  fmap f (Init config g) = Init config (f . g)
-  fmap f (ConcatModule config dependencyTree g) = ConcatModule config dependencyTree (f . g)
-  fmap f (OutputCreatedModules config paths next) = OutputCreatedModules config paths (f next)
+  fmap f (ReadDependencyCache g) = ReadDependencyCache (f . g)
+  fmap f (WriteDependencyCache deps next) = WriteDependencyCache deps (f next)
+  fmap f (FindEntryPoints args g) = FindEntryPoints args (f . g)
+  fmap f (FindDependency cache path g) = FindDependency cache path (f . g)
+  fmap f (Compile toolPaths dependency g) = Compile toolPaths dependency (f . g)
+  fmap f (Init g) = Init (f . g)
+  fmap f (ConcatModule dependencyTree g) = ConcatModule dependencyTree (f . g)
+  fmap f (OutputCreatedModules paths next) = OutputCreatedModules paths (f next)
   fmap f (StartProgress title total next) = StartProgress title total (f next)
   fmap f (EndProgress next) = EndProgress (f next)
-  fmap f (AppendLog config msg next) = AppendLog config msg (f next)
-  fmap f (ClearLog config next) = ClearLog config (f next)
+  fmap f (AppendLog msg next) = AppendLog msg (f next)
+  fmap f (ClearLog next) = ClearLog (f next)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -57,29 +57,29 @@ readCliArgs = liftF $ ReadCliArgs id
 readConfig :: Maybe FilePath -> Pipeline Config
 readConfig maybePath = liftF $ ReadConfig maybePath id
 
-readDependencyCache :: Config -> Pipeline Dependencies
-readDependencyCache config = liftF $ ReadDependencyCache config id
+readDependencyCache :: Pipeline Dependencies
+readDependencyCache = liftF $ ReadDependencyCache id
 
-writeDependencyCache :: Config -> Dependencies -> Pipeline ()
-writeDependencyCache config deps = liftF $ WriteDependencyCache config deps ()
+writeDependencyCache :: Dependencies -> Pipeline ()
+writeDependencyCache deps = liftF $ WriteDependencyCache deps ()
 
-findEntryPoints :: Config -> Args -> Pipeline [FilePath]
-findEntryPoints config args = liftF $ FindEntryPoints config args id
+findEntryPoints :: Args -> Pipeline [FilePath]
+findEntryPoints args = liftF $ FindEntryPoints args id
 
-findDependency :: Config -> Dependencies -> FilePath -> Pipeline DependencyTree
-findDependency config cache entryPoint = liftF $ FindDependency config cache entryPoint id
+findDependency :: Dependencies -> FilePath -> Pipeline DependencyTree
+findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
 
-compile :: Config -> ToolPaths -> Dependency -> Pipeline T.Text
-compile config toolPaths dep = liftF $ Compile config toolPaths dep id
+compile :: ToolPaths -> Dependency -> Pipeline T.Text
+compile toolPaths dep = liftF $ Compile toolPaths dep id
 
-setup :: Config -> Pipeline ToolPaths
-setup config = liftF $ Init config id
+setup :: Pipeline ToolPaths
+setup  = liftF $ Init id
 
-concatModule :: Config -> DependencyTree -> Pipeline FilePath
-concatModule config dependency = liftF $ ConcatModule config dependency id
+concatModule :: DependencyTree -> Pipeline FilePath
+concatModule dependency = liftF $ ConcatModule dependency id
 
-outputCreatedModules :: Config -> [FilePath] -> Pipeline ()
-outputCreatedModules config paths = liftF $ OutputCreatedModules config paths ()
+outputCreatedModules :: [FilePath] -> Pipeline ()
+outputCreatedModules paths = liftF $ OutputCreatedModules paths ()
 
 startProgress :: T.Text -> Int -> Pipeline ()
 startProgress title total = liftF $ StartProgress title total ()
@@ -87,8 +87,8 @@ startProgress title total = liftF $ StartProgress title total ()
 endProgress :: Pipeline ()
 endProgress = liftF $ EndProgress ()
 
-appendLog :: Config -> T.Text -> Pipeline ()
-appendLog config msg = liftF $ AppendLog config msg ()
+appendLog :: T.Text -> Pipeline ()
+appendLog  msg = liftF $ AppendLog msg ()
 
-clearLog :: Config -> Pipeline ()
-clearLog config = liftF $ ClearLog config ()
+clearLog :: Pipeline ()
+clearLog = liftF $ ClearLog ()

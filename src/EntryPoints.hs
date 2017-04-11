@@ -16,10 +16,11 @@ import Error
 import qualified System.Directory as Dir
 import System.FilePath (makeRelative, (</>))
 import "Glob" System.FilePath.Glob (glob)
-import Task (Task, toTask)
+import Task (Task, getConfig, toTask)
 
-find :: Config -> Args -> Task [FilePath]
-find Config {module_directory} Args{entryPointGlob} = do
+find :: Args -> Task [FilePath]
+find Args{entryPointGlob} = do
+  Config {module_directory} <- Task.getConfig
   paths <- findFilesIn module_directory $ M.fromMaybe ( "**" </> "*.*" ) entryPointGlob
   cwd <- toTask Dir.getCurrentDirectory
   case paths of
