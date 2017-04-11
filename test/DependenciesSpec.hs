@@ -53,8 +53,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#find success" $ do
-        pg <- newProgressBar def { pgWidth = 100 }
-        e <- runTask $ do DependencyTree.build pg basicsFixtures [] ("test" <.> "js")
+        e <- runTask $ do DependencyTree.build basicsFixtures [] ("test" <.> "js")
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -87,8 +86,7 @@ suite =
               )
             ]
     , testCase "#find failing" $ do
-        pg <- newProgressBar def { pgWidth = 100 }
-        e <- runTask $ do DependencyTree.build pg failingFixtures [] ("test" <.> "js")
+        e <- runTask $ do DependencyTree.build failingFixtures [] ("test" <.> "js")
         case e of
           Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->

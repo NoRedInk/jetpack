@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module Task
   ( Env(..)
   , Task
@@ -9,13 +10,13 @@ module Task
 import Control.Monad.Except
 import Control.Monad.State
 import Error
-import System.Console.AsciiProgress
+import qualified System.Console.AsciiProgress as Progress
 
 type ExceptIO = ExceptT [Error] IO
 type Task = StateT Env ExceptIO
 
 data Env = Env
-  { progressBar :: Maybe ProgressBar }
+  { progressBar :: Maybe Progress.ProgressBar }
 
 
 toTask :: IO a -> Task a

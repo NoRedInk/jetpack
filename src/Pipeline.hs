@@ -8,7 +8,6 @@ import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import qualified Data.Text as T
 import Dependencies (Dependencies, Dependency, DependencyTree)
-import System.Console.AsciiProgress
 import System.FilePath ()
 import ToolPaths
 
@@ -19,13 +18,13 @@ data PipelineF next
   | ReadDependencyCache Config (Dependencies -> next)
   | WriteDependencyCache Config Dependencies next
   | FindEntryPoints Config Args ([FilePath] -> next)
-  | FindDependency ProgressBar Config Dependencies FilePath (DependencyTree -> next)
-  | Compile ProgressBar Config ToolPaths Dependency (T.Text -> next)
+  | FindDependency Config Dependencies FilePath (DependencyTree -> next)
+  | Compile Config ToolPaths Dependency (T.Text -> next)
   | Init Config (ToolPaths -> next)
   | ConcatModule Config DependencyTree (FilePath -> next)
-  | OutputCreatedModules ProgressBar Config [FilePath] next
-  | StartProgress T.Text Int (ProgressBar -> next)
-  | EndProgress ProgressBar next
+  | OutputCreatedModules Config [FilePath] next
+  | StartProgress T.Text Int next
+  | EndProgress next
   | AppendLog Config T.Text next
   | ClearLog Config next
   | forall a.Async [Pipeline a] ([a] -> next)
@@ -36,13 +35,13 @@ instance Functor PipelineF where
   fmap f (ReadDependencyCache config g) = ReadDependencyCache config (f . g)
   fmap f (WriteDependencyCache config deps next) = WriteDependencyCache config deps (f next)
   fmap f (FindEntryPoints config args g) = FindEntryPoints config args (f . g)
-  fmap f (FindDependency progressBar config cache path g) = FindDependency progressBar config cache path (f . g)
-  fmap f (Compile progressBar config toolPaths dependency g) = Compile progressBar config toolPaths dependency (f . g)
+  fmap f (FindDependency config cache path g) = FindDependency config cache path (f . g)
+  fmap f (Compile config toolPaths dependency g) = Compile config toolPaths dependency (f . g)
   fmap f (Init config g) = Init config (f . g)
   fmap f (ConcatModule config dependencyTree g) = ConcatModule config dependencyTree (f . g)
-  fmap f (OutputCreatedModules progressBar config paths next) = OutputCreatedModules progressBar config paths (f next)
-  fmap f (StartProgress title total g) = StartProgress title total (f . g)
-  fmap f (EndProgress progressBar next) = EndProgress progressBar (f next)
+  fmap f (OutputCreatedModules config paths next) = OutputCreatedModules config paths (f next)
+  fmap f (StartProgress title total next) = StartProgress title total (f next)
+  fmap f (EndProgress next) = EndProgress (f next)
   fmap f (AppendLog config msg next) = AppendLog config msg (f next)
   fmap f (ClearLog config next) = ClearLog config (f next)
   fmap f (Async commands g) = Async commands (f . g)
@@ -67,11 +66,11 @@ writeDependencyCache config deps = liftF $ WriteDependencyCache config deps ()
 findEntryPoints :: Config -> Args -> Pipeline [FilePath]
 findEntryPoints config args = liftF $ FindEntryPoints config args id
 
-findDependency :: ProgressBar -> Config -> Dependencies -> FilePath -> Pipeline DependencyTree
-findDependency pg config cache entryPoint = liftF $ FindDependency pg config cache entryPoint id
+findDependency :: Config -> Dependencies -> FilePath -> Pipeline DependencyTree
+findDependency config cache entryPoint = liftF $ FindDependency config cache entryPoint id
 
-compile :: ProgressBar -> Config -> ToolPaths -> Dependency -> Pipeline T.Text
-compile pg config toolPaths dep = liftF $ Compile pg config toolPaths dep id
+compile :: Config -> ToolPaths -> Dependency -> Pipeline T.Text
+compile config toolPaths dep = liftF $ Compile config toolPaths dep id
 
 setup :: Config -> Pipeline ToolPaths
 setup config = liftF $ Init config id
@@ -79,14 +78,14 @@ setup config = liftF $ Init config id
 concatModule :: Config -> DependencyTree -> Pipeline FilePath
 concatModule config dependency = liftF $ ConcatModule config dependency id
 
-outputCreatedModules :: ProgressBar -> Config -> [FilePath] -> Pipeline ()
-outputCreatedModules pg config paths = liftF $ OutputCreatedModules pg config paths ()
+outputCreatedModules :: Config -> [FilePath] -> Pipeline ()
+outputCreatedModules config paths = liftF $ OutputCreatedModules config paths ()
 
-startProgress :: T.Text -> Int -> Pipeline ProgressBar
-startProgress title total = liftF $ StartProgress title total id
+startProgress :: T.Text -> Int -> Pipeline ()
+startProgress title total = liftF $ StartProgress title total ()
 
-endProgress :: ProgressBar -> Pipeline ()
-endProgress pg = liftF $ EndProgress pg ()
+endProgress :: Pipeline ()
+endProgress = liftF $ EndProgress ()
 
 appendLog :: Config -> T.Text -> Pipeline ()
 appendLog config msg = liftF $ AppendLog config msg ()

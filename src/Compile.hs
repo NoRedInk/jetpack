@@ -14,7 +14,7 @@ import Data.Time.Clock
 import Dependencies (Dependency (..))
 import GHC.IO.Handle
 import Parser.Ast as Ast
-import System.Console.AsciiProgress
+import qualified ProgressBar
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
@@ -25,20 +25,20 @@ import Utils.Files (pathToFileName)
 
 newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
 
-compile :: ProgressBar -> Config -> ToolPaths ->  Dependency -> Task T.Text
-compile pg config toolPaths Dependency {fileType, filePath} = do
-  let (c, outputType) = compiler fileType config toolPaths pg
+compile :: Config -> ToolPaths ->  Dependency -> Task T.Text
+compile config toolPaths Dependency {fileType, filePath} = do
+  let (c, outputType) = compiler fileType config toolPaths
   let outputPath = buildArtifactPath config outputType filePath
   log <- (runCompiler c) filePath outputPath
   return $ T.unlines log
 
-compiler :: Ast.SourceType -> Config -> ToolPaths -> ProgressBar -> (Compiler, String)
-compiler fileType config ToolPaths{elmMake, sassc, coffee} pg =
+compiler :: Ast.SourceType -> Config -> ToolPaths -> (Compiler, String)
+compiler fileType config ToolPaths{elmMake, sassc, coffee} =
   case fileType of
-    Ast.Elm    -> (elmCompiler pg config elmMake, "js")
-    Ast.Js     -> (jsCompiler pg, "js")
-    Ast.Coffee -> (coffeeCompiler pg coffee, "js")
-    Ast.Sass   -> (sassCompiler pg config sassc, "css")
+    Ast.Elm    -> (elmCompiler config elmMake, "js")
+    Ast.Js     -> (jsCompiler, "js")
+    Ast.Coffee -> (coffeeCompiler coffee, "js")
+    Ast.Sass   -> (sassCompiler config sassc, "css")
 
 buildArtifactPath :: Config -> String -> FilePath -> String
 buildArtifactPath Config{temp_directory} extension inputPath =
@@ -48,36 +48,36 @@ buildArtifactPath Config{temp_directory} extension inputPath =
 -- COMPILERS --
 ---------------
 
-elmCompiler :: ProgressBar -> Config -> FilePath -> Compiler
-elmCompiler pg Config{elm_root_directory} elmMake = Compiler $ \input output -> do
+elmCompiler :: Config -> FilePath -> Compiler
+elmCompiler Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
   let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output
-  runCmd pg cmd $ Just elm_root_directory
+  runCmd cmd $ Just elm_root_directory
 
-coffeeCompiler :: ProgressBar -> FilePath -> Compiler
-coffeeCompiler pg coffee = Compiler $ \input output -> do
+coffeeCompiler :: FilePath -> Compiler
+coffeeCompiler coffee = Compiler $ \input output -> do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg cmd Nothing
+  runCmd cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: ProgressBar -> Compiler
-jsCompiler pg = Compiler $ \input output -> toTask $ do
-  copyFile input output
-  tick pg
-  currentTime <- getCurrentTime
+jsCompiler :: Compiler
+jsCompiler = Compiler $ \input output -> do
+  _ <- toTask $ copyFile input output
+  _ <- ProgressBar.step
+  currentTime <- toTask getCurrentTime
   let commandFinished = T.pack $ show currentTime
   return [commandFinished, T.concat ["moved ", T.pack input, " => ", T.pack output]]
 
-sassCompiler :: ProgressBar -> Config -> FilePath -> Compiler
-sassCompiler pg Config {sass_load_paths} sassc = Compiler $ \input output -> do
+sassCompiler :: Config -> FilePath -> Compiler
+sassCompiler Config {sass_load_paths} sassc = Compiler $ \input output -> do
   let loadPath = L.intercalate ":" sass_load_paths
   let cmd = "SASS_PATH=" ++ loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
-  runCmd pg cmd Nothing
+  runCmd cmd Nothing
 
-runCmd :: ProgressBar -> String -> Maybe String -> Task [T.Text]
-runCmd pg cmd maybeCwd = do
+runCmd :: String -> Maybe String -> Task [T.Text]
+runCmd cmd maybeCwd = do
   -- TODO: handle exit status here
   (_, Just out, _, ph) <- toTask $ createProcess (proc "bash" ["-c", cmd])
     { std_out = CreatePipe
@@ -85,10 +85,10 @@ runCmd pg cmd maybeCwd = do
     }
   ec <- toTask $ waitForProcess ph
   case ec of
-      ExitSuccess   -> toTask $ do
-        content <- hGetContents out
-        tick pg
-        currentTime <- getCurrentTime
+      ExitSuccess   -> do
+        content <- toTask $ hGetContents out
+        _ <- ProgressBar.step
+        currentTime <- toTask $ getCurrentTime
         let commandFinished = T.pack $ show currentTime
         return [commandFinished, T.pack cmd, T.pack content]
       ExitFailure _ -> throwError []

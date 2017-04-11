@@ -51,6 +51,7 @@ module DependencyTree
   ) where
 
 import Config
+import Control.Monad.State
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
@@ -62,25 +63,25 @@ import Dependencies
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
+import qualified ProgressBar
 import qualified Resolver
 import Safe
-import System.Console.AsciiProgress
 import System.FilePath (takeDirectory, (<.>), (</>))
 import System.Posix.Files
-import Task (Task, toTask)
+import Task (Env (..), Task, toTask)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
-build pg config cache entryPoint = do
+build :: Config -> Dependencies -> FilePath -> Task DependencyTree
+build config cache entryPoint = do
   dependency <- toDependency (Config.module_directory config) entryPoint
-  buildTree pg config cache dependency
+  buildTree config cache dependency
 
-buildTree :: ProgressBar -> Config -> Dependencies -> Dependency -> Task DependencyTree
-buildTree pg config cache dep = do
+buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
+buildTree config cache dep = do
   tree <- Tree.unfoldTreeM (findRequires config cache) dep
-  toTask $ tick pg
+  _ <- ProgressBar.step
   return tree
 
 readTreeCache :: FilePath -> Task Dependencies

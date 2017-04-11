@@ -6,7 +6,6 @@ module Lib
 
 import CliArguments (Args (..))
 import Config ()
-import Control.Monad.Except
 import Control.Monad.Free (foldFree)
 import Control.Monad.State
 import Data.List as L
@@ -38,23 +37,23 @@ program = do
   _           <- clearLog config
   entryPoints <- findEntryPoints config args
 
-  pg    <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
+  _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
   cache <- readDependencyCache config
-  deps  <- async $ fmap (findDependency pg config cache) entryPoints
+  deps  <- async $ fmap (findDependency config cache) entryPoints
   _     <- writeDependencyCache config deps
-  _     <- endProgress pg
+  _     <- endProgress
 
   let modules = uniq $ concatMap Tree.flatten deps
 
-  pg <- startProgress "Compiling" $ L.length modules
-  logOutput <- async $ fmap (compile pg config toolPaths) modules
+  _ <- startProgress "Compiling" $ L.length modules
+  logOutput <- traverse (compile config toolPaths) modules
   _ <- traverse (appendLog config) logOutput
-  _ <- endProgress pg
+  _ <- endProgress
 
-  pg      <- startProgress "Write modules" $ L.length deps
+  _       <- startProgress "Write modules" $ L.length deps
   modules <- async $ fmap (concatModule config) deps
-  _       <- outputCreatedModules pg config modules
-  _       <- endProgress pg
+  _       <- outputCreatedModules config modules
+  _       <- endProgress
   return ()
 
 runProgram :: Pipeline a -> Task a
