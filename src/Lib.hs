@@ -8,6 +8,7 @@ import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Except
 import Control.Monad.Free (foldFree)
+import Control.Monad.State
 import Data.List as L
 import Data.List.Utils (uniq)
 import Data.Tree as Tree
@@ -20,7 +21,9 @@ import Task
 
 run :: IO ()
 run = do
-  e <- displayConsoleRegions $ runExceptT $ runProgram program
+  e <- displayConsoleRegions
+    $ runTask
+    $ runProgram program
   case e of
     Left err -> do
       putStrLn "Compilation failed!"

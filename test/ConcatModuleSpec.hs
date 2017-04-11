@@ -3,7 +3,6 @@ module ConcatModuleSpec where
 
 import ConcatModule
 import Config
-import Control.Monad.Except (runExceptT)
 import Data.Foldable
 import Data.Text as T
 import Data.Tree as Tree
@@ -11,6 +10,7 @@ import Dependencies as D
 import Parser.Ast as Ast
 import System.Directory (removeFile)
 import System.FilePath ((<.>), (</>))
+import Task
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -138,7 +138,7 @@ suite =
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
         @?= "var x = jetpackRequire(ui___src___foo_js)"
     , testCase "#wrap" $ do
-    e <- runExceptT $ traverse (wrap mockConfig) mockDependencies
+    e <- runTask $ traverse (wrap mockConfig) mockDependencies
     case e of
       Left _  -> assertFailure ""
       Right paths -> do

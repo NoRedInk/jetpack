@@ -3,9 +3,9 @@
 module ConfigSpec where
 
 import Config
-import Control.Monad.Except (runExceptT)
 import Error
 import System.FilePath ((</>))
+import Task
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -14,7 +14,7 @@ suite =
   testGroup
     "Config"
     [ testCase "#load success" $ do
-        e <- runExceptT $ do Config.load "./test/fixtures"
+        e <- runTask $ do Config.load "./test/fixtures"
         case e of
           Left _ -> assertFailure $ "Couldn't decode jetpack.json"
           Right config ->

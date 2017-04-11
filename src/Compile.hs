@@ -8,7 +8,6 @@ module Compile where
 
 import Config (Config (..))
 import Control.Monad.Except (throwError)
-import Control.Monad.Trans.Class (lift)
 import Data.List as L
 import Data.Text as T
 import Data.Time.Clock
@@ -20,7 +19,7 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task)
+import Task (Task, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -64,7 +63,7 @@ coffeeCompiler pg coffee = Compiler $ \input output -> do
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
 jsCompiler :: ProgressBar -> Compiler
-jsCompiler pg = Compiler $ \input output -> lift $ do
+jsCompiler pg = Compiler $ \input output -> toTask $ do
   copyFile input output
   tick pg
   currentTime <- getCurrentTime
@@ -80,13 +79,13 @@ sassCompiler pg Config {sass_load_paths} sassc = Compiler $ \input output -> do
 runCmd :: ProgressBar -> String -> Maybe String -> Task [T.Text]
 runCmd pg cmd maybeCwd = do
   -- TODO: handle exit status here
-  (_, Just out, _, ph) <- lift $ createProcess (proc "bash" ["-c", cmd])
+  (_, Just out, _, ph) <- toTask $ createProcess (proc "bash" ["-c", cmd])
     { std_out = CreatePipe
     , cwd = maybeCwd
     }
-  ec <- lift $ waitForProcess ph
+  ec <- toTask $ waitForProcess ph
   case ec of
-      ExitSuccess   -> lift $ do
+      ExitSuccess   -> toTask $ do
         content <- hGetContents out
         tick pg
         currentTime <- getCurrentTime

@@ -9,7 +9,7 @@ import ConcatModule
 import Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import Control.Monad.Free (foldFree)
-import Control.Monad.Trans.Class (lift)
+
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -20,12 +20,12 @@ import qualified Logger
 import Pipeline
 import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
-import Task (Task)
+import Task (Task, toTask)
 
 interpreter :: PipelineF a -> Task a
 interpreter command =
   case command of
-    ReadCliArgs next                          -> next <$> lift readArguments
+    ReadCliArgs next                          -> next <$> toTask readArguments
     ReadConfig _ next                         -> next <$> Config.readConfig
     ReadDependencyCache config next           -> next <$> DependencyTree.readTreeCache (Config.temp_directory config)
     WriteDependencyCache config deps next     -> DependencyTree.writeTreeCache (Config.temp_directory config) deps >> return next
@@ -35,8 +35,8 @@ interpreter command =
     Init config next                          -> next <$> Init.setup config
     ConcatModule config dep next              -> next <$> ConcatModule.wrap config dep
     OutputCreatedModules pg config paths next -> createdModulesJson pg config paths >> return next
-    StartProgress title total next            -> next <$> (lift $ createProgress total title)
-    EndProgress pg next                       -> (lift $ complete pg) >> return next
+    StartProgress title total next            -> next <$> (toTask $ createProgress total title)
+    EndProgress pg next                       -> (toTask $ complete pg) >> return next
     AppendLog config msg next                 -> Logger.appendLog (log_directory config) msg >> return next
     ClearLog config next                      -> Logger.clearLog (log_directory config) >> return next
     Async commands next                       -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
@@ -49,7 +49,7 @@ interpreter command =
 --   return ()
 
 createdModulesJson :: ProgressBar -> Config.Config -> [FilePath] -> Task ()
-createdModulesJson pg config paths = lift $ do
+createdModulesJson pg config paths = toTask $ do
   let encodedPaths = Aeson.encode paths
   let jsonPath = Config.temp_directory config </> "modules" <.> "json"
   BL.writeFile jsonPath encodedPaths

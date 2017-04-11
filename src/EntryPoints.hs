@@ -10,18 +10,18 @@ module EntryPoints (find) where
 import CliArguments (Args (..))
 import Config
 import Control.Monad.Except (throwError)
-import Control.Monad.Trans.Class (lift)
+
 import qualified Data.Maybe as M
 import Error
 import qualified System.Directory as Dir
 import System.FilePath (makeRelative, (</>))
 import "Glob" System.FilePath.Glob (glob)
-import Task (Task)
+import Task (Task, toTask)
 
 find :: Config -> Args -> Task [FilePath]
 find Config {module_directory} Args{entryPointGlob} = do
   paths <- findFilesIn module_directory $ M.fromMaybe ( "**" </> "*.*" ) entryPointGlob
-  cwd <- lift Dir.getCurrentDirectory
+  cwd <- toTask Dir.getCurrentDirectory
   case paths of
     [] -> throwError [NoModulesPresent $ show module_directory]
     _  -> return $ (makeRelative $ cwd </> module_directory) <$> paths
@@ -31,4 +31,4 @@ find Config {module_directory} Args{entryPointGlob} = do
 findFilesIn :: FilePath -> FilePath -> Task [FilePath]
 findFilesIn path userGlob = do
   let globi = path </> userGlob
-  lift $ glob globi
+  toTask $ glob globi

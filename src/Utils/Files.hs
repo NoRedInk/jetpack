@@ -10,21 +10,21 @@ module Utils.Files
   ) where
 
 import Control.Monad.Except
-import Control.Monad.Trans.Class (lift)
+
 import Data.List as L
 import Data.Text as T
 import Error (Error (..))
 import System.Directory (doesFileExist)
 import System.FilePath (splitDirectories, (<.>))
-import Task (Task)
+import Task (Task, toTask)
 
 {-| Checks if file exists and returns a failing task if it doesn't
 -}
 fileExistsTask :: FilePath -> Task ()
 fileExistsTask path = do
-  exists <- lift $ doesFileExist path
+  exists <- toTask $ doesFileExist path
   case exists of
-    True  -> lift $ return ()
+    True  -> toTask $ return ()
     False -> throwError $ [FileNotFound (show path)]
 
 {-| Converts a path into a flat filename.

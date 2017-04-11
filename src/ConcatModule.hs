@@ -6,7 +6,7 @@
 module ConcatModule where
 
 import Config
-import Control.Monad.Trans.Class (lift)
+
 import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
 import qualified Data.Text as T
@@ -29,7 +29,7 @@ uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = lift $ do
+wrapper Config {temp_directory} (d@Dependency {filePath}, ds) = toTask $ do
   if compilesToJs d
     then do
       let name = F.pathToFileName filePath "js"
@@ -64,7 +64,7 @@ writeModule config dependencyTree fns = do
      else writeCssModule config filePath $ UT.roots $ Tree.subForest dependencyTree
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
-writeJsModule Config { output_js_directory, module_directory} rootFilePath fns = lift $ do
+writeJsModule Config { output_js_directory, module_directory} rootFilePath fns = toTask $ do
   let out = outputPath $ Output
               { outDir = output_js_directory
               , moduleDir = module_directory
@@ -76,7 +76,7 @@ writeJsModule Config { output_js_directory, module_directory} rootFilePath fns =
   return out
 
 writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
-writeCssModule Config { output_css_directory, module_directory, temp_directory} rootFilePath deps = lift $ do
+writeCssModule Config { output_css_directory, module_directory, temp_directory} rootFilePath deps = toTask $ do
   let out = outputPath $ Output
               { outDir = output_css_directory
               , moduleDir = module_directory

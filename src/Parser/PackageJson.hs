@@ -4,13 +4,13 @@
 module Parser.PackageJson where
 
 import Control.Monad.Except (throwError)
-import Control.Monad.Trans.Class (lift)
+
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import Error (Error (..))
 import GHC.Generics (Generic)
-import Task (Task)
+import Task (Task, toTask)
 import Utils.Files (fileExistsTask)
 
 data PackageJson = PackageJson
@@ -25,5 +25,5 @@ instance FromJSON PackageJson
 load :: FilePath -> Task PackageJson
 load path = do
   _ <- fileExistsTask path
-  content <- lift $ BL.readFile path
+  content <- toTask $ BL.readFile path
   maybe (throwError [JsonInvalid path]) return $ Aeson.decode content

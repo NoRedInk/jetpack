@@ -8,14 +8,14 @@ module Config
   ) where
 
 import Control.Monad.Except
-import Control.Monad.Trans.Class (lift)
+
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Error (Error (..))
 import GHC.Generics (Generic)
 import qualified System.Directory as Dir
 import System.FilePath ((</>))
-import Task (Task)
+import Task (Task, toTask)
 
 data Config = Config
   { module_directory     :: FilePath
@@ -33,7 +33,7 @@ data Config = Config
 
 readConfig :: Task Config
 readConfig = do
-  cwd <- lift Dir.getCurrentDirectory
+  cwd <- toTask Dir.getCurrentDirectory
   maybeLocalConfig <- load cwd
   case maybeLocalConfig of
     Just config -> return config
@@ -74,10 +74,10 @@ instance FromJSON Config
 load :: FilePath -> Task (Maybe Config)
 load root = do
   let path = root </> "jetpack.json"
-  exists <- lift $ Dir.doesFileExist path
+  exists <- toTask $ Dir.doesFileExist path
   if exists
     then do
-      content <- lift $ BL.readFile path
+      content <- toTask $ BL.readFile path
       case Aeson.decode content of
         Just config -> return $ Just config
         Nothing     -> throwError $ [JsonInvalid path]

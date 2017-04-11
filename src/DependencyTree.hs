@@ -51,7 +51,6 @@ module DependencyTree
   ) where
 
 import Config
-import Control.Monad.Trans.Class (lift)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
@@ -68,7 +67,7 @@ import Safe
 import System.Console.AsciiProgress
 import System.FilePath (takeDirectory, (<.>), (</>))
 import System.Posix.Files
-import Task (Task)
+import Task (Task, toTask)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
@@ -81,20 +80,20 @@ build pg config cache entryPoint = do
 buildTree :: ProgressBar -> Config -> Dependencies -> Dependency -> Task DependencyTree
 buildTree pg config cache dep = do
   tree <- Tree.unfoldTreeM (findRequires config cache) dep
-  lift $ tick pg
+  toTask $ tick pg
   return tree
 
 readTreeCache :: FilePath -> Task Dependencies
-readTreeCache tempDirectory = lift $ do
+readTreeCache tempDirectory = toTask $ do
   depsJson <- BL.readFile $ tempDirectory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
 
 writeTreeCache :: FilePath -> Dependencies -> Task ()
 writeTreeCache tempDirectory deps =
-  lift $ BL.writeFile (tempDirectory </> "deps" <.> "json") $ Aeson.encode deps
+  toTask $ BL.writeFile (tempDirectory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
-toDependency module_directory path  = lift $ do
+toDependency module_directory path  = toTask $ do
   status <- getFileStatus $ module_directory </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
@@ -126,7 +125,7 @@ parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do
-      content <- lift $ readFile filePath
+      content <- toTask $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
