@@ -30,20 +30,22 @@ run = do
 
 program :: Pipeline ()
 program = do
+  -- SETUP
   args        <- readCliArgs
   _           <- readConfig (configPath args)
   toolPaths   <- setup
   _           <- clearLog
   entryPoints <- findEntryPoints args
 
+  -- GETTING DEPENDENCY TREE
   _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
   cache <- readDependencyCache
   deps  <- async $ fmap (findDependency cache) entryPoints
   _     <- writeDependencyCache deps
   _     <- endProgress
 
+  -- COMPILATION
   let modules = uniq $ concatMap Tree.flatten deps
-
   _ <- startProgress "Compiling" $ L.length modules
   logOutput <- traverse (compile toolPaths) modules
   _ <- traverse appendLog logOutput

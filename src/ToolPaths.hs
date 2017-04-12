@@ -1,4 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-| This is used to check if the necessary tools for jetpack exist.
+-}
 module ToolPaths (find, ToolPaths(..)) where
 
 import Config (Config (..))
@@ -17,6 +19,8 @@ data ToolPaths = ToolPaths
   , coffee  :: FilePath
   }
 
+{-| Check if tool from config exists. It falls back to a globally installed bin.
+-}
 find :: Config -> Task ToolPaths
 find Config{elm_make_path, sassc_path, coffee_path} =
   ToolPaths

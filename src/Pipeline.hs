@@ -1,6 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings         #-}
 
+{-| This is our grammar to build jetpack.
+-}
 module Pipeline where
 
 import CliArguments (Args)
@@ -47,6 +49,9 @@ instance Functor PipelineF where
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
+
+-- Helper functions to create a `Free PiplineF`
+--
 
 async :: [Pipeline a] -> Pipeline [a]
 async commands = liftF $ Async commands id

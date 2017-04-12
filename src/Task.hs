@@ -1,7 +1,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
+
+{-| Task is an enhanced IO, it holds state and allows to stop all computation by throwing an error.
+-}
 module Task
-  (
-  Task
+  ( Task
   , ExceptIO
   , toTask
   , runTask
@@ -19,6 +21,7 @@ type Task = StateT Env ExceptIO
 
 toTask :: IO a -> Task a
 toTask = lift . lift
+
 
 runTask :: Monad m => StateT Env (ExceptT e m) a -> m (Either e a)
 runTask t = runExceptT $ evalStateT t $ Env { progressBar = Nothing }

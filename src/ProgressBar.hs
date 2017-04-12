@@ -1,5 +1,7 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-| ProgressBar displayes a small progressbar. Running tasks can call `step` to tick the bar one step further.
+-}
 module ProgressBar
   ( step
   , start
