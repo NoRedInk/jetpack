@@ -16,6 +16,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib,
+                       Algebra.Pipeline,
+                       Algebra.Setup,
                        CliArguments,
                        Compile,
                        ConcatModule,
@@ -27,13 +29,13 @@ library
                        Error,
                        Init,
                        Interpreter.Pipeline,
+                       Interpreter.Setup,
                        Logger,
                        Parser.Ast,
                        Parser.Comment,
                        Parser.Import,
                        Parser.PackageJson,
                        Parser.Require,
-                       Pipeline,
                        ProgressBar,
                        Resolver,
                        Task,

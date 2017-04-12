@@ -3,7 +3,6 @@ module Interpreter.Pipeline
   (interpreter
   ) where
 
-import CliArguments (readArguments)
 import qualified Compile
 import ConcatModule
 import Config
@@ -14,9 +13,8 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified DependencyTree
 import qualified EntryPoints
-import qualified Init
 import qualified Logger
-import Pipeline
+import Algebra.Pipeline
 import qualified ProgressBar
 import System.FilePath ((<.>), (</>))
 import Task (Task, getConfig, toTask)
@@ -24,20 +22,16 @@ import Task (Task, getConfig, toTask)
 interpreter :: PipelineF a -> Task a
 interpreter command =
   case command of
-    ReadCliArgs next                     -> next <$> toTask readArguments
-    ReadConfig _ next                    -> next <$> Config.readConfig
     ReadDependencyCache next             -> next <$> DependencyTree.readTreeCache
     WriteDependencyCache deps next       -> DependencyTree.writeTreeCache deps >> return next
     FindEntryPoints args next            -> next <$> EntryPoints.find args
     FindDependency cache entryPoint next -> next <$> DependencyTree.build cache entryPoint
     Compile toolPaths dep next           -> next <$> Compile.compile toolPaths dep
-    Init next                            -> next <$> Init.setup
     ConcatModule dep next                -> next <$> ConcatModule.wrap dep
     OutputCreatedModules paths next      -> createdModulesJson paths >> return next
     StartProgress title total next       -> ProgressBar.start total title >> return next
     EndProgress next                     -> ProgressBar.end >> return next
     AppendLog msg next                   -> Logger.appendLog msg >> return next
-    ClearLog next                        -> Logger.clearLog  >> return next
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 

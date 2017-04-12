@@ -6,16 +6,20 @@ module Lib
 
 import CliArguments (Args (..))
 import Config ()
-import Control.Monad.Free (foldFree)
+import Control.Monad.Free (Free, foldFree)
+import Data.Functor.Sum
 import Data.List as L
 import Data.List.Utils (uniq)
 import Data.Tree as Tree
 import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
-import Pipeline
+import qualified Interpreter.Setup as SetupI
+import Algebra.Pipeline
+import Algebra.Setup
 import System.Console.AsciiProgress
 import qualified System.Exit
 import Task
+import qualified Utils.Free
 
 run :: IO ()
 run = do
@@ -28,34 +32,44 @@ run = do
       System.Exit.die $ L.unlines $ fmap Error.description err
     Right _ -> putStrLn "Compilation succeeded!"
 
-program :: Pipeline ()
+program :: Program ()
 program = do
   -- SETUP
-  args        <- readCliArgs
-  _           <- readConfig (configPath args)
-  toolPaths   <- setup
-  _           <- clearLog
-  entryPoints <- findEntryPoints args
+  (args, toolPaths) <- Utils.Free.toLeft $ do
+    args        <- readCliArgs
+    _           <- readConfig (configPath args)
+    toolPaths   <- setup
+    _           <- clearLog
+    pure (args, toolPaths)
+  Utils.Free.toRight $ do
+    entryPoints <- findEntryPoints args
 
-  -- GETTING DEPENDENCY TREE
-  _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
-  cache <- readDependencyCache
-  deps  <- async $ fmap (findDependency cache) entryPoints
-  _     <- writeDependencyCache deps
-  _     <- endProgress
+    -- GETTING DEPENDENCY TREE
+    _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
+    cache <- readDependencyCache
+    deps  <- async $ fmap (findDependency cache) entryPoints
+    _     <- writeDependencyCache deps
+    _     <- endProgress
 
-  -- COMPILATION
-  let modules = uniq $ concatMap Tree.flatten deps
-  _ <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile toolPaths) modules
-  _ <- traverse appendLog logOutput
-  _ <- endProgress
+    -- COMPILATION
+    let modules = uniq $ concatMap Tree.flatten deps
+    _ <- startProgress "Compiling" $ L.length modules
+    logOutput <- traverse (compile toolPaths) modules
+    _ <- traverse appendLog logOutput
+    _ <- endProgress
 
-  _       <- startProgress "Write modules" $ L.length deps
-  modules <- async $ fmap concatModule deps
-  _       <- outputCreatedModules modules
-  _       <- endProgress
-  return ()
+    _       <- startProgress "Write modules" $ L.length deps
+    modules <- async $ fmap concatModule deps
+    _       <- outputCreatedModules modules
+    _       <- endProgress
+    return ()
 
-runProgram :: Pipeline a -> Task a
-runProgram = foldFree PipelineI.interpreter
+runProgram :: Program a -> Task a
+runProgram = foldFree go
+  where
+  go :: ProgramF a -> Task a
+  go (InL s) = SetupI.interpreter s
+  go (InR p) = PipelineI.interpreter p
+
+type ProgramF = Sum SetupF PipelineF
+type Program = Free ProgramF
