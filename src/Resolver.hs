@@ -23,11 +23,9 @@ In each directory we search for the following names.
 3. `{folder}/{name}`
 4. `{folder}/{name}.js`
 5. `{folder}/{name}/index.js`
-6. `{folder}/{name}/{name}`
-7. `{folder}/{name}/{name}.js`
-8. `{folder}/{name}`
-9. `{folder}/{name}.coffee`
-10. `{folder}/{name}/index.coffee`
+6. `{folder}/{name}`
+7. `{folder}/{name}.coffee`
+8. `{folder}/{name}/index.coffee`
 
 -}
 module Resolver (resolve) where
@@ -117,8 +115,6 @@ tryJs basePath fileName require =
   <|> moduleExistsInBase fileName require
   <|> moduleExistsInBase (fileName <.> "js") require
   <|> moduleExistsInBase (fileName </> "index.js") require
-  <|> moduleExistsInBase (fileName </> fileName) require
-  <|> moduleExistsInBase (fileName </> fileName <.> "js") require
   where moduleExistsInBase = moduleExists basePath
 
 tryJsWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
@@ -126,7 +122,6 @@ tryJsWithExt basePath fileName require =
   tryMainFromPackageJson basePath fileName require
   <|> moduleExistsInBase "" require
   <|> moduleExistsInBase fileName require
-  <|> moduleExistsInBase (fileName </> fileName) require
   where moduleExistsInBase = moduleExists basePath
 
 tryCoffee :: FilePath -> FilePath -> Dependency -> Task Dependency
@@ -139,7 +134,6 @@ tryCoffee basePath fileName require =
 tryCoffeeWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryCoffeeWithExt basePath fileName require =
   moduleExistsInBase "" require
-  <|> moduleExistsInBase fileName require
   <|> moduleExistsInBase fileName require
   where moduleExistsInBase = moduleExists basePath
 
