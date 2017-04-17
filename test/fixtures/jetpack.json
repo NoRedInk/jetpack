@@ -1,5 +1,6 @@
 {
   "entry_points" : "app/modules",
+  "modules_directories" : [],
   "source_directory" : "app/sources",
   "elm_root_directory" : "app/sources",
   "sass_load_paths" : [],

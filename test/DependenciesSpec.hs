@@ -23,6 +23,7 @@ basicsFixtures :: Config
 basicsFixtures =
   Config
     ("." </> "test" </> "fixtures" </> "basics" </> "modules")
+    [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
     ("." </> "test" </> "fixtures" </> "basics" </> "sources")
     ("." </> "test" </> "fixtures" </> "basics" </> "sources")
     []
@@ -38,6 +39,7 @@ failingFixtures :: Config
 failingFixtures =
   Config
     ("." </> "test" </> "fixtures" </> "failing" </> "modules")
+    []
     ("." </> "test" </> "fixtures" </> "failing" </> "sources")
     ("." </> "test" </> "fixtures" </> "failing" </> "sources")
     []
@@ -73,19 +75,19 @@ suite =
               )
             , ( Ast.Js
               , "" </> "lodash"
-              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "index.js"
+              , "." </> "test" </> "fixtures" </> "basics" </>  "node_modules" </> "lodash" </> "index.js"
               )
             , ( Ast.Js
               , "." </> "lodash.dist.js"
-              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
+              , "." </> "test" </> "fixtures" </> "basics" </>  "node_modules" </> "lodash" </> "." </> "lodash.dist.js"
               )
             , ( Ast.Js
               , "." </> "lodash"
-              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </> "lodash" </> "." </> "." </> "lodash.js"
               )
             , ( Ast.Js
               , "" </> "debug"
-              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> ".." </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
               )
             ]
     , testCase "#find failing" $ do

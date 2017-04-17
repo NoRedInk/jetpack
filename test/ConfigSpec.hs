@@ -21,6 +21,7 @@ suite =
             config @=?
             Just ( Config.Config
               ("app" </> "modules")
+              []
               ("app" </> "sources")
               ("app" </> "sources")
               []

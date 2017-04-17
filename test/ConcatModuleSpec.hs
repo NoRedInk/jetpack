@@ -64,6 +64,7 @@ mockConfig :: Config
 mockConfig =
   Config
     ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+    []
     ("." </> "test" </> "fixtures" </> "concat" </> "sources")
     ("." </> "test" </> "fixtures" </> "concat" </> "sources")
     []

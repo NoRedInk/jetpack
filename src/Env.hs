@@ -15,7 +15,8 @@ data Env = Env
   }
 
 data Config = Config
-  { entry_points     :: FilePath
+  { entry_points         :: FilePath
+  , modules_directories   :: [FilePath]
   , source_directory     :: FilePath
   , elm_root_directory   :: FilePath
   , sass_load_paths      :: [FilePath]

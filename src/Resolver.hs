@@ -47,14 +47,12 @@ import Utils.Files (fileExistsTask)
 
 resolve :: Dependency -> Task Dependency
 resolve dep = do
+  Config {modules_directories} <- Task.getConfig
   resolved <- findRelative dep
     <|> findRelativeNodeModules dep
-    <|> findInModules dep
+    <|> findInEntryPoints dep
     <|> findInSources dep
-    <|> findInVendorComponents dep
-    <|> findInVendorJavascripts dep
-    <|> findInNodeModules dep
-    <|> findInRootNodeModules dep
+    <|> findInModules dep modules_directories
     <|> moduleNotFound (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
@@ -66,39 +64,21 @@ findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
 
-findInModules :: Dependency -> Task Dependency
-findInModules parent = do
+findInEntryPoints :: Dependency -> Task Dependency
+findInEntryPoints parent = do
   Config {entry_points} <- Task.getConfig
   tryToFind entry_points (requiredAs parent) parent
+
+findInModules :: Dependency -> [FilePath] -> Task Dependency
+findInModules parent []= moduleNotFound (requiredAs parent)
+findInModules parent ( x:xs )=
+  tryToFind x (requiredAs parent) parent
+  <|> findInModules parent xs
 
 findInSources :: Dependency -> Task Dependency
 findInSources parent = do
   Config {source_directory} <- Task.getConfig
   tryToFind source_directory (requiredAs parent) parent
-
-findInRootNodeModules :: Dependency -> Task Dependency
-findInRootNodeModules parent =
-  tryToFind nodeModulesInRoot (requiredAs parent) parent
-  where
-    nodeModulesInRoot = "." </> "node_modules"
-
-findInNodeModules :: Dependency -> Task Dependency
-findInNodeModules parent = do
-  Config {source_directory} <- Task.getConfig
-  let nodeModulesPath = source_directory </> ".." </> "node_modules"
-  tryToFind nodeModulesPath (requiredAs parent) parent
-
-findInVendorComponents :: Dependency -> Task Dependency
-findInVendorComponents parent =
-  tryToFind vendorComponentsPath (requiredAs parent) parent
-  where
-    vendorComponentsPath = "." </> "vendor" </> "assets" </> "components"
-
-findInVendorJavascripts :: Dependency -> Task Dependency
-findInVendorJavascripts parent =
-  tryToFind vendorJavaScriptsPath (requiredAs parent) parent
-  where
-    vendorJavaScriptsPath = "." </> "vendor" </> "assets" </> "javascripts"
 
 tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryToFind basePath fileName require = do

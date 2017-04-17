@@ -31,6 +31,16 @@ defaultConfig :: Config
 defaultConfig =
   Config
     { entry_points = "." </> "app" </> "assets" </> "modules"
+    , modules_directories =
+      [ "." </> "vendor" </> "assets" </> "components"
+      , []
+      , "." </> "vendor" </> "assets" </> "components" </> "jquery"
+      , "." </> "vendor" </> "assets" </> "components" </> "underscore"
+      , "." </> "vendor" </> "assets" </> "components" </> "seamless-immutable" </> "src"
+      , "." </> "vendor" </> "assets" </> "javascripts"
+      , "." </> "ui" </> "node_modules"
+      , "." </> "node_modules"
+      ]
     , source_directory = "." </> "ui" </> "src"
     , elm_root_directory = "." </> "ui"
     , sass_load_paths = sassLoadPaths
