@@ -38,7 +38,6 @@ defaultConfig =
       , "." </> "vendor" </> "assets" </> "components" </> "underscore"
       , "." </> "vendor" </> "assets" </> "components" </> "seamless-immutable" </> "src"
       , "." </> "vendor" </> "assets" </> "javascripts"
-      , "." </> "ui" </> "node_modules"
       , "." </> "node_modules"
       ]
     , source_directory = "." </> "ui" </> "src"
