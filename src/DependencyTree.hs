@@ -74,8 +74,8 @@ import Utils.Tree (searchNode)
 -}
 build :: Dependencies -> FilePath -> Task DependencyTree
 build cache entryPoint = do
-  Config {module_directory} <- Task.getConfig
-  dependency <- toDependency module_directory entryPoint
+  Config {entry_points} <- Task.getConfig
+  dependency <- toDependency entry_points entryPoint
   buildTree cache dependency
 
 buildTree :: Dependencies -> Dependency -> Task DependencyTree
@@ -96,8 +96,8 @@ writeTreeCache  deps = do
   toTask $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
-toDependency module_directory path  = toTask $ do
-  status <- getFileStatus $ module_directory </> path
+toDependency entry_points path  = toTask $ do
+  status <- getFileStatus $ entry_points </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
 

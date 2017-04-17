@@ -66,10 +66,10 @@ writeModule dependencyTree fns = do
      else writeCssModule config filePath $ UT.roots $ Tree.subForest dependencyTree
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
-writeJsModule Config { output_js_directory, module_directory} rootFilePath fns = toTask $ do
+writeJsModule Config { output_js_directory, entry_points} rootFilePath fns = toTask $ do
   let out = outputPath $ Output
               { outDir = output_js_directory
-              , moduleDir = module_directory
+              , moduleDir = entry_points
               , name = rootFilePath
               }
   let rootName = F.pathToFunctionName rootFilePath "js"
@@ -78,10 +78,10 @@ writeJsModule Config { output_js_directory, module_directory} rootFilePath fns =
   return out
 
 writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
-writeCssModule Config { output_css_directory, module_directory, temp_directory} rootFilePath deps = toTask $ do
+writeCssModule Config { output_css_directory, entry_points, temp_directory} rootFilePath deps = toTask $ do
   let out = outputPath $ Output
               { outDir = output_css_directory
-              , moduleDir = module_directory
+              , moduleDir = entry_points
               , name = rootFilePath
               }
   createDirectoryIfMissing True $ FP.takeDirectory out

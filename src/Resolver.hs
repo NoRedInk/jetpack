@@ -68,8 +68,8 @@ findRelativeNodeModules parent =
 
 findInModules :: Dependency -> Task Dependency
 findInModules parent = do
-  Config {module_directory} <- Task.getConfig
-  tryToFind module_directory (requiredAs parent) parent
+  Config {entry_points} <- Task.getConfig
+  tryToFind entry_points (requiredAs parent) parent
 
 findInSources :: Dependency -> Task Dependency
 findInSources parent = do
@@ -151,8 +151,8 @@ tryMainFromPackageJson basePath fileName require = do
 
 moduleNotFound :: FilePath -> Task Dependency
 moduleNotFound fileName = do
-  Config {source_directory, module_directory} <- Task.getConfig
-  throwError [ModuleNotFound module_directory source_directory $ show fileName]
+  Config {source_directory, entry_points} <- Task.getConfig
+  throwError [ModuleNotFound entry_points source_directory $ show fileName]
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =

@@ -30,7 +30,7 @@ readConfig = do
 defaultConfig :: Config
 defaultConfig =
   Config
-    { module_directory = "." </> "app" </> "assets" </> "modules"
+    { entry_points = "." </> "app" </> "assets" </> "modules"
     , source_directory = "." </> "ui" </> "src"
     , elm_root_directory = "." </> "ui"
     , sass_load_paths = sassLoadPaths

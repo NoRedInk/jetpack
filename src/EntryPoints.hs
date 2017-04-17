@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports    #-}
 
-{-| Finds all entrypoints. Find either uses a passed glob or **/*.* to search in the `module_directory`.
+{-| Finds all entrypoints. Find either uses a passed glob or **/*.* to search in the `entry_points`.
 -}
 
 module EntryPoints (find) where
@@ -20,12 +20,12 @@ import Task (Task, getConfig, toTask)
 
 find :: Args -> Task [FilePath]
 find Args{entryPointGlob} = do
-  Config {module_directory} <- Task.getConfig
-  paths <- findFilesIn module_directory $ M.fromMaybe ( "**" </> "*.*" ) entryPointGlob
+  Config {entry_points} <- Task.getConfig
+  paths <- findFilesIn entry_points $ M.fromMaybe ( "**" </> "*.*" ) entryPointGlob
   cwd <- toTask Dir.getCurrentDirectory
   case paths of
-    [] -> throwError [NoModulesPresent $ show module_directory]
-    _  -> return $ (makeRelative $ cwd </> module_directory) <$> paths
+    [] -> throwError [NoModulesPresent $ show entry_points]
+    _  -> return $ (makeRelative $ cwd </> entry_points) <$> paths
 
 {-| Returns a list of files in the given direcory and all it's subdirectories.
 -}

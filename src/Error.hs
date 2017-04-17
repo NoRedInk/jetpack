@@ -22,7 +22,7 @@ description (FileNotFound file) = "Couldn't find file: " ++ file
 description (JsonInvalid file) = "Invalid json file: " ++ file
 description (NoModulesPresent path) =
   L.unlines
-    [ "It seems to me that you either provided a wrong `module_directory` or you don't have any modules."
+    [ "It seems to me that you either provided a wrong `entry_points` or you don't have any modules."
     , ""
     , "I didn't find anything in " ++ path
     , ""

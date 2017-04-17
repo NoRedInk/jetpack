@@ -97,7 +97,7 @@ suite =
           Left errors ->
             L.last errors @?=
             ModuleNotFound
-              (Config.module_directory failingFixtures)
+              (Config.entry_points failingFixtures)
               (Config.source_directory failingFixtures)
               "\"index\""
     ]
