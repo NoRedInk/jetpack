@@ -35,7 +35,7 @@ program = do
   _           <- readConfig (configPath args)
   toolPaths   <- setup
   _           <- clearLog
-  entryPoints <- findEntryPoints args
+  entryPoints <- findEntryPoints
 
   -- GETTING DEPENDENCY TREE
   _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints

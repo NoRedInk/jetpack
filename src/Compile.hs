@@ -12,6 +12,7 @@ import Data.List as L
 import Data.Text as T
 import Data.Time.Clock
 import Dependencies (Dependency (..))
+import Env
 import GHC.IO.Handle
 import Parser.Ast as Ast
 import qualified ProgressBar
@@ -19,7 +20,7 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task, getConfig, toTask)
+import Task (Task, getArgs, getConfig, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -53,7 +54,13 @@ elmCompiler :: Config -> FilePath -> Compiler
 elmCompiler Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
-  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output
+  Args {debug} <- Task.getArgs
+  let debugFlag =
+        if debug then
+          " --debug"
+        else
+          ""
+  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag
   runCmd cmd $ Just elm_root_directory
 
 coffeeCompiler :: FilePath -> Compiler

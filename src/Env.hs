@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Env
   ( Env(..)
+  , Args(..)
   , Config(..)
   ) where
 
@@ -12,11 +13,18 @@ import qualified System.Console.AsciiProgress as Progress
 data Env = Env
   { progressBar :: Maybe Progress.ProgressBar
   , config      :: Config
+  , args        :: Args
+  }
+
+data Args = Args
+  { entryPointGlob :: Maybe String
+  , configPath     :: Maybe FilePath
+  , debug          :: Bool
   }
 
 data Config = Config
   { entry_points         :: FilePath
-  , modules_directories   :: [FilePath]
+  , modules_directories  :: [FilePath]
   , source_directory     :: FilePath
   , elm_root_directory   :: FilePath
   , sass_load_paths      :: [FilePath]

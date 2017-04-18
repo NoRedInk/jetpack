@@ -24,11 +24,11 @@ import Task (Task, getConfig, toTask)
 interpreter :: PipelineF a -> Task a
 interpreter command =
   case command of
-    ReadCliArgs next                     -> next <$> toTask readArguments
+    ReadCliArgs next                     -> next <$> readArguments
     ReadConfig _ next                    -> next <$> Config.readConfig
     ReadDependencyCache next             -> next <$> DependencyTree.readTreeCache
     WriteDependencyCache deps next       -> DependencyTree.writeTreeCache deps >> return next
-    FindEntryPoints args next            -> next <$> EntryPoints.find args
+    FindEntryPoints next                 -> next <$> EntryPoints.find
     FindDependency cache entryPoint next -> next <$> DependencyTree.build cache entryPoint
     Compile toolPaths dep next           -> next <$> Compile.compile toolPaths dep
     Init next                            -> next <$> Init.setup

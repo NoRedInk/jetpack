@@ -7,6 +7,7 @@ module Task
   , ExceptIO
   , toTask
   , runTask
+  , getArgs
   , getConfig
   ) where
 
@@ -33,3 +34,10 @@ getConfig :: Task Config
 getConfig = do
   Env { config } <- get
   return config
+
+{-| Get args from state.
+-}
+getArgs :: Task Args
+getArgs = do
+  Env { args } <- get
+  return args

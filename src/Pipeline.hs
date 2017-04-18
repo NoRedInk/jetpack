@@ -19,7 +19,7 @@ data PipelineF next
   | ReadConfig (Maybe FilePath) (Config -> next)
   | ReadDependencyCache (Dependencies -> next)
   | WriteDependencyCache Dependencies next
-  | FindEntryPoints Args ([FilePath] -> next)
+  | FindEntryPoints ([FilePath] -> next)
   | FindDependency Dependencies FilePath (DependencyTree -> next)
   | Compile ToolPaths Dependency (T.Text -> next)
   | Init (ToolPaths -> next)
@@ -36,7 +36,7 @@ instance Functor PipelineF where
   fmap f (ReadConfig maybeFilePath g) = ReadConfig maybeFilePath (f . g)
   fmap f (ReadDependencyCache g) = ReadDependencyCache (f . g)
   fmap f (WriteDependencyCache deps next) = WriteDependencyCache deps (f next)
-  fmap f (FindEntryPoints args g) = FindEntryPoints args (f . g)
+  fmap f (FindEntryPoints g) = FindEntryPoints (f . g)
   fmap f (FindDependency cache path g) = FindDependency cache path (f . g)
   fmap f (Compile toolPaths dependency g) = Compile toolPaths dependency (f . g)
   fmap f (Init g) = Init (f . g)
@@ -68,8 +68,8 @@ readDependencyCache = liftF $ ReadDependencyCache id
 writeDependencyCache :: Dependencies -> Pipeline ()
 writeDependencyCache deps = liftF $ WriteDependencyCache deps ()
 
-findEntryPoints :: Args -> Pipeline [FilePath]
-findEntryPoints args = liftF $ FindEntryPoints args id
+findEntryPoints :: Pipeline [FilePath]
+findEntryPoints = liftF $ FindEntryPoints id
 
 findDependency :: Dependencies -> FilePath -> Pipeline DependencyTree
 findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
