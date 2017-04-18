@@ -9,6 +9,7 @@ import Control.Monad.State (modify)
 import Data.Semigroup ((<>))
 import Env
 import Options.Applicative
+import Options.Applicative.Builder
 import System.FilePath ()
 import Task
 
@@ -29,7 +30,7 @@ readArguments = do
 
 parser :: Parser Args
 parser = Args
-  <$> option auto
+  <$> option (maybeReader go)
       ( long "entry"
       <> short 'e'
       <> value Nothing
@@ -43,3 +44,7 @@ parser = Args
       ( long "debug"
       <> short 'd'
       <> help "Run jetpack in debug mode." )
+  where
+    go :: String -> Maybe (Maybe String)
+    go ""  = Just Nothing
+    go str = Just $ Just str
