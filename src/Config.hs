@@ -33,7 +33,6 @@ defaultConfig =
     { entry_points = "." </> "app" </> "assets" </> "modules"
     , modules_directories =
       [ "." </> "vendor" </> "assets" </> "components"
-      , []
       , "." </> "vendor" </> "assets" </> "components" </> "jquery"
       , "." </> "vendor" </> "assets" </> "components" </> "underscore"
       , "." </> "vendor" </> "assets" </> "components" </> "seamless-immutable" </> "src"
