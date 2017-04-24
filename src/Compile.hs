@@ -57,9 +57,9 @@ elmCompiler Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   Args {debug} <- Task.getArgs
   let debugFlag =
         if debug then
-          " --debug"
+          " --debug --yes"
         else
-          ""
+          " --yes"
   let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag
   runCmd cmd $ Just elm_root_directory
 
