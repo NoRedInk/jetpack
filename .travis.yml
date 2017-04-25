@@ -3,7 +3,7 @@ addons:
     packages:
     - libgmp-dev
 before_install:
-- sh script/install_stack.sh
+- sh script/install-stack.sh
 cache:
   directories:
   - "${HOME}/.local/bin"
