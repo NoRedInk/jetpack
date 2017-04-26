@@ -8,8 +8,11 @@ module Compile where
 
 import Config (Config (..))
 import Control.Monad.Except (throwError)
+import Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
 import Data.List as L
 import Data.List.Utils (uniq)
+import qualified Data.Map.Strict as Map
 import Data.Text as T
 import Data.Time.Clock
 import Data.Tree as Tree
@@ -19,8 +22,9 @@ import GHC.IO.Handle
 import Parser.Ast as Ast
 import qualified ProgressBar
 import System.Directory (copyFile)
+import qualified System.Directory as Dir
 import System.Exit
-import System.FilePath ((</>))
+import System.FilePath ((<.>), (</>))
 import System.Process
 import Task (Task, getArgs, getConfig, toTask)
 import ToolPaths
@@ -107,4 +111,49 @@ runCmd cmd maybeCwd = do
 whatNeedsCompilation :: Dependencies -> Task [Dependency]
 whatNeedsCompilation deps = do
   let uniqModules = uniq $ L.concatMap Tree.flatten deps
-  return uniqModules
+  lastCompiled <- readModuleJson
+  return $ L.filter (filterByIfAlreadyCompiled lastCompiled) uniqModules
+
+filterByIfAlreadyCompiled :: CompiledModules -> Dependency -> Bool
+filterByIfAlreadyCompiled compiledModules dep =
+  case (fileType dep, lastMod) of
+    (Ast.Elm, _)      -> True
+    (Ast.Sass, _)     -> True
+    (_, Just lastMod) -> lastMod /= lastModificationTime dep
+    (_, Nothing)      -> True
+  where lastMod = fmap snd $ Map.lookup (filePath dep) compiledModules
+
+type CompiledModules = Map.Map FilePath (UTCTime, Maybe UTCTime)
+
+modulesJsonPath :: Task FilePath
+modulesJsonPath = do
+  Config {temp_directory} <- Task.getConfig
+  return $ temp_directory </> "modules" <.> "json"
+
+createdModulesJson :: [Dependency] -> Task ()
+createdModulesJson deps = do
+  compileTime <- toTask getCurrentTime
+  jsonPath <- modulesJsonPath
+  exists <- toTask $ Dir.doesFileExist jsonPath
+  if exists
+    then do
+      modules <- readModuleJson
+      updateModulesJson jsonPath deps compileTime modules
+    else
+      updateModulesJson jsonPath deps compileTime (Map.empty)
+
+updateModulesJson :: FilePath -> [Dependency] -> UTCTime -> CompiledModules -> Task ()
+updateModulesJson modulesJsonPath deps compileTime modules = do
+  let newContent = L.foldl (\acc k -> Map.insert (filePath k) (compileTime, lastModificationTime k) acc) modules deps
+  let encodedPaths = Aeson.encode newContent
+  _ <- toTask $ BL.writeFile modulesJsonPath encodedPaths
+  _ <- ProgressBar.step
+  return ()
+
+readModuleJson :: Task CompiledModules
+readModuleJson = do
+  jsonPath <- modulesJsonPath
+  content <- toTask $ BL.readFile jsonPath
+  case Aeson.decode content of
+    Just modules -> return modules
+    Nothing      -> return Map.empty

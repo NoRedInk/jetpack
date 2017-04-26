@@ -25,7 +25,7 @@ data PipelineF next
   | Compile ToolPaths Dependency (T.Text -> next)
   | Init (ToolPaths -> next)
   | ConcatModule DependencyTree (FilePath -> next)
-  | OutputCreatedModules [FilePath] next
+  | OutputCreatedModules [Dependency] next
   | StartProgress T.Text Int next
   | EndProgress next
   | AppendLog T.Text next
@@ -43,7 +43,7 @@ instance Functor PipelineF where
   fmap f (Compile toolPaths dependency g) = Compile toolPaths dependency (f . g)
   fmap f (Init g) = Init (f . g)
   fmap f (ConcatModule dependencyTree g) = ConcatModule dependencyTree (f . g)
-  fmap f (OutputCreatedModules paths next) = OutputCreatedModules paths (f next)
+  fmap f (OutputCreatedModules deps next) = OutputCreatedModules deps (f next)
   fmap f (StartProgress title total next) = StartProgress title total (f next)
   fmap f (EndProgress next) = EndProgress (f next)
   fmap f (AppendLog msg next) = AppendLog msg (f next)
@@ -88,8 +88,8 @@ setup  = liftF $ Init id
 concatModule :: DependencyTree -> Pipeline FilePath
 concatModule dependency = liftF $ ConcatModule dependency id
 
-outputCreatedModules :: [FilePath] -> Pipeline ()
-outputCreatedModules paths = liftF $ OutputCreatedModules paths ()
+outputCreatedModules :: [Dependency] -> Pipeline ()
+outputCreatedModules deps = liftF $ OutputCreatedModules deps ()
 
 startProgress :: T.Text -> Int -> Pipeline ()
 startProgress title total = liftF $ StartProgress title total ()

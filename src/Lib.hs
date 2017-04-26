@@ -52,7 +52,7 @@ program = do
   _ <- endProgress
 
   _       <- startProgress "Write modules" $ L.length deps
-  modules <- async $ fmap concatModule deps
+  _       <- async $ fmap concatModule deps
   _       <- outputCreatedModules modules
   _       <- endProgress
   return ()
