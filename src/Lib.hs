@@ -8,7 +8,6 @@ import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Free (foldFree)
 import Data.List as L
-import Data.List.Utils (uniq)
 import Data.Tree as Tree
 import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
@@ -45,7 +44,8 @@ program = do
   _     <- endProgress
 
   -- COMPILATION
-  let modules = uniq $ concatMap Tree.flatten deps
+  modules <- whatNeedsCompilation deps
+
   _ <- startProgress "Compiling" $ L.length modules
   logOutput <- traverse (compile toolPaths) modules
   _ <- traverse appendLog logOutput

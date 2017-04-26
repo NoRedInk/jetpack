@@ -9,9 +9,11 @@ module Compile where
 import Config (Config (..))
 import Control.Monad.Except (throwError)
 import Data.List as L
+import Data.List.Utils (uniq)
 import Data.Text as T
 import Data.Time.Clock
-import Dependencies (Dependency (..))
+import Data.Tree as Tree
+import Dependencies (Dependencies, Dependency (..))
 import Env
 import GHC.IO.Handle
 import Parser.Ast as Ast
@@ -100,3 +102,9 @@ runCmd cmd maybeCwd = do
         let commandFinished = T.pack $ show currentTime
         return [commandFinished, T.pack cmd, T.pack content]
       ExitFailure _ -> throwError []
+
+
+whatNeedsCompilation :: Dependencies -> Task [Dependency]
+whatNeedsCompilation deps = do
+  let uniqModules = uniq $ L.concatMap Tree.flatten deps
+  return uniqModules

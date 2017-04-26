@@ -21,6 +21,7 @@ data PipelineF next
   | WriteDependencyCache Dependencies next
   | FindEntryPoints ([FilePath] -> next)
   | FindDependency Dependencies FilePath (DependencyTree -> next)
+  | WhatNeedsCompilation Dependencies ([Dependency] -> next)
   | Compile ToolPaths Dependency (T.Text -> next)
   | Init (ToolPaths -> next)
   | ConcatModule DependencyTree (FilePath -> next)
@@ -38,6 +39,7 @@ instance Functor PipelineF where
   fmap f (WriteDependencyCache deps next) = WriteDependencyCache deps (f next)
   fmap f (FindEntryPoints g) = FindEntryPoints (f . g)
   fmap f (FindDependency cache path g) = FindDependency cache path (f . g)
+  fmap f (WhatNeedsCompilation deps g) = WhatNeedsCompilation deps (f . g)
   fmap f (Compile toolPaths dependency g) = Compile toolPaths dependency (f . g)
   fmap f (Init g) = Init (f . g)
   fmap f (ConcatModule dependencyTree g) = ConcatModule dependencyTree (f . g)
@@ -76,6 +78,9 @@ findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
 
 compile :: ToolPaths -> Dependency -> Pipeline T.Text
 compile toolPaths dep = liftF $ Compile toolPaths dep id
+
+whatNeedsCompilation :: Dependencies -> Pipeline [Dependency]
+whatNeedsCompilation deps = liftF $ WhatNeedsCompilation deps id
 
 setup :: Pipeline ToolPaths
 setup  = liftF $ Init id
