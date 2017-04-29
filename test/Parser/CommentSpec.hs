@@ -54,6 +54,46 @@ suite =
       "" @=? (Parser.Comment.eatJsComments $ T.concat ["/* foo */", "// asdf"])
     , testCase "only comments" $
       "" @=? (Parser.Comment.eatJsComments $ T.concat ["// foo", "/* asdf */"])
+    , testCase "parse block and line comments" $
+      "a\n\nb  c\n\nb \nOOOO\noooo\n\n\n\n" @=?
+      (Parser.Comment.eatElmComments $
+       T.unlines
+         [ "a\n"
+         , "b -- ignore"
+         , "--xxxxxx"
+         , " c\n"
+         , "b {-| BLOCK"
+         , "BLOCK"
+         , "-}"
+         , "OOOO"
+         , "-- ignore"
+         , "oooo"
+         , "{-| hello"
+         , ""
+         , "    import Ignore"
+         , ""
+         , ""
+         , "-}"
+         , ""
+         , "{-| Render a row with a title"
+         , ""
+         , "import Html exposing (..)"
+         , "import Nri.Outline as Outline"
+         , ""
+         , "main : Html msg"
+         , "main ="
+         , "div []"
+         , "[ Outline.container []"
+         , "[ Outline.withTitle \"My Title\" <|"
+         , "Outline.row"
+         , "{ content = text \"This is my content\""
+         ,",  palette = Palette.coral"
+         ,",  rows = []"
+         , "}"
+         , "]"
+         , "]"
+         , "-}"
+         ])
     ]
 
 properties :: TestTree

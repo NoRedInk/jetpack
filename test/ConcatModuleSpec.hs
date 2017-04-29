@@ -15,7 +15,6 @@ import Task
 import Test.Tasty
 import Test.Tasty.HUnit
 
-
 mockModule :: T.Text
 mockModule =
   T.unlines
@@ -49,16 +48,19 @@ mockDependencyTree =
                     (fileName <.> "js")
                     ("ui" </> "src" </> fileName <.> "js")
                     Nothing
+                    True
     cssEntry = D.Dependency
                     Ast.Js
                     ("foo" <.> "css")
                     ("ui" </> "src" </> "foo" <.> "css")
                     Nothing
+                    True
     cssDependency fileName = D.Dependency
                     Ast.Sass
                     (fileName <.> "sass")
                     ("ui" </> "src" </> fileName <.> "sass")
                     Nothing
+                    True
 
 mockConfig :: Config
 mockConfig =
@@ -77,7 +79,7 @@ mockConfig =
     Nothing
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
-mockDependency f p = D.Dependency Ast.Js f p Nothing
+mockDependency f p = D.Dependency Ast.Js f p Nothing True
 
 mockDependencies :: D.Dependencies
 mockDependencies =

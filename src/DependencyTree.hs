@@ -60,6 +60,7 @@ import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
+import qualified Parser.Import
 import Parser.PackageJson ()
 import qualified Parser.Require
 import qualified ProgressBar
@@ -99,20 +100,23 @@ toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency entry_points path  = toTask $ do
   status <- getFileStatus $ entry_points </> path
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency Ast.Js path path $ Just lastModificationTime
+  return $ Dependency Ast.Js path path (Just lastModificationTime) True
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
-requireToDep path (Ast.Require t n) = Dependency t n path Nothing
-requireToDep _path (Ast.Import _n)  = undefined
+requireToDep path (Ast.Require t n) = Dependency t n path Nothing True
+requireToDep path (Ast.Import n)    = Dependency Ast.Elm (T.unpack n) path Nothing False
 
 findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
 findRequires cache parent = do
-  resolved <- Resolver.resolve parent
-  case fileType resolved of
-    Ast.Js     -> parseModule cache resolved Parser.Require.jsRequires
-    Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires
-    Ast.Elm    -> return (resolved, [])
-    Ast.Sass   -> return (resolved, [])
+  maybeResolved <- Resolver.resolve parent
+  case maybeResolved of
+    Just resolved ->
+      case fileType resolved of
+        Ast.Js     -> parseModule cache resolved Parser.Require.jsRequires
+        Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires
+        Ast.Elm    -> parseModule cache resolved Parser.Import.parseImports
+        Ast.Sass   -> return (resolved, [])
+    Nothing -> return (parent, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)

@@ -38,23 +38,47 @@ import qualified Data.Text as T
 import Data.Time.Clock.POSIX
 import Dependencies (Dependency (..))
 import Error (Error (ModuleNotFound))
+import qualified Parser.Ast as Ast
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
+import qualified System.Directory as Dir
 import System.FilePath (takeExtension, (<.>), (</>))
 import System.Posix.Files
 import Task (Task, getConfig, toTask)
 import Utils.Files (fileExistsTask)
 
-resolve :: Dependency -> Task Dependency
+resolve :: Dependency -> Task (Maybe Dependency)
 resolve dep = do
   Config {modules_directories} <- Task.getConfig
-  resolved <- findRelative dep
-    <|> findRelativeNodeModules dep
-    <|> findInEntryPoints dep
-    <|> findInSources dep
-    <|> findInModules dep modules_directories
-    <|> moduleNotFound (requiredAs dep)
-  updateDepTime $ updateDepType resolved
+  case fileType dep of
+    Ast.Elm -> resolveElm dep
+    _ -> do
+      resolved <- findRelative dep
+        <|> findRelativeNodeModules dep
+        <|> findInEntryPoints dep
+        <|> findInSources dep
+        <|> findInModules dep modules_directories
+        <|> moduleNotFound (requiredAs dep)
+      Just <$> (updateDepTime $ updateDepType resolved)
+
+resolveElm :: Dependency -> Task (Maybe Dependency)
+resolveElm dep = do
+  Config {source_directory} <- Task.getConfig
+  let hasElmExtension = T.isSuffixOf ".elm" (T.pack $ requiredAs dep)
+  if hasElmExtension then
+    Just <$> (findInSources dep <|> moduleNotFound (requiredAs dep))
+  else do
+    let path = elmNamespacedToPath dep
+    exists <- toTask $ Dir.doesFileExist (source_directory </> path)
+    if exists then do
+      resolved <- moduleExists source_directory path dep
+      Just <$> updateDepTime resolved
+    else
+      return Nothing
+
+elmNamespacedToPath :: Dependency -> FilePath
+elmNamespacedToPath dep = fileName <.> "elm"
+  where fileName = T.unpack $ T.replace "." "/" $ T.pack $ requiredAs dep
 
 findRelative :: Dependency -> Task Dependency
 findRelative parent =
@@ -140,11 +164,11 @@ moduleExists basePath path require =
   where searchPath = basePath </> path
 
 updateDepType :: Dependency -> Dependency
-updateDepType (Dependency _ r p l) = Dependency newType r p l
+updateDepType (Dependency _ r p l c) = Dependency newType r p l c
   where newType = Parser.Require.getFileType $ takeExtension p
 
 updateDepTime :: Dependency -> Task Dependency
-updateDepTime (Dependency t r p _) = toTask $ do
+updateDepTime (Dependency t r p _ c) = toTask $ do
   status <- getFileStatus p
   let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency t r p $ Just lastModificationTime
+  return $ Dependency t r p (Just lastModificationTime) c

@@ -8,7 +8,6 @@ import CliArguments (Args (..))
 import Config ()
 import Control.Monad.Free (foldFree)
 import Data.List as L
-import Data.Tree as Tree
 import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
 import Pipeline

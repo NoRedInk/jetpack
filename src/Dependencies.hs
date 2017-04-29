@@ -21,14 +21,11 @@ data Dependency = Dependency
   , requiredAs           :: FilePath
   , filePath             :: FilePath
   , lastModificationTime :: Maybe UTCTime
-  } deriving (Eq, Generic)
+  , isMain               :: Bool
+  } deriving (Eq, Generic, Show)
 
 instance FromJSON Dependency
 instance ToJSON Dependency
-
-instance Show Dependency where
-  show (Dependency t r p l) =
-    "(Dependency: " ++ show r ++ " " ++ show t ++ " <" ++ show p ++ "> " ++ show l ++ ")"
 
 type DependencyTree = Tree.Tree Dependency
 

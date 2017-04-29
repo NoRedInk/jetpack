@@ -13,13 +13,29 @@
 -}
 module Parser.Import where
 
+import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import Parser.Ast as Ast
+import Parser.Comment as Comment
 import Text.Parsec
 import qualified Utils.Parser as UP
 
+{-| Parses all `import`s.
+   >>> parseImports "import Page.Foo.Bar exposing (view)\n import Utils\nfoo\n{-|\n\n   import foo\n\n-}\nfoo"
+   [(Import "Page.Foo.Bar")]
+-}
+parseImports :: T.Text -> [Ast.Require]
+parseImports =
+  catMaybes
+  . fmap import'
+  . T.lines
+  . Comment.eatElmComments
+
 {-| Parses a `import`s.
    >>> import' "import Page.Foo.Bar exposing (view)"
+   Just (Import "Page.Foo.Bar")
+
+   >>> import' "import Page.Foo.Bar as FooBar exposing (view)"
    Just (Import "Page.Foo.Bar")
 
    >>> import' "require Page.Foo.Bar exposing (view)"
@@ -48,7 +64,6 @@ extractImport str = parse importParser "Error" str
 
 importParser :: Parsec T.Text u String
 importParser = do
-  _ <- UP.eatTill importKeyword
   _ <- importKeyword
   _ <- many1 space
   many1 $ oneOf "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_."
