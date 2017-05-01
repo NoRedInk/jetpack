@@ -28,7 +28,7 @@ import qualified Utils.Parser as UP
 import' :: T.Text -> Maybe Ast.Require
 import' content =
   case extractImport content of
-    Right mod -> Just $ Ast.Import $ T.pack mod
+    Right str -> Just $ Ast.Import $ T.pack str
     Left _    -> Nothing
 
 {-| running the parser

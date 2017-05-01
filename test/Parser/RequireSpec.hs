@@ -2,13 +2,11 @@
 
 module Parser.RequireSpec where
 
-import Control.Monad.Except (runExceptT)
-import Data.Maybe as M
 import Data.Text as T
 import Helper.Property
 import Parser.Ast as Ast
 import qualified Parser.Require as Require
-import System.FilePath ((<.>), (</>))
+import System.FilePath ((<.>))
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck

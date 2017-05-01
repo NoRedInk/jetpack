@@ -31,8 +31,7 @@ compile toolPaths Dependency {fileType, filePath} = do
   config <- Task.getConfig
   let (c, outputType) = compiler fileType config toolPaths
   let outputPath = buildArtifactPath config outputType filePath
-  log <- (runCompiler c) filePath outputPath
-  return $ T.unlines log
+  T.unlines <$> (runCompiler c) filePath outputPath
 
 compiler :: Ast.SourceType -> Config -> ToolPaths -> (Compiler, String)
 compiler fileType config ToolPaths{elmMake, sassc, coffee} =

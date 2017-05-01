@@ -6,7 +6,6 @@ import Parser.RequireSpec
 import System.FilePath.Glob (glob)
 import Test.DocTest
 import Test.Tasty
-import Test.Tasty.HUnit
 
 main :: IO ()
 main = runDocTests >> runTests

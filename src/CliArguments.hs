@@ -9,7 +9,6 @@ import Control.Monad.State (modify)
 import Data.Semigroup ((<>))
 import Env
 import Options.Applicative
-import Options.Applicative.Builder
 import System.FilePath ()
 import Task
 
@@ -46,5 +45,5 @@ parser = Args
       <> help "Run jetpack in debug mode." )
   where
     go :: String -> Maybe (Maybe String)
-    go ""  = Just Nothing
-    go str = Just $ Just str
+    go ""     = Just Nothing
+    go string = Just $ Just string

@@ -45,9 +45,9 @@ program = do
   _     <- endProgress
 
   -- COMPILATION
-  let modules = uniq $ concatMap Tree.flatten deps
-  _ <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile toolPaths) modules
+  let modules' = uniq $ concatMap Tree.flatten deps
+  _ <- startProgress "Compiling" $ L.length modules'
+  logOutput <- traverse (compile toolPaths) modules'
   _ <- traverse appendLog logOutput
   _ <- endProgress
 

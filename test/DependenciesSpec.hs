@@ -5,7 +5,6 @@
 module DependenciesSpec where
 
 import Config
-import Control.Monad.Except (runExceptT)
 import Control.Monad.State (modify)
 import Data.List as L
 import Data.Tree as Tree
@@ -13,7 +12,6 @@ import Dependencies
 import DependencyTree
 import Error
 import Parser.Ast as Ast
-import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
 import Task
 import Test.Tasty
@@ -95,7 +93,7 @@ suite =
           modify (\env -> env { config = failingFixtures })
           DependencyTree.build [] ("test" <.> "js")
         case e of
-          Right x -> assertFailure $ "This shouldn't pass"
+          Right _ -> assertFailure $ "This shouldn't pass"
           Left errors ->
             L.last errors @?=
             ModuleNotFound
