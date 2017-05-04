@@ -66,7 +66,6 @@ runProgram = foldFree PipelineI.interpreter
 successMessage :: Chunk T.Text
 successMessage =
   fore green
-    $ blink
     $ chunk
     $ T.unlines
       [ T.replicate 27 "*"
