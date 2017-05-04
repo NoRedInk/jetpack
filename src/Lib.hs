@@ -10,8 +10,10 @@ import Control.Monad.Free (foldFree)
 import Data.List as L
 import Data.List.Utils (uniq)
 import Data.Tree as Tree
+import qualified Data.Text as T
 import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
+import Rainbow
 import Pipeline
 import System.Console.AsciiProgress
 import qualified System.Exit
@@ -24,9 +26,9 @@ run = do
     $ runProgram program
   case e of
     Left err -> do
-      putStrLn "Compilation failed!"
+      putChunkLn errorMessage
       System.Exit.die $ L.unlines $ fmap Error.description err
-    Right _ -> putStrLn "Compilation succeeded!"
+    Right _ -> putChunkLn successMessage
 
 program :: Pipeline ()
 program = do
@@ -59,3 +61,27 @@ program = do
 
 runProgram :: Pipeline a -> Task a
 runProgram = foldFree PipelineI.interpreter
+
+
+successMessage :: Chunk T.Text
+successMessage =
+  fore green
+    $ chunk
+    $ T.unlines
+      [ T.replicate 27 "*"
+      , "~*~Compilation Succeeded~*~"
+      , T.replicate 27 "*"
+      ]
+
+
+errorMessage :: Chunk T.Text
+errorMessage =
+  fore red
+    $ chunk
+    $ T.unlines
+      [ T.replicate 20 "~"
+      , "¡Compilation failed!"
+      , " "
+      , "    ¯\\_(ツ)_/¯    "
+      , T.replicate 20 "~"
+      ]
