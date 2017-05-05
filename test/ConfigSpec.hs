@@ -2,8 +2,7 @@
 
 module ConfigSpec where
 
-import Config
-import Error
+import qualified Config
 import System.FilePath ((</>))
 import Task
 import Test.Tasty

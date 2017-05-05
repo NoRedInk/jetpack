@@ -2,12 +2,9 @@
 
 module Parser.CommentSpec where
 
-import Control.Monad.Except (runExceptT)
-import Data.Maybe as M
 import Data.Text as T
 import Helper.Property
 import qualified Parser.Comment
-import System.FilePath ((<.>), (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
@@ -68,7 +65,7 @@ properties =
         (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) /=
         (codeWithJsComments b1 b2 b3)
     , testProperty "#eatJsComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) == codeWithoutComments b1 b2 b3
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatCoffeeComments $
          Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) ==
@@ -77,7 +74,7 @@ properties =
         (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) /=
         (codeWithCoffeeComments b1 b2 b3)
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) == codeWithoutComments b1 b2 b3
     , testProperty "#eatElmComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatElmComments $
          Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) ==
@@ -86,10 +83,10 @@ properties =
         (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) /=
         (codeWithElmComments b1 b2 b3)
     , testProperty "#eatElmComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) == codeWithoutComments b1 b2 b3
     ]
   where
-    code (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
+    codeWithoutComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
       T.unlines [b1, T.concat [b2, "\n"], b3]
     codeWithJsComments (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
       T.unlines [b1, "// hello", b2, "/*\n world \n*/", b3]

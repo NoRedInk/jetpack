@@ -1,0 +1,34 @@
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+before_install:
+- sh script/install-stack.sh
+cache:
+  directories:
+  - "${HOME}/.local/bin"
+  - "${HOME}/.stack"
+  - ".stack-work"
+deploy:
+- provider: releases
+  api_key:
+    secure: L9iIQj5zeUuaAvudTRV0N9EbzMJ6L+gUbGOgQzmv1rP7lzQJ6VGE3Kx+dgEQAY6BLIWQdcMycoKr1YtXBQjMzKPFjrsCSkvYTLZBoiXk8eVmzDWwgpZ00zwzH79mX6j9jUvGxhmemBAvQxcdKS5fQxd1lmM6Q5N1oDwGKJw4Lgbzs0jwNT1L5+Cmm7elfoDip+eCLIfiR1lYGDP5NIXe1wfswi4pgEO/t7Ke743DVZCUkvfURD1aBSf+C0EmDzIfzypbxgdfdOY3g5ZYB2ym0IWhlROlFAHYEyfQT2FDgXc+y9BNvBM9Ix7qRWQ7+Rao4SxOOKzfX7mH//jhR3Dmjk18VAWwElxDssNdu5jn9x5RxueV8PJfA1IbjxbCb8TaN1gaMplNeqEqMS/FuKL/mNd0A4NkACFE9tbbQR4bJBokPHqzcgC6xDICPQMqZFFRoZxNLoHG1UnUItvPBBrI8m1RrezqjdgdmicqdMBaBSO5FtNdxcsDnFUBvCRTibmxx9rY26Z3NwlxhWy5uQ3HTK3+xCBIxHxPSUBATHfQuyatZsKaFfW0IwwWSpLdhNZwHnCc0kBdA7VVLylkb02Iec6fQz1TsMjYpLIrd146sfQRvJONvaPdkjnTUz/XDFztYnHX394rqImVHKzCQb3A47gI8yzD/iZJyFbY+lcJ5sY=
+  file: "${BUILD}"
+  on:
+    repo: NoRedInk/jetpack
+    tags: true
+  skip_cleanup: true
+env:
+  global:
+  - CASHER_TIME_OUT=1000
+  - BUILD="jetpack-${TRAVIS_OS_NAME}.tar.gz"
+language: c
+os:
+- linux
+- osx
+sudo: false
+script:
+- stack setup
+- stack test --pedantic
+- stack build --ghc-options -O2 --pedantic
+- tar zcvf "${BUILD}" -C "$(stack path --local-install-root)/bin" jetpack

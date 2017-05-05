@@ -10,6 +10,7 @@ import Control.Monad.Except
 import Control.Monad.State (modify)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import Data.Maybe (fromMaybe)
 import Env
 import Error (Error (..))
 import qualified System.Directory as Dir
@@ -21,9 +22,7 @@ readConfig :: Task Config
 readConfig = do
   cwd <- toTask Dir.getCurrentDirectory
   maybeLocalConfig <- load cwd
-  c <- case maybeLocalConfig of
-         Just config -> return config
-         Nothing     -> return defaultConfig
+  let c = fromMaybe defaultConfig maybeLocalConfig
   modify (\env -> env { config = c })
   return c
 
@@ -69,7 +68,5 @@ load root = do
   if exists
     then do
       content <- toTask $ BL.readFile path
-      case Aeson.decode content of
-        Just config -> return $ Just config
-        Nothing     -> throwError $ [JsonInvalid path]
+      maybe (throwError [JsonInvalid path]) return $ Aeson.decode content
     else return Nothing
