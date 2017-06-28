@@ -30,35 +30,23 @@ readConfig = do
 defaultConfig :: Config
 defaultConfig =
   Config
-    { entry_points = "." </> "app" </> "assets" </> "modules"
-    , modules_directories =
-      [ "." </> "vendor" </> "assets" </> "components"
-      , "." </> "vendor" </> "assets" </> "components" </> "jquery"
-      , "." </> "vendor" </> "assets" </> "components" </> "underscore"
-      , "." </> "vendor" </> "assets" </> "components" </> "seamless-immutable" </> "src"
-      , "." </> "vendor" </> "assets" </> "javascripts"
-      , "." </> "node_modules"
-      ]
-    , source_directory = "." </> "ui" </> "src"
-    , elm_root_directory = "." </> "ui"
+    { entry_points = "." </> "modules"
+    , modules_directories = [ "." </> "node_modules" ]
+    , source_directory = "." </> "src"
+    , elm_root_directory = "."
     , sass_load_paths = sassLoadPaths
     , temp_directory = "." </> ".jetpack" </> "build_artifacts"
     , log_directory = "." </> ".jetpack" </> "logs"
-    , output_js_directory = "." </> "app" </> "assets" </> "javascripts" </> "webpack"
-    , output_css_directory = "." </> "app" </> "assets" </> "stylesheets" </> "webpack"
-    , elm_make_path = Just ("." </> "ui" </> "node_modules" </> ".bin" </> "elm-make")
-    , sassc_path = Just ("." </> "ui" </> "bin" </> "sass")
+    , output_js_directory = "." </> "dist" </> "javascripts" </> "jetpack"
+    , output_css_directory = "." </> "dist" </> "stylesheets" </> "jetpack"
+    , elm_make_path = Just ("." </> "node_modules" </> ".bin" </> "elm-make")
+    , sassc_path = Just ("." </> "bin" </> "sass")
     , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
     }
   where
     sassLoadPaths =
       [ "node_modules"
-      , "vendor" </> "assets" </> "components" </> "animatewithsass"
-      , "app" </> "assets" </> "modules" </> "css"
-      , "app" </> "assets" </> "stylesheets" </> "webpack"
-      , "ui" </> "src"
-      , "node_modules" </> "bourbon" </> "app" </> "assets" </> "stylesheets"
-      , "node_modules" </> "bourbon-neat" </> "app" </> "assets" </> "stylesheets"
+      , "src"
       ]
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
