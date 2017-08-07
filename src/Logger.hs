@@ -12,12 +12,12 @@ import Data.Text as T
 import System.FilePath ((</>))
 import Task
 
-appendLog :: T.Text -> Task ()
-appendLog msg = do
+appendLog :: T.Text -> T.Text -> Task ()
+appendLog fileName msg = do
   Config {log_directory} <- Task.getConfig
-  toTask $ appendFile (log_directory </> "jetpack.log") $ T.unpack msg
+  toTask $ appendFile (log_directory </> (T.unpack fileName)) $ T.unpack msg
 
-clearLog :: Task ()
-clearLog = do
+clearLog :: T.Text -> Task ()
+clearLog fileName = do
   Config {log_directory} <- Task.getConfig
-  toTask $ writeFile (log_directory </> "jetpack.log") ""
+  toTask $ writeFile (log_directory </> (T.unpack fileName)) ""

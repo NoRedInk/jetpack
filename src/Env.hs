@@ -20,6 +20,7 @@ data Args = Args
   { entryPointGlob :: Maybe String
   , configPath     :: Maybe FilePath
   , debug          :: Bool
+  , postHook       :: Maybe FilePath
   }
 
 data Config = Config

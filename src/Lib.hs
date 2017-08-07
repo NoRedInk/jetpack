@@ -9,12 +9,12 @@ import Config ()
 import Control.Monad.Free (foldFree)
 import Data.List as L
 import Data.List.Utils (uniq)
-import Data.Tree as Tree
 import qualified Data.Text as T
+import Data.Tree as Tree
 import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
-import Rainbow
 import Pipeline
+import Rainbow
 import System.Console.AsciiProgress
 import qualified System.Exit
 import Task
@@ -36,7 +36,8 @@ program = do
   args        <- readCliArgs
   _           <- readConfig (configPath args)
   toolPaths   <- setup
-  _           <- clearLog
+  _           <- clearLog "compile.log"
+  _           <- clearLog "post-hook.log"
   entryPoints <- findEntryPoints
 
   -- GETTING DEPENDENCY TREE
@@ -50,14 +51,23 @@ program = do
   let modules = uniq $ concatMap Tree.flatten deps
   _ <- startProgress "Compiling" $ L.length modules
   logOutput <- traverse (compile toolPaths) modules
-  _ <- traverse appendLog logOutput
+  _ <- traverse (appendLog "compile.log") logOutput
   _ <- endProgress
 
   _       <- startProgress "Write modules" $ L.length deps
   modules <- async $ fmap concatModule deps
   _       <- outputCreatedModules modules
   _       <- endProgress
-  return ()
+
+  -- HOOKS
+  _       <- startProgress "Post hook (see post-hook.log)" $ L.length deps
+  case CliArguments.postHook args of
+    Just hook -> do
+      -- TODO log output
+      hookOutput <- Pipeline.postHook hook
+      _ <- appendLog "post-hook.log" hookOutput
+      endProgress
+    Nothing   -> endProgress
 
 runProgram :: Pipeline a -> Task a
 runProgram = foldFree PipelineI.interpreter

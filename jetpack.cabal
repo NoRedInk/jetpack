@@ -25,6 +25,7 @@ library
                        EntryPoints,
                        Env,
                        Error,
+                       Hooks,
                        Init,
                        Interpreter.Pipeline,
                        Logger,

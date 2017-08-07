@@ -27,8 +27,9 @@ data PipelineF next
   | OutputCreatedModules [FilePath] next
   | StartProgress T.Text Int next
   | EndProgress next
-  | AppendLog T.Text next
-  | ClearLog next
+  | AppendLog T.Text T.Text next
+  | ClearLog T.Text next
+  | PostHook FilePath (T.Text -> next)
   | forall a.Async [Pipeline a] ([a] -> next)
 
 instance Functor PipelineF where
@@ -44,8 +45,9 @@ instance Functor PipelineF where
   fmap f (OutputCreatedModules paths next) = OutputCreatedModules paths (f next)
   fmap f (StartProgress title total next) = StartProgress title total (f next)
   fmap f (EndProgress next) = EndProgress (f next)
-  fmap f (AppendLog msg next) = AppendLog msg (f next)
-  fmap f (ClearLog next) = ClearLog (f next)
+  fmap f (AppendLog fileName msg next) = AppendLog fileName msg (f next)
+  fmap f (ClearLog fileName next) = ClearLog fileName (f next)
+  fmap f (PostHook pathToScript g) = PostHook pathToScript (f . g)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -92,8 +94,11 @@ startProgress title total = liftF $ StartProgress title total ()
 endProgress :: Pipeline ()
 endProgress = liftF $ EndProgress ()
 
-appendLog :: T.Text -> Pipeline ()
-appendLog  msg = liftF $ AppendLog msg ()
+appendLog :: T.Text -> T.Text -> Pipeline ()
+appendLog fileName msg = liftF $ AppendLog fileName msg ()
 
-clearLog :: Pipeline ()
-clearLog = liftF $ ClearLog ()
+clearLog :: T.Text -> Pipeline ()
+clearLog fileName = liftF $ ClearLog fileName ()
+
+postHook :: FilePath -> Pipeline T.Text
+postHook pathToScript = liftF $ PostHook pathToScript id

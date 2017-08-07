@@ -14,6 +14,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified DependencyTree
 import qualified EntryPoints
+import qualified Hooks
 import qualified Init
 import qualified Logger
 import Pipeline
@@ -36,8 +37,9 @@ interpreter command =
     OutputCreatedModules paths next      -> createdModulesJson paths >> return next
     StartProgress title total next       -> ProgressBar.start total title >> return next
     EndProgress next                     -> ProgressBar.end >> return next
-    AppendLog msg next                   -> Logger.appendLog msg >> return next
-    ClearLog next                        -> Logger.clearLog  >> return next
+    AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
+    ClearLog fileName next               -> Logger.clearLog fileName >> return next
+    PostHook pathToScript next           -> next <$> Hooks.post pathToScript
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 

@@ -18,6 +18,7 @@ defaultArguments = Args
   { entryPointGlob = Nothing
   , configPath = Nothing
   , debug = False
+  , postHook = Nothing
   }
 
 readArguments :: Task Args
@@ -44,6 +45,10 @@ parser = Args
       ( long "debug"
       <> short 'd'
       <> help "Run jetpack in debug mode." )
+  <*> option (maybeReader go)
+      ( long "post-hook"
+      <> value Nothing
+      <> help "Path to a script that get's executed after jetpack ran." )
   where
     go :: String -> Maybe (Maybe String)
     go ""  = Just Nothing
