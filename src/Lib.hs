@@ -37,9 +37,7 @@ program = do
   args        <- readCliArgs
   Config {log_directory} <- readConfig (configPath args)
   toolPaths   <- setup
-  _           <- clearLog "compile.log"
-  _           <- clearLog "pre-hook.log"
-  _           <- clearLog "post-hook.log"
+  _           <- traverse clearLog ["compile.log", "pre-hook.log", "post-hook.log"]
 
   -- HOOKS
   let preHookTitle = (T.pack $ "Pre hook (see " ++ log_directory ++ "/pre-hook.log)" )
