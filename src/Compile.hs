@@ -13,6 +13,7 @@ import Data.Text as T
 import Data.Time.Clock
 import Dependencies (Dependency (..))
 import Env
+import Error
 import GHC.IO.Handle
 import Parser.Ast as Ast
 import qualified ProgressBar
@@ -87,8 +88,9 @@ sassCompiler Config {sass_load_paths} sassc = Compiler $ \input output -> do
 runCmd :: String -> Maybe String -> Task [T.Text]
 runCmd cmd maybeCwd = do
   -- TODO: handle exit status here
-  (_, Just out, _, ph) <- toTask $ createProcess (proc "bash" ["-c", cmd])
+  (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", cmd])
     { std_out = CreatePipe
+    , std_err = CreatePipe
     , cwd = maybeCwd
     }
   ec <- toTask $ waitForProcess ph
@@ -99,4 +101,6 @@ runCmd cmd maybeCwd = do
         currentTime <- toTask $ getCurrentTime
         let commandFinished = T.pack $ show currentTime
         return [commandFinished, T.pack cmd, T.pack content]
-      ExitFailure _ -> throwError []
+      ExitFailure _ -> do
+        content <- toTask $ hGetContents err
+        throwError [CompileError cmd content]

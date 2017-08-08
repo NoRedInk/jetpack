@@ -10,6 +10,7 @@ import Config (Config (..))
 import Control.Monad.Free (foldFree)
 import Data.List as L
 import Data.List.Utils (uniq)
+import qualified Data.Maybe as M
 import qualified Data.Text as T
 import Data.Tree as Tree
 import qualified Error
@@ -17,6 +18,7 @@ import qualified Interpreter.Pipeline as PipelineI
 import Pipeline
 import Rainbow
 import System.Console.AsciiProgress
+import qualified System.Console.Terminal.Size as TermSize
 import qualified System.Exit
 import Task
 
@@ -25,11 +27,23 @@ run = do
   e <- displayConsoleRegions
     $ runTask
     $ runProgram program
+  termWidth <- max 20 <$> M.maybe 20 TermSize.width <$> TermSize.size
   case e of
     Left err -> do
-      putChunkLn errorMessage
-      System.Exit.die $ L.unlines $ fmap Error.description err
-    Right _ -> putChunkLn successMessage
+      putChunkLn (separator termWidth "~" & fore red)
+      _ <- putChunkLn
+              $ fore brightRed
+              $ chunk
+              $ L.unlines
+              $ fmap Error.description err
+      putChunkLn (separator termWidth "~" & fore red)
+      putChunkLn (errorMessage termWidth)
+      putChunkLn (separator termWidth "~" & fore red)
+      System.Exit.die ""
+    Right _ -> do
+      putChunkLn (separator termWidth "*" & fore green)
+      putChunkLn (successMessage termWidth)
+      putChunkLn (separator termWidth "*" & fore green)
 
 program :: Pipeline ()
 program = do
@@ -84,25 +98,28 @@ runProgram :: Pipeline a -> Task a
 runProgram = foldFree PipelineI.interpreter
 
 
-successMessage :: Chunk T.Text
-successMessage =
-  fore green
-    $ chunk
-    $ T.unlines
-      [ T.replicate 27 "*"
-      , "~*~Compilation Succeeded~*~"
-      , T.replicate 27 "*"
+successMessage :: Int -> Chunk T.Text
+successMessage width =
+  fore green $ chunk
+    $ center width "~*~Compilation Succeeded~*~"
+
+separator :: Int -> T.Text -> Chunk T.Text
+separator width c =
+    chunk $ T.replicate width c
+
+errorMessage :: Int -> Chunk T.Text
+errorMessage width =
+  fore red $ chunk $ T.unlines $
+    fmap (center width . T.pack)
+      [ "¡Compilation failed!"
+      , "¯\\_(ツ)_/¯"
       ]
 
-
-errorMessage :: Chunk T.Text
-errorMessage =
-  fore red
-    $ chunk
-    $ T.unlines
-      [ T.replicate 20 "~"
-      , "¡Compilation failed!"
-      , " "
-      , "    ¯\\_(ツ)_/¯    "
-      , T.replicate 20 "~"
-      ]
+center :: Int -> T.Text -> T.Text
+center width msg =
+  T.append (T.replicate n " ") msg
+  where
+    textLength = T.length msg
+    half = quot width 2
+    halfText = quot textLength 2
+    n = half - halfText

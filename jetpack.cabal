@@ -68,7 +68,8 @@ library
                        regex-compat == 0.95.1,
                        optparse-applicative == 0.13.1.0,
                        rainbow == 0.28.0.4,
-                       questioner == 0.1.1.0
+                       questioner == 0.1.1.0,
+                       terminal-size == 0.3.2.1
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-name-shadowing
 
