@@ -38,6 +38,7 @@ program = do
   Config {log_directory} <- readConfig (configPath args)
   toolPaths   <- setup
   _           <- clearLog "compile.log"
+  _           <- clearLog "pre-hook.log"
   _           <- clearLog "post-hook.log"
 
   -- HOOKS
