@@ -39,7 +39,7 @@ interpreter command =
     StartProgress title total next       -> ProgressBar.start total title >> return next
     EndProgress next                     -> ProgressBar.end >> return next
     StartSpinner title next              -> ProgressSpinner.start title >> return next
-    EndSpinner next                      -> ProgressSpinner.end >> return next
+    EndSpinner title next                -> ProgressSpinner.end title >> return next
     AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
     ClearLog fileName next               -> Logger.clearLog fileName >> return next
     Hook pathToScript next               -> next <$> Hooks.run pathToScript

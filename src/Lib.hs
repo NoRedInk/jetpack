@@ -39,7 +39,7 @@ run = do
       putChunkLn (separator termWidth "~" & fore red)
       putChunkLn (errorMessage termWidth)
       putChunkLn (separator termWidth "~" & fore red)
-      System.Exit.die ""
+      System.Exit.exitFailure
     Right _ -> do
       putChunkLn (separator termWidth "*" & fore green)
       putChunkLn (successMessage termWidth)
@@ -54,14 +54,7 @@ program = do
   _           <- traverse clearLog ["compile.log", "pre-hook.log", "post-hook.log"]
 
   -- HOOKS
-  let preHookTitle = (T.pack $ "Pre hook (see " ++ log_directory ++ "/pre-hook.log)" )
-  _       <- startSpinner preHookTitle
-  _ <- case CliArguments.preHook args of
-         Just pathToScript -> do
-           hookOutput <- hook pathToScript
-           _ <- appendLog "pre-hook.log" hookOutput
-           endSpinner
-         Nothing   -> endProgress
+  maybeRunHook "pre" (CliArguments.preHook args) log_directory
 
   entryPoints <- findEntryPoints
 
@@ -84,15 +77,16 @@ program = do
   _       <- outputCreatedModules modules
   _       <- endProgress
 
-  -- HOOKS
-  let postHookTitle = (T.pack $ "Post hook (see " ++ log_directory ++ "/post-hook.log)" )
-  _       <- startSpinner postHookTitle
-  case CliArguments.postHook args of
-    Just pathToScript -> do
-      hookOutput <- hook pathToScript
-      _ <- appendLog "post-hook.log" hookOutput
-      endSpinner
-    Nothing   -> endProgress
+  maybeRunHook "post" (CliArguments.postHook args) log_directory
+
+maybeRunHook :: String -> Maybe FilePath -> FilePath -> Pipeline ()
+maybeRunHook name Nothing log_directory = return ()
+maybeRunHook name (Just pathToScript) log_directory = do
+  let title = (T.pack $ name ++ " hook (" ++ pathToScript ++ ")" )
+  _ <- startSpinner title
+  hookOutput <- hook pathToScript
+  appendLog (T.pack $ name ++ "-hook.log") hookOutput
+  endSpinner title
 
 runProgram :: Pipeline a -> Task a
 runProgram = foldFree PipelineI.interpreter

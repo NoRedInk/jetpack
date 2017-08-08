@@ -28,7 +28,7 @@ data PipelineF next
   | StartProgress T.Text Int next
   | EndProgress next
   | StartSpinner T.Text next
-  | EndSpinner next
+  | EndSpinner T.Text next
   | AppendLog T.Text T.Text next
   | ClearLog T.Text next
   | Hook FilePath (T.Text -> next)
@@ -48,7 +48,7 @@ instance Functor PipelineF where
   fmap f (StartProgress title total next) = StartProgress title total (f next)
   fmap f (EndProgress next) = EndProgress (f next)
   fmap f (StartSpinner title next) = StartSpinner title (f next)
-  fmap f (EndSpinner next) = EndSpinner (f next)
+  fmap f (EndSpinner title next) = EndSpinner title (f next)
   fmap f (AppendLog fileName msg next) = AppendLog fileName msg (f next)
   fmap f (ClearLog fileName next) = ClearLog fileName (f next)
   fmap f (Hook pathToScript g) = Hook pathToScript (f . g)
@@ -101,8 +101,8 @@ endProgress = liftF $ EndProgress ()
 startSpinner :: T.Text -> Pipeline ()
 startSpinner title = liftF $ StartSpinner title ()
 
-endSpinner :: Pipeline ()
-endSpinner = liftF $ EndSpinner ()
+endSpinner :: T.Text -> Pipeline ()
+endSpinner title = liftF $ EndSpinner title ()
 
 appendLog :: T.Text -> T.Text -> Pipeline ()
 appendLog fileName msg = liftF $ AppendLog fileName msg ()

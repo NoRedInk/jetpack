@@ -5,6 +5,7 @@ module Hooks
 
 import Control.Monad.Except (throwError)
 import qualified Data.Text as T
+import Error
 import GHC.IO.Handle
 import System.Exit
 import System.FilePath ()
@@ -24,6 +25,8 @@ run pathToScript = do
   case ec of
       ExitSuccess   -> do
         content <- toTask $ hGetContents out
+        return (T.pack $ content)
+      ExitFailure _ -> do
+        content <- toTask $ hGetContents out
         errContent <- toTask $ hGetContents err
-        return (T.pack $ content ++ errContent)
-      ExitFailure _ -> throwError []
+        throwError [HookFailed (content ++ errContent) pathToScript]

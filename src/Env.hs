@@ -7,13 +7,14 @@ module Env
   ) where
 
 import Data.Aeson as Aeson
+import Data.Time.Clock
 import GHC.Generics (Generic)
 import qualified System.Console.AsciiProgress as Progress
 import qualified System.Console.Questioner.ProgressIndicators as Spinner
 
 data Env = Env
   { progressBar     :: Maybe Progress.ProgressBar
-  , progressSpinner :: Maybe Spinner.ProgressIndicator
+  , progressSpinner :: Maybe (Spinner.ProgressIndicator, UTCTime)
   , config          :: Config
   , args            :: Args
   }
