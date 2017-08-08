@@ -15,13 +15,15 @@ import Task (Task, toTask)
 
 post :: FilePath -> Task T.Text
 post pathToScript = do
-  (_, Just out, _, ph) <- toTask $ createProcess (proc "bash" ["-c", pathToScript])
+  (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", pathToScript])
     { std_out = CreatePipe
+    , std_err = CreatePipe
     , cwd = Nothing
     }
   ec <- toTask $ waitForProcess ph
   case ec of
       ExitSuccess   -> do
         content <- toTask $ hGetContents out
-        return (T.pack content)
+        errContent <- toTask $ hGetContents err
+        return (T.pack $ content ++ errContent)
       ExitFailure _ -> throwError []

@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
@@ -5,7 +6,7 @@ module Lib
   ) where
 
 import CliArguments (Args (..))
-import Config ()
+import Config (Config (..))
 import Control.Monad.Free (foldFree)
 import Data.List as L
 import Data.List.Utils (uniq)
@@ -34,7 +35,7 @@ program :: Pipeline ()
 program = do
   -- SETUP
   args        <- readCliArgs
-  _           <- readConfig (configPath args)
+  Config {log_directory} <- readConfig (configPath args)
   toolPaths   <- setup
   _           <- clearLog "compile.log"
   _           <- clearLog "post-hook.log"
@@ -60,7 +61,8 @@ program = do
   _       <- endProgress
 
   -- HOOKS
-  _       <- startProgress "Post hook (see post-hook.log)" $ L.length deps
+  let postHookTitle = (T.pack $ "Post hook (see " ++ log_directory ++ "/post-hook.log)" )
+  _       <- startProgress postHookTitle $ L.length deps
   case CliArguments.postHook args of
     Just hook -> do
       -- TODO log output
