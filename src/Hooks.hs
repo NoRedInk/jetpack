@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Hooks
-  (post
+  (run
   ) where
 
 import Control.Monad.Except (throwError)
@@ -13,8 +13,8 @@ import Task (Task, toTask)
 
 
 
-post :: FilePath -> Task T.Text
-post pathToScript = do
+run :: FilePath -> Task T.Text
+run pathToScript = do
   (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", pathToScript])
     { std_out = CreatePipe
     , std_err = CreatePipe

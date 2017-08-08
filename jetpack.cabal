@@ -36,6 +36,7 @@ library
                        Parser.Require,
                        Pipeline,
                        ProgressBar,
+                       ProgressSpinner,
                        Resolver,
                        Task,
                        ToolPaths
@@ -66,7 +67,8 @@ library
                        ascii-progress == 0.3.3.0,
                        regex-compat == 0.95.1,
                        optparse-applicative == 0.13.1.0,
-                       rainbow == 0.28.0.4
+                       rainbow == 0.28.0.4,
+                       questioner == 0.1.1.0
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-name-shadowing
 

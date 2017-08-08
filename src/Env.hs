@@ -9,17 +9,20 @@ module Env
 import Data.Aeson as Aeson
 import GHC.Generics (Generic)
 import qualified System.Console.AsciiProgress as Progress
+import qualified System.Console.Questioner.ProgressIndicators as Spinner
 
 data Env = Env
-  { progressBar :: Maybe Progress.ProgressBar
-  , config      :: Config
-  , args        :: Args
+  { progressBar     :: Maybe Progress.ProgressBar
+  , progressSpinner :: Maybe Spinner.ProgressIndicator
+  , config          :: Config
+  , args            :: Args
   }
 
 data Args = Args
   { entryPointGlob :: Maybe String
   , configPath     :: Maybe FilePath
   , debug          :: Bool
+  , preHook        :: Maybe FilePath
   , postHook       :: Maybe FilePath
   }
 

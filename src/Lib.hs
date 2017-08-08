@@ -39,6 +39,17 @@ program = do
   toolPaths   <- setup
   _           <- clearLog "compile.log"
   _           <- clearLog "post-hook.log"
+
+  -- HOOKS
+  let preHookTitle = (T.pack $ "Pre hook (see " ++ log_directory ++ "/pre-hook.log)" )
+  _       <- startSpinner preHookTitle
+  _ <- case CliArguments.preHook args of
+         Just pathToScript -> do
+           hookOutput <- hook pathToScript
+           _ <- appendLog "pre-hook.log" hookOutput
+           endSpinner
+         Nothing   -> endProgress
+
   entryPoints <- findEntryPoints
 
   -- GETTING DEPENDENCY TREE
@@ -62,13 +73,12 @@ program = do
 
   -- HOOKS
   let postHookTitle = (T.pack $ "Post hook (see " ++ log_directory ++ "/post-hook.log)" )
-  _       <- startProgress postHookTitle $ L.length deps
+  _       <- startSpinner postHookTitle
   case CliArguments.postHook args of
-    Just hook -> do
-      -- TODO log output
-      hookOutput <- Pipeline.postHook hook
+    Just pathToScript -> do
+      hookOutput <- hook pathToScript
       _ <- appendLog "post-hook.log" hookOutput
-      endProgress
+      endSpinner
     Nothing   -> endProgress
 
 runProgram :: Pipeline a -> Task a

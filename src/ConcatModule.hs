@@ -13,6 +13,7 @@ import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
+import qualified ProgressBar
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
@@ -23,7 +24,9 @@ import qualified Utils.Tree as UT
 wrap :: DependencyTree -> Task FilePath
 wrap dep = do
   wrapped <- traverse wrapper $ uniqNodes dep
-  writeModule dep $ catMaybes wrapped
+  out <- writeModule dep $ catMaybes wrapped
+  _ <- ProgressBar.step
+  return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren

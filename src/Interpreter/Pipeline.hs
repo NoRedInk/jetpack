@@ -19,6 +19,7 @@ import qualified Init
 import qualified Logger
 import Pipeline
 import qualified ProgressBar
+import qualified ProgressSpinner
 import System.FilePath ((<.>), (</>))
 import Task (Task, getConfig, toTask)
 
@@ -37,9 +38,11 @@ interpreter command =
     OutputCreatedModules paths next      -> createdModulesJson paths >> return next
     StartProgress title total next       -> ProgressBar.start total title >> return next
     EndProgress next                     -> ProgressBar.end >> return next
+    StartSpinner title next              -> ProgressSpinner.start title >> return next
+    EndSpinner next                      -> ProgressSpinner.end >> return next
     AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
     ClearLog fileName next               -> Logger.clearLog fileName >> return next
-    PostHook pathToScript next           -> next <$> Hooks.post pathToScript
+    Hook pathToScript next               -> next <$> Hooks.run pathToScript
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 

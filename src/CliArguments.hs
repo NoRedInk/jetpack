@@ -19,6 +19,7 @@ defaultArguments = Args
   , configPath = Nothing
   , debug = False
   , postHook = Nothing
+  , preHook = Nothing
   }
 
 readArguments :: Task Args
@@ -45,6 +46,10 @@ parser = Args
       ( long "debug"
       <> short 'd'
       <> help "Run jetpack in debug mode." )
+  <*> option (maybeReader go)
+      ( long "pre-hook"
+      <> value Nothing
+      <> help "Path to a script that get's executed before jetpack ran." )
   <*> option (maybeReader go)
       ( long "post-hook"
       <> value Nothing
