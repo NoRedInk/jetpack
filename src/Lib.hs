@@ -30,12 +30,13 @@ run = do
   termWidth <- max 20 <$> M.maybe 20 TermSize.width <$> TermSize.size
   case e of
     Left err -> do
+      _ <- putStrLn ""
       putChunkLn (separator termWidth "~" & fore red)
-      _ <- putChunkLn
-              $ fore brightRed
-              $ chunk
-              $ L.unlines
-              $ fmap Error.description err
+      _ <- traverse (putChunkLn
+              . fore brightRed
+              . chunk
+              . Error.description
+              ) err
       putChunkLn (separator termWidth "~" & fore red)
       putChunkLn (errorMessage termWidth)
       putChunkLn (separator termWidth "~" & fore red)
