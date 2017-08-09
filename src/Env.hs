@@ -23,8 +23,8 @@ data Args = Args
   { entryPointGlob :: Maybe String
   , configPath     :: Maybe FilePath
   , debug          :: Bool
-  , preHook        :: Maybe FilePath
-  , postHook       :: Maybe FilePath
+  , preHook        :: Maybe String
+  , postHook       :: Maybe String
   }
 
 data Config = Config
