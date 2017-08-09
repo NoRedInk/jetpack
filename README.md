@@ -8,8 +8,7 @@ https://paper.dropbox.com/doc/jetpack-1EgiUsPF7gx5lwPD1BCKe
 
 ```bash
 brew install haskell-stack
-./install-readline.sh
-stack setup
+stack setup # run ./install-readline.sh if this fails (OSX)
 stack build
 stack test
 ```
