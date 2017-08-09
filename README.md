@@ -17,3 +17,9 @@ stack test
 * install [`entr`](http://entrproject.org/)
 
 Run `./watch-tests` during development. It will rerun all tests when a `hs` file changes.
+
+### Releasing a new version
+
+```bash
+./release.sh
+```
