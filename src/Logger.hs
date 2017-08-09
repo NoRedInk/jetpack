@@ -3,7 +3,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger
-  ( clearLog, appendLog
+  ( clearLog
+  , appendLog
+  , compileLog
+  , preHookLog
+  , postHookLog
+  , allLogs
   ) where
 
 
@@ -11,6 +16,14 @@ import Config
 import Data.Text as T
 import System.FilePath ((</>))
 import Task
+
+compileLog, preHookLog, postHookLog :: T.Text
+compileLog = "compile.log"
+preHookLog = "pre-hook.log"
+postHookLog = "post-hook.log"
+
+allLogs :: [T.Text]
+allLogs = [compileLog, preHookLog, postHookLog]
 
 appendLog :: T.Text -> T.Text -> Task ()
 appendLog fileName msg = do

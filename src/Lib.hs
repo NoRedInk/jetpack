@@ -6,72 +6,75 @@ module Lib
   ) where
 
 import qualified CliArguments
-import Control.Monad.Free (foldFree)
+import qualified Control.Monad.Free as Free
 import qualified Data.List as L
-import Data.List.Utils (uniq)
+import qualified Data.List.Utils as LU
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
+import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
+import qualified Logger
 import qualified Message
-import Pipeline
-import System.Console.AsciiProgress
+import qualified Pipeline as P
+import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
-import Task
+import qualified Task
 
 run :: IO ()
 run = do
-  e <- displayConsoleRegions
-    $ runTask
-    $ runProgram program
-  case e of
+  result <- AsciiProgress.displayConsoleRegions
+              $ Task.runTask
+              $ Free.foldFree PipelineI.interpreter program
+  case result of
+    Right _ -> Message.success
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
-    Right _ -> do
-      Message.success
 
-program :: Pipeline ()
+
+program :: P.Pipeline ()
 program = do
   -- SETUP
-  args      <- readCliArgs
-  _         <- readConfig (CliArguments.configPath args)
-  toolPaths <- setup
-  _         <- traverse clearLog ["compile.log", "pre-hook.log", "post-hook.log"]
+  args      <- P.readCliArgs
+  _         <- P.readConfig (CliArguments.configPath args)
+  toolPaths <- P.setup
+  _         <- traverse P.clearLog Logger.allLogs
 
-  -- HOOKS
+  -- HOOK
   maybeRunHook "pre" (CliArguments.preHook args)
 
-  entryPoints <- findEntryPoints
+  entryPoints <- P.findEntryPoints
 
   -- GETTING DEPENDENCY TREE
-  _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
-  cache <- readDependencyCache
-  deps  <- async $ fmap (findDependency cache) entryPoints
-  _     <- writeDependencyCache deps
-  _     <- endProgress
+  _     <- P.startProgress "Finding dependencies for entrypoints"
+             $ L.length entryPoints
+  cache <- P.readDependencyCache
+  deps  <- P.async $ fmap (P.findDependency cache) entryPoints
+  _     <- P.writeDependencyCache deps
+  _     <- P.endProgress
 
   -- COMPILATION
-  let modules = uniq $ concatMap Tree.flatten deps
-  _ <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile toolPaths) modules
-  _ <- traverse (appendLog "compile.log") logOutput
-  _ <- endProgress
+  let modules = LU.uniq $ concatMap Tree.flatten deps
+  _   <- P.startProgress "Compiling" $ L.length modules
+  out <- traverse (P.compile toolPaths) modules
+  _   <- traverse (P.appendLog "compile.log") out
+  _   <- P.endProgress
 
-  _       <- startProgress "Write modules" $ L.length deps
-  modules <- async $ fmap concatModule deps
-  _       <- outputCreatedModules modules
-  _       <- endProgress
+  _       <- P.startProgress "Write modules" $ L.length deps
+  modules <- P.async $ fmap P.concatModule deps
+  _       <- P.outputCreatedModules modules
+  _       <- P.endProgress
 
+  -- HOOK
   maybeRunHook "post" (CliArguments.postHook args)
 
-maybeRunHook :: String -> Maybe FilePath -> Pipeline ()
-maybeRunHook _ Nothing  = return ()
-maybeRunHook name (Just pathToScript) = do
-  let title = (T.pack $ name ++ " hook (" ++ pathToScript ++ ")" )
-  _ <- startSpinner title
-  hookOutput <- hook pathToScript
-  appendLog (T.pack $ name ++ "-hook.log") hookOutput
-  endSpinner title
 
-runProgram :: Pipeline a -> Task a
-runProgram = foldFree PipelineI.interpreter
+maybeRunHook :: String -> Maybe FilePath -> P.Pipeline ()
+maybeRunHook _ Nothing  = return ()
+maybeRunHook name (Just pathToScript) =
+  P.startSpinner title
+    >> P.hook pathToScript
+    >>= P.appendLog (T.pack $ name ++ "-hook.log")
+    >> P.endSpinner title
+  where
+    title = (T.pack $ name ++ " hook (" ++ pathToScript ++ ")" )
