@@ -101,5 +101,6 @@ runCmd cmd maybeCwd = do
         let commandFinished = T.pack $ show currentTime
         return [commandFinished, T.pack cmd, T.pack content]
       ExitFailure _ -> do
-        content <- toTask $ hGetContents err
-        throwError [CompileError cmd content]
+        content <- toTask $ hGetContents out
+        errContent <- toTask $ hGetContents err
+        throwError [CompileError cmd (content ++ errContent)]

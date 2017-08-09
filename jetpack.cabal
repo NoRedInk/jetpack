@@ -29,6 +29,7 @@ library
                        Init,
                        Interpreter.Pipeline,
                        Logger,
+                       Message,
                        Parser.Ast,
                        Parser.Comment,
                        Parser.Import,
