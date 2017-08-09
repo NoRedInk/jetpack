@@ -41,7 +41,7 @@ program = do
   _         <- traverse P.clearLog Logger.allLogs
 
   -- HOOK
-  maybeRunHook "pre" (CliArguments.preHook args)
+  maybeRunHook Pre (CliArguments.preHook args)
 
   entryPoints <- P.findEntryPoints
 
@@ -66,15 +66,19 @@ program = do
   _       <- P.endProgress
 
   -- HOOK
-  maybeRunHook "post" (CliArguments.postHook args)
+  maybeRunHook Post (CliArguments.postHook args)
 
 
-maybeRunHook :: String -> Maybe FilePath -> P.Pipeline ()
+maybeRunHook :: Hook -> Maybe FilePath -> P.Pipeline ()
 maybeRunHook _ Nothing  = return ()
-maybeRunHook name (Just pathToScript) =
+maybeRunHook type_ (Just pathToScript) =
   P.startSpinner title
     >> P.hook pathToScript
-    >>= P.appendLog (T.pack $ name ++ "-hook.log")
+    >>= P.appendLog (log type_)
     >> P.endSpinner title
   where
-    title = (T.pack $ name ++ " hook (" ++ pathToScript ++ ")" )
+    title = (T.pack $ show type_ ++ " hook (" ++ pathToScript ++ ")" )
+    log Pre  = Logger.preHookLog
+    log Post = Logger.postHookLog
+
+data Hook = Pre | Post deriving (Show)
