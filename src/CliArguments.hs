@@ -49,11 +49,11 @@ parser = Args
   <*> option (maybeReader go)
       ( long "pre-hook"
       <> value Nothing
-      <> help "Bash commands that will be run before jetpack runs." )
+      <> help "Bash commands that will get executed before jetpack runs." )
   <*> option (maybeReader go)
       ( long "post-hook"
       <> value Nothing
-      <> help "Bash commands that will be run jetpack runs." )
+      <> help "Bash commands that will get executed after jetpack runs." )
   where
     go :: String -> Maybe (Maybe String)
     go ""  = Just Nothing
