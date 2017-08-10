@@ -11,7 +11,6 @@ import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
-import qualified Error
 import qualified Interpreter.Pipeline as PipelineI
 import qualified Logger
 import qualified Message

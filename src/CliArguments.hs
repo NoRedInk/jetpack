@@ -9,7 +9,6 @@ import Control.Monad.State (modify)
 import Data.Semigroup ((<>))
 import Env
 import Options.Applicative
-import Options.Applicative.Builder
 import System.FilePath ()
 import Task
 
