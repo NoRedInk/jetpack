@@ -14,10 +14,12 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified DependencyTree
 import qualified EntryPoints
+import qualified Hooks
 import qualified Init
 import qualified Logger
 import Pipeline
 import qualified ProgressBar
+import qualified ProgressSpinner
 import System.FilePath ((<.>), (</>))
 import Task (Task, getConfig, toTask)
 
@@ -36,8 +38,11 @@ interpreter command =
     OutputCreatedModules paths next      -> createdModulesJson paths >> return next
     StartProgress title total next       -> ProgressBar.start total title >> return next
     EndProgress next                     -> ProgressBar.end >> return next
-    AppendLog msg next                   -> Logger.appendLog msg >> return next
-    ClearLog next                        -> Logger.clearLog  >> return next
+    StartSpinner title next              -> ProgressSpinner.start title >> return next
+    EndSpinner title next                -> ProgressSpinner.end title >> return next
+    AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
+    ClearLog fileName next               -> Logger.clearLog fileName >> return next
+    Hook hookScript next                 -> next <$> Hooks.run hookScript
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 

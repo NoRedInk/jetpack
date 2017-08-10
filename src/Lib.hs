@@ -1,87 +1,83 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib
   ( run
   ) where
 
-import CliArguments (Args (..))
-import Config ()
-import Control.Monad.Free (foldFree)
-import Data.List as L
-import Data.List.Utils (uniq)
-import Data.Tree as Tree
+import qualified CliArguments
+import qualified Control.Monad.Free as Free
+import qualified Data.List as L
+import qualified Data.List.Utils as LU
 import qualified Data.Text as T
-import qualified Error
+import qualified Data.Tree as Tree
 import qualified Interpreter.Pipeline as PipelineI
-import Rainbow
-import Pipeline
-import System.Console.AsciiProgress
+import qualified Logger
+import qualified Message
+import qualified Pipeline as P
+import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
-import Task
+import qualified Task
 
 run :: IO ()
 run = do
-  e <- displayConsoleRegions
-    $ runTask
-    $ runProgram program
-  case e of
+  result <- AsciiProgress.displayConsoleRegions
+              $ Task.runTask
+              $ Free.foldFree PipelineI.interpreter program
+  case result of
+    Right _ -> Message.success
     Left err -> do
-      putChunkLn errorMessage
-      System.Exit.die $ L.unlines $ fmap Error.description err
-    Right _ -> putChunkLn successMessage
+      _ <- Message.error err
+      System.Exit.exitFailure
 
-program :: Pipeline ()
+
+program :: P.Pipeline ()
 program = do
   -- SETUP
-  args        <- readCliArgs
-  _           <- readConfig (configPath args)
-  toolPaths   <- setup
-  _           <- clearLog
-  entryPoints <- findEntryPoints
+  args      <- P.readCliArgs
+  _         <- P.readConfig (CliArguments.configPath args)
+  toolPaths <- P.setup
+  _         <- traverse P.clearLog Logger.allLogs
+
+  -- HOOK
+  maybeRunHook Pre (CliArguments.preHook args)
+
+  entryPoints <- P.findEntryPoints
 
   -- GETTING DEPENDENCY TREE
-  _     <- startProgress "Finding dependencies for entrypoints" $ L.length entryPoints
-  cache <- readDependencyCache
-  deps  <- async $ fmap (findDependency cache) entryPoints
-  _     <- writeDependencyCache deps
-  _     <- endProgress
+  _     <- P.startProgress "Finding dependencies for entrypoints"
+             $ L.length entryPoints
+  cache <- P.readDependencyCache
+  deps  <- P.async $ fmap (P.findDependency cache) entryPoints
+  _     <- P.writeDependencyCache deps
+  _     <- P.endProgress
 
   -- COMPILATION
-  let modules = uniq $ concatMap Tree.flatten deps
-  _ <- startProgress "Compiling" $ L.length modules
-  logOutput <- traverse (compile toolPaths) modules
-  _ <- traverse appendLog logOutput
-  _ <- endProgress
+  let modules = LU.uniq $ concatMap Tree.flatten deps
+  _   <- P.startProgress "Compiling" $ L.length modules
+  out <- traverse (P.compile toolPaths) modules
+  _   <- traverse (P.appendLog "compile.log") out
+  _   <- P.endProgress
 
-  _       <- startProgress "Write modules" $ L.length deps
-  modules <- async $ fmap concatModule deps
-  _       <- outputCreatedModules modules
-  _       <- endProgress
-  return ()
+  _       <- P.startProgress "Write modules" $ L.length deps
+  modules <- P.async $ fmap P.concatModule deps
+  _       <- P.outputCreatedModules modules
+  _       <- P.endProgress
 
-runProgram :: Pipeline a -> Task a
-runProgram = foldFree PipelineI.interpreter
-
-
-successMessage :: Chunk T.Text
-successMessage =
-  fore green
-    $ chunk
-    $ T.unlines
-      [ T.replicate 27 "*"
-      , "~*~Compilation Succeeded~*~"
-      , T.replicate 27 "*"
-      ]
+  -- HOOK
+  maybeRunHook Post (CliArguments.postHook args)
 
 
-errorMessage :: Chunk T.Text
-errorMessage =
-  fore red
-    $ chunk
-    $ T.unlines
-      [ T.replicate 20 "~"
-      , "¡Compilation failed!"
-      , " "
-      , "    ¯\\_(ツ)_/¯    "
-      , T.replicate 20 "~"
-      ]
+maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()
+maybeRunHook _ Nothing  = return ()
+maybeRunHook type_ (Just hookScript) =
+  P.startSpinner title
+    >> P.hook hookScript
+    >>= P.appendLog (log type_)
+    >> P.endSpinner title
+  where
+    title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")" )
+    log Pre  = Logger.preHookLog
+    log Post = Logger.postHookLog
+
+data Hook = Pre | Post deriving (Show)

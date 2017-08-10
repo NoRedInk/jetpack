@@ -14,6 +14,8 @@ data Error
   | NoModulesPresent String
   | ModuleNotFound FilePath FilePath String
   | BinNotFound String
+  | CompileError String String
+  | HookFailed String String
   deriving (Eq, Show)
 
 -- TODO this should be Show
@@ -44,4 +46,20 @@ description (BinNotFound bin) =
     [ "I had troubles finding the " ++ bin ++ " command."
     , ""
     , "You might want to install it."
+    ]
+description (CompileError cmd msg) =
+  L.unlines
+    [ "Command:"
+    , ""
+    , "    $ " ++ cmd
+    , ""
+    , msg
+    ]
+description (HookFailed msg hookScript) =
+  L.unlines
+    [ "Hook:"
+    , ""
+    , "    $ " ++ show hookScript
+    , ""
+    , msg
     ]

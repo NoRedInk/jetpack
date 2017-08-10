@@ -27,8 +27,11 @@ data PipelineF next
   | OutputCreatedModules [FilePath] next
   | StartProgress T.Text Int next
   | EndProgress next
-  | AppendLog T.Text next
-  | ClearLog next
+  | StartSpinner T.Text next
+  | EndSpinner T.Text next
+  | AppendLog T.Text T.Text next
+  | ClearLog T.Text next
+  | Hook String (T.Text -> next)
   | forall a.Async [Pipeline a] ([a] -> next)
 
 instance Functor PipelineF where
@@ -44,8 +47,11 @@ instance Functor PipelineF where
   fmap f (OutputCreatedModules paths next) = OutputCreatedModules paths (f next)
   fmap f (StartProgress title total next) = StartProgress title total (f next)
   fmap f (EndProgress next) = EndProgress (f next)
-  fmap f (AppendLog msg next) = AppendLog msg (f next)
-  fmap f (ClearLog next) = ClearLog (f next)
+  fmap f (StartSpinner title next) = StartSpinner title (f next)
+  fmap f (EndSpinner title next) = EndSpinner title (f next)
+  fmap f (AppendLog fileName msg next) = AppendLog fileName msg (f next)
+  fmap f (ClearLog fileName next) = ClearLog fileName (f next)
+  fmap f (Hook hookScript g) = Hook hookScript (f . g)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -92,8 +98,17 @@ startProgress title total = liftF $ StartProgress title total ()
 endProgress :: Pipeline ()
 endProgress = liftF $ EndProgress ()
 
-appendLog :: T.Text -> Pipeline ()
-appendLog  msg = liftF $ AppendLog msg ()
+startSpinner :: T.Text -> Pipeline ()
+startSpinner title = liftF $ StartSpinner title ()
 
-clearLog :: Pipeline ()
-clearLog = liftF $ ClearLog ()
+endSpinner :: T.Text -> Pipeline ()
+endSpinner title = liftF $ EndSpinner title ()
+
+appendLog :: T.Text -> T.Text -> Pipeline ()
+appendLog fileName msg = liftF $ AppendLog fileName msg ()
+
+clearLog :: T.Text -> Pipeline ()
+clearLog fileName = liftF $ ClearLog fileName ()
+
+hook :: String -> Pipeline T.Text
+hook hookScript = liftF $ Hook hookScript id
