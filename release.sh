@@ -8,6 +8,7 @@ else
 
   git add ./binaries
   git commit -m "update binaries"
+  git push
 
   git tag -a $1 -m "$1"
   git push --tags
