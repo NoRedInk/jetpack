@@ -3,9 +3,12 @@
 if [ -z "$1" ]; then
   echo "You need to pass this script a new version"
 else
-  echo ./package/mac/build-in-docker.sh
-  echo ./package/linux/build-in-docker.sh
+  ./package/mac/build-package.sh
+  ./package/linux/build-in-docker.sh
 
-  echo git tag -a $1 -m "$1"
-  echo git push --tags
+  git add ./binaries
+  git commit -m "update binaries"
+
+  git tag -a $1 -m "$1"
+  git push --tags
 fi
