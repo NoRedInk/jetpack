@@ -31,7 +31,7 @@ data PipelineF next
   | EndSpinner T.Text next
   | AppendLog T.Text T.Text next
   | ClearLog T.Text next
-  | Hook FilePath (T.Text -> next)
+  | Hook String (T.Text -> next)
   | forall a.Async [Pipeline a] ([a] -> next)
 
 instance Functor PipelineF where
@@ -51,7 +51,7 @@ instance Functor PipelineF where
   fmap f (EndSpinner title next) = EndSpinner title (f next)
   fmap f (AppendLog fileName msg next) = AppendLog fileName msg (f next)
   fmap f (ClearLog fileName next) = ClearLog fileName (f next)
-  fmap f (Hook pathToScript g) = Hook pathToScript (f . g)
+  fmap f (Hook hookScript g) = Hook hookScript (f . g)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -110,5 +110,5 @@ appendLog fileName msg = liftF $ AppendLog fileName msg ()
 clearLog :: T.Text -> Pipeline ()
 clearLog fileName = liftF $ ClearLog fileName ()
 
-hook :: FilePath -> Pipeline T.Text
-hook pathToScript = liftF $ Hook pathToScript id
+hook :: String -> Pipeline T.Text
+hook hookScript = liftF $ Hook hookScript id

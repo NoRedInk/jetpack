@@ -14,9 +14,9 @@ import Task (Task, toTask)
 
 
 
-run :: FilePath -> Task T.Text
-run pathToScript = do
-  (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", pathToScript])
+run :: String -> Task T.Text
+run hookScript = do
+  (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", hookScript])
     { std_out = CreatePipe
     , std_err = CreatePipe
     , cwd = Nothing
@@ -29,4 +29,4 @@ run pathToScript = do
       ExitFailure _ -> do
         content <- toTask $ hGetContents out
         errContent <- toTask $ hGetContents err
-        throwError [HookFailed (content ++ errContent) pathToScript]
+        throwError [HookFailed (content ++ errContent) hookScript]

@@ -42,7 +42,7 @@ interpreter command =
     EndSpinner title next                -> ProgressSpinner.end title >> return next
     AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
     ClearLog fileName next               -> Logger.clearLog fileName >> return next
-    Hook pathToScript next               -> next <$> Hooks.run pathToScript
+    Hook hookScript next                 -> next <$> Hooks.run hookScript
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 

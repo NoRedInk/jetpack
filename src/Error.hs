@@ -15,7 +15,7 @@ data Error
   | ModuleNotFound FilePath FilePath String
   | BinNotFound String
   | CompileError String String
-  | HookFailed String FilePath
+  | HookFailed String String
   deriving (Eq, Show)
 
 -- TODO this should be Show
@@ -55,11 +55,11 @@ description (CompileError cmd msg) =
     , ""
     , msg
     ]
-description (HookFailed msg pathToScript) =
+description (HookFailed msg hookScript) =
   L.unlines
     [ "Hook:"
     , ""
-    , "    $ " ++ show pathToScript
+    , "    $ " ++ show hookScript
     , ""
     , msg
     ]

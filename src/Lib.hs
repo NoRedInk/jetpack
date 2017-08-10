@@ -69,15 +69,15 @@ program = do
   maybeRunHook Post (CliArguments.postHook args)
 
 
-maybeRunHook :: Hook -> Maybe FilePath -> P.Pipeline ()
+maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()
 maybeRunHook _ Nothing  = return ()
-maybeRunHook type_ (Just pathToScript) =
+maybeRunHook type_ (Just hookScript) =
   P.startSpinner title
-    >> P.hook pathToScript
+    >> P.hook hookScript
     >>= P.appendLog (log type_)
     >> P.endSpinner title
   where
-    title = (T.pack $ show type_ ++ " hook (" ++ pathToScript ++ ")" )
+    title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")" )
     log Pre  = Logger.preHookLog
     log Post = Logger.postHookLog
 
