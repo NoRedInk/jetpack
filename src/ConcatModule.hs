@@ -50,7 +50,7 @@ replaceRequire Dependency {requiredAs, filePath} body =
   T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
   where fnName = T.unpack $ F.pathToFunctionName filePath "js"
         requireRegex = mkRegex $ "require\\(['\"]" ++ requiredAs ++ "['\"]\\)"
-        jetpackRequire = "jetpackRequire(" ++ fnName ++ ")"
+        jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
 
 compilesToJs :: Dependency -> Bool
 compilesToJs Dependency { filePath, fileType } =
@@ -113,23 +113,23 @@ addBoilerplate root fns =
   T.unlines
   [ "(function() {"
   , "var jetpackCache = {};"
-  , "function jetpackRequire(fn) {"
+  , "function jetpackRequire(fn, fnName) {"
   , "  var e = {};"
   , "  var m = { exports : e };"
   , "  if (typeof fn !== \"function\") {"
   , "    console.error(\"Required function isn't a jetpack module.\", fn)"
   , "    return;"
   , "  }"
-  , "  if (jetpackCache[fn.name]) {"
-  , "    return jetpackCache[fn.name];"
+  , "  if (jetpackCache[fnName]) {"
+  , "    return jetpackCache[fnName];"
   , "  }"
-  , "  jetpackCache[fn.name] = m.exports;"
+  , "  jetpackCache[fnName] = m.exports;"
   , "  fn(m, e);  "
-  , "  jetpackCache[fn.name] = m.exports;"
+  , "  jetpackCache[fnName] = m.exports;"
   , "  return m.exports;"
   , "}"
   , T.concat fns
-  , T.concat ["jetpackRequire(", root, ");"] -- calling the entry point
+  , T.concat ["jetpackRequire(", root, ", \"", root , "\");"] -- calling the entry point
   , "})();"
   ]
 
