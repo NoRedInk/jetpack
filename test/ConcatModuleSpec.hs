@@ -92,24 +92,24 @@ expectedOutput =
   [ T.unpack $ T.unlines
     [ "(function() {"
     , "var jetpackCache = {};"
-    , "function jetpackRequire(fn) {"
+    , "function jetpackRequire(fn, fnName) {"
     , "  var e = {};"
     , "  var m = { exports : e };"
     , "  if (typeof fn !== \"function\") {"
     , "    console.error(\"Required function isn't a jetpack module.\", fn)"
     , "    return;"
     , "  }"
-    , "  if (jetpackCache[fn.name]) {"
-    , "    return jetpackCache[fn.name];"
+    , "  if (jetpackCache[fnName]) {"
+    , "    return jetpackCache[fnName];"
     , "  }"
-    , "  jetpackCache[fn.name] = m.exports;"
+    , "  jetpackCache[fnName] = m.exports;"
     , "  fn(m, e);  "
-    , "  jetpackCache[fn.name] = m.exports;"
+    , "  jetpackCache[fnName] = m.exports;"
     , "  return m.exports;"
     , "}"
     ,"/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
     ,"function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
-    ,"var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js);"
+    ,"var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
     ,"moo(4, 2);"
     ,"} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
     ,"/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
@@ -119,7 +119,7 @@ expectedOutput =
     ,"};"
     ,"} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
     ,""
-    ,"jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js);"
+    ,"jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
     ,"})();"
     ]
   ]
@@ -133,12 +133,12 @@ suite =
         wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
-    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function)" $ do
+    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function, fnName)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require('foo')"
-        @?= "var x = jetpackRequire(ui___src___foo_js)"
-    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function)" $ do
+        @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function, fnName)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
-        @?= "var x = jetpackRequire(ui___src___foo_js)"
+        @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
     e <- runTask $ do
       modify (\env -> env { config = mockConfig })
