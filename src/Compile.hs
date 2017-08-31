@@ -55,13 +55,18 @@ elmCompiler :: Config -> FilePath -> Compiler
 elmCompiler Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
-  Args {debug} <- Task.getArgs
+  Args {debug, warn} <- Task.getArgs
   let debugFlag =
         if debug then
-          " --debug --yes"
-        else
-          " --yes"
-  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag
+          " --debug"
+	else 
+	  ""
+  let warnFlag =
+        if warn then
+          " --warn"
+	else 
+	  ""
+  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
   runCmd cmd $ Just elm_root_directory
 
 coffeeCompiler :: FilePath -> Compiler

@@ -17,6 +17,7 @@ defaultArguments = Args
   { entryPointGlob = Nothing
   , configPath = Nothing
   , debug = False
+  , warn = False
   , postHook = Nothing
   , preHook = Nothing
   }
@@ -45,6 +46,10 @@ parser = Args
       ( long "debug"
       <> short 'd'
       <> help "Run jetpack in debug mode." )
+  <*> switch
+      ( long "warn"
+      <> short 'w'
+      <> help "Output elm make warnings." )
   <*> option (maybeReader go)
       ( long "pre-hook"
       <> value Nothing
