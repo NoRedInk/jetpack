@@ -25,15 +25,15 @@ import Task (Task, getArgs, getConfig, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
-newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task [T.Text] }
+newtype Compiler = Compiler { runCompiler :: FilePath -> FilePath -> Task (T.Text, Maybe T.Text) }
 
-compile :: ToolPaths ->  Dependency -> Task T.Text
+compile :: ToolPaths ->  Dependency -> Task (T.Text, Maybe T.Text)
 compile toolPaths Dependency {fileType, filePath} = do
   config <- Task.getConfig
   let (c, outputType) = compiler fileType config toolPaths
   let outputPath = buildArtifactPath config outputType filePath
-  log <- (runCompiler c) filePath outputPath
-  return $ T.unlines log
+  (log, warnings) <- (runCompiler c) filePath outputPath
+  return (log, warnings)
 
 compiler :: Ast.SourceType -> Config -> ToolPaths -> (Compiler, String)
 compiler fileType config ToolPaths{elmMake, sassc, coffee} =
@@ -55,13 +55,10 @@ elmCompiler :: Config -> FilePath -> Compiler
 elmCompiler Config{elm_root_directory} elmMake = Compiler $ \input output -> do
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
-  Args {debug} <- Task.getArgs
-  let debugFlag =
-        if debug then
-          " --debug --yes"
-        else
-          " --yes"
-  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag
+  Args {debug, warn} <- Task.getArgs
+  let debugFlag = if debug then " --debug" else ""
+  let warnFlag = if warn then " --warn" else ""
+  let cmd = elmMake ++ " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
   runCmd cmd $ Just elm_root_directory
 
 coffeeCompiler :: FilePath -> Compiler
@@ -77,7 +74,7 @@ jsCompiler = Compiler $ \input output -> do
   _ <- ProgressBar.step
   currentTime <- toTask getCurrentTime
   let commandFinished = T.pack $ show currentTime
-  return [commandFinished, T.concat ["moved ", T.pack input, " => ", T.pack output]]
+  return (T.unlines [commandFinished, T.concat ["moved ", T.pack input, " => ", T.pack output]], Nothing)
 
 sassCompiler :: Config -> FilePath -> Compiler
 sassCompiler Config {sass_load_paths} sassc = Compiler $ \input output -> do
@@ -85,7 +82,7 @@ sassCompiler Config {sass_load_paths} sassc = Compiler $ \input output -> do
   let cmd = "SASS_PATH=" ++ loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
   runCmd cmd Nothing
 
-runCmd :: String -> Maybe String -> Task [T.Text]
+runCmd :: String -> Maybe String -> Task (T.Text, Maybe T.Text)
 runCmd cmd maybeCwd = do
   (_, Just out, Just err, ph) <- toTask $ createProcess (proc "bash" ["-c", cmd])
     { std_out = CreatePipe
@@ -93,13 +90,16 @@ runCmd cmd maybeCwd = do
     , cwd = maybeCwd
     }
   ec <- toTask $ waitForProcess ph
+  Args {warn} <- Task.getArgs
   case ec of
       ExitSuccess   -> do
         content <- toTask $ hGetContents out
+        errContent <- toTask $ hGetContents err
         _ <- ProgressBar.step
         currentTime <- toTask $ getCurrentTime
         let commandFinished = T.pack $ show currentTime
-        return [commandFinished, T.pack cmd, T.pack content]
+        let warnText = T.pack <$> if warn && errContent /= "" then Just errContent else Nothing
+        return (T.unlines [commandFinished, T.pack cmd, T.pack content], warnText)
       ExitFailure _ -> do
         content <- toTask $ hGetContents out
         errContent <- toTask $ hGetContents err

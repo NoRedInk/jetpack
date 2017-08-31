@@ -9,6 +9,7 @@ import qualified CliArguments
 import qualified Control.Monad.Free as Free
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
+import qualified Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import qualified Interpreter.Pipeline as PipelineI
@@ -25,13 +26,14 @@ run = do
               $ Task.runTask
               $ Free.foldFree PipelineI.interpreter program
   case result of
-    Right _ -> Message.success
+    Right (Just warnings) -> Message.warning warnings
+    Right Nothing -> Message.success
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
 
 
-program :: P.Pipeline ()
+program :: P.Pipeline (Maybe T.Text)
 program = do
   -- SETUP
   args      <- P.readCliArgs
@@ -56,7 +58,7 @@ program = do
   let modules = LU.uniq $ concatMap Tree.flatten deps
   _   <- P.startProgress "Compiling" $ L.length modules
   out <- traverse (P.compile toolPaths) modules
-  _   <- traverse (P.appendLog "compile.log") out
+  _   <- traverse (\(log, _) -> P.appendLog "compile.log" log) out
   _   <- P.endProgress
 
   _       <- P.startProgress "Write modules" $ L.length deps
@@ -65,7 +67,14 @@ program = do
   _       <- P.endProgress
 
   -- HOOK
-  maybeRunHook Post (CliArguments.postHook args)
+  _       <- maybeRunHook Post (CliArguments.postHook args)
+
+  -- RETURN WARNINGS IF ANY
+  let warnings = Data.Maybe.catMaybes (fmap snd out)
+  return $ case warnings of
+    [] -> Nothing
+    xs -> Just $ T.unlines xs
+
 
 
 maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()

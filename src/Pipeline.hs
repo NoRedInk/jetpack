@@ -21,7 +21,7 @@ data PipelineF next
   | WriteDependencyCache Dependencies next
   | FindEntryPoints ([FilePath] -> next)
   | FindDependency Dependencies FilePath (DependencyTree -> next)
-  | Compile ToolPaths Dependency (T.Text -> next)
+  | Compile ToolPaths Dependency ((T.Text, Maybe T.Text) -> next)
   | Init (ToolPaths -> next)
   | ConcatModule DependencyTree (FilePath -> next)
   | OutputCreatedModules [FilePath] next
@@ -80,7 +80,7 @@ findEntryPoints = liftF $ FindEntryPoints id
 findDependency :: Dependencies -> FilePath -> Pipeline DependencyTree
 findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
 
-compile :: ToolPaths -> Dependency -> Pipeline T.Text
+compile :: ToolPaths -> Dependency -> Pipeline (T.Text, Maybe T.Text)
 compile toolPaths dep = liftF $ Compile toolPaths dep id
 
 setup :: Pipeline ToolPaths
