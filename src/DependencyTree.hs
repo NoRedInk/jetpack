@@ -124,11 +124,22 @@ findInCache_ dep =
           (rootLabel, fmap Tree.rootLabel subForest)
 
 parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
-parseModule cache dep@Dependency {filePath} parser =
+parseModule cache dep@Dependency {filePath} parser = do
+  Config {no_parse} <- Task.getConfig
   case findInCache dep cache of
     Just cached -> return cached
-    Nothing -> do
-      content <- toTask $ readFile filePath
-      let requires = parser $ T.pack content
-      let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
-      return (dep, dependencies)
+    Nothing ->
+      if noParse no_parse dep then do
+        return (dep, [])
+      else do
+        content <- toTask $ readFile filePath
+        let requires = parser $ T.pack content
+        let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
+        return (dep, dependencies)
+
+noParse :: [T.Text] -> Dependency -> Bool
+noParse paths dep@(Dependency {filePath}) =
+  case paths of
+    [] -> False
+    x:xs ->
+      T.isInfixOf x (T.pack filePath) || noParse xs dep

@@ -34,6 +34,7 @@ basicsFixtures =
     Nothing
     Nothing
     Nothing
+    ["notParsed"]
 
 failingFixtures :: Config
 failingFixtures =
@@ -50,6 +51,7 @@ failingFixtures =
     Nothing
     Nothing
     Nothing
+    ["notParsed"]
 
 suite :: TestTree
 suite =
@@ -88,6 +90,10 @@ suite =
             , ( Ast.Js
               , "" </> "debug"
               , "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </> "lodash" </> "." </> "node_modules" </> "debug.js"
+              )
+            , ( Ast.Coffee
+              , "." </> "notParsed.coffee"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </> "." </> "notParsed.coffee"
               )
             ]
     , testCase "#find failing" $ do

@@ -42,6 +42,7 @@ defaultConfig =
     , elm_make_path = Just ("." </> "node_modules" </> ".bin" </> "elm-make")
     , sassc_path = Just ("." </> "bin" </> "sass")
     , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
+    , no_parse = []
     }
   where
     sassLoadPaths =

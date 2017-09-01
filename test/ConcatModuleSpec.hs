@@ -75,6 +75,7 @@ mockConfig =
     Nothing
     Nothing
     Nothing
+    []
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
 mockDependency f p = D.Dependency Ast.Js f p Nothing

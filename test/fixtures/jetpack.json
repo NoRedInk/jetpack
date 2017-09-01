@@ -7,5 +7,6 @@
   "temp_directory" : "app/tmp",
   "log_directory" : "app/logs",
   "output_js_directory" : "app/js",
-  "output_css_directory" : "app/css"
+  "output_css_directory" : "app/css",
+  "no_parse" : [ "notParsed" ]
 }
