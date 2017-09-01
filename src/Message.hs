@@ -5,7 +5,20 @@ module Message where
 import qualified Data.Maybe as M
 import qualified Data.Text as T
 import qualified Error
-import Rainbow (Chunk, brightRed, chunk, fore, green, yellow, brightYellow, putChunkLn, red, (&))
+import Rainbow
+    ( Chunk
+    , blue
+    , brightBlue
+    , brightRed
+    , brightYellow
+    , chunk
+    , fore
+    , green
+    , putChunkLn
+    , red
+    , yellow
+    , (&)
+    )
 import qualified System.Console.Terminal.Size as TermSize
 
 termWidth :: IO Int
@@ -43,15 +56,28 @@ warning warnings = do
   _ <- putChunkLn (warningMessage width)
   putChunkLn (separator width "*" & fore yellow)
 
+info :: T.Text -> IO ()
+info msg = do
+  width <- termWidth
+  _ <- putChunkLn (separator width "*" & fore blue)
+  _ <- putChunkLn (infoMessage width msg)
+  putChunkLn (separator width "*" & fore blue)
+
 successMessage :: Int -> Chunk T.Text
 successMessage width =
   fore green $ chunk
-    $ center width "~*~Compilation Succeeded~*~"
+    $ center width "~*~ Compilation Succeeded ~*~"
 
 warningMessage :: Int -> Chunk T.Text
 warningMessage width =
   fore yellow $ chunk
-    $ center width "~*~Compilation Succeeded with Warnings~*~"
+    $ center width "~*~ Compilation Succeeded with Warnings ~*~"
+
+infoMessage :: Int -> T.Text -> Chunk T.Text
+infoMessage width msg =
+  fore brightBlue $ chunk
+    $ center width
+    $ T.concat ["~*~ ", msg, " ~*~"]
 
 separator :: Int -> T.Text -> Chunk T.Text
 separator width c =

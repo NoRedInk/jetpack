@@ -12,4 +12,7 @@ else
 
   git tag -a $1 -m "$1"
   git push --tags
+
+  # updates version in src/Version.hs
+  sed -i '' s/current\ \=\ \".*\"/current\ \=\ \"${1}\"/g src/Version.hs
 fi

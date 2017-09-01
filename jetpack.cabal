@@ -40,7 +40,8 @@ library
                        ProgressSpinner,
                        Resolver,
                        Task,
-                       ToolPaths
+                       ToolPaths,
+                       Version
   other-modules:       Utils.Files,
                        Utils.Parser,
                        Utils.Text,
