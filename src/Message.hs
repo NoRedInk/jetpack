@@ -58,10 +58,7 @@ warning warnings = do
 
 info :: T.Text -> IO ()
 info msg = do
-  width <- termWidth
-  _ <- putChunkLn (separator width "*" & fore blue)
-  _ <- putChunkLn (message width msg & fore brightBlue)
-  putChunkLn (separator width "*" & fore blue)
+  putChunkLn (chunk msg & fore brightBlue)
 
 message :: Int -> T.Text -> Chunk T.Text
 message width msg =

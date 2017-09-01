@@ -7,8 +7,4 @@ import Data.Version (showVersion)
 import Paths_jetpack (version)
 
 print :: T.Text
-print =
-  T.concat
-  [ "🚀  Version: "
-  , T.pack $ showVersion version
-  ]
+print = T.pack $ showVersion version
