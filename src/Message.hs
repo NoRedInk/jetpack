@@ -31,7 +31,7 @@ success :: IO ()
 success = do
   width <- termWidth
   _ <- putChunkLn (separator width "*" & fore green)
-  _ <- putChunkLn (successMessage width)
+  _ <- putChunkLn (message width "Compilation Succeeded" & fore green)
   putChunkLn (separator width "*" & fore green)
 
 error :: [Error.Error] -> IO ()
@@ -53,29 +53,19 @@ warning warnings = do
   width <- termWidth
   _ <- putChunkLn (chunk warnings & fore brightYellow)
   _ <- putChunkLn (separator width "*" & fore yellow)
-  _ <- putChunkLn (warningMessage width)
+  _ <- putChunkLn (message width "Compilation Succeeded with Warnings" & fore yellow)
   putChunkLn (separator width "*" & fore yellow)
 
 info :: T.Text -> IO ()
 info msg = do
   width <- termWidth
   _ <- putChunkLn (separator width "*" & fore blue)
-  _ <- putChunkLn (infoMessage width msg)
+  _ <- putChunkLn (message width msg & fore brightBlue)
   putChunkLn (separator width "*" & fore blue)
 
-successMessage :: Int -> Chunk T.Text
-successMessage width =
-  fore green $ chunk
-    $ center width "~*~ Compilation Succeeded ~*~"
-
-warningMessage :: Int -> Chunk T.Text
-warningMessage width =
-  fore yellow $ chunk
-    $ center width "~*~ Compilation Succeeded with Warnings ~*~"
-
-infoMessage :: Int -> T.Text -> Chunk T.Text
-infoMessage width msg =
-  fore brightBlue $ chunk
+message :: Int -> T.Text -> Chunk T.Text
+message width msg =
+  chunk
     $ center width
     $ T.concat ["~*~ ", msg, " ~*~"]
 
