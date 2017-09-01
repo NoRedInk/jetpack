@@ -1,5 +1,5 @@
 name:                jetpack
-version:             0.1.0.0
+version: 0.4.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/githubuser/jetpack#readme
@@ -46,7 +46,8 @@ library
                        Utils.Parser,
                        Utils.Text,
                        Utils.Free,
-                       Utils.Tree
+                       Utils.Tree,
+                       Paths_jetpack
   build-depends:       base >= 4.7 && < 5,
                        aeson == 1.0.2.1,
                        text == 1.2.2.1,

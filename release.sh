@@ -14,5 +14,5 @@ else
   git push --tags
 
   # updates version in src/Version.hs
-  sed -i '' s/current\ \=\ \".*\"/current\ \=\ \"${1}\"/g src/Version.hs
+  sed -i '' "s/^version:\s*.*/version: ${1}/g" jetpack.cabal
 fi
