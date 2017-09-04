@@ -10,7 +10,7 @@ else
   git add jetpack.cabal
 
   git add ./binaries
-  git commit -m "update binaries"
+  git commit -m "bump version to $1"
   git push
 
   git tag -a $1 -m "$1"
