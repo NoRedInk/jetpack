@@ -32,6 +32,7 @@ data PipelineF next
   | AppendLog T.Text T.Text next
   | ClearLog T.Text next
   | Hook String (T.Text -> next)
+  | Version (T.Text -> next)
   | forall a.Async [Pipeline a] ([a] -> next)
 
 instance Functor PipelineF where
@@ -52,6 +53,7 @@ instance Functor PipelineF where
   fmap f (AppendLog fileName msg next) = AppendLog fileName msg (f next)
   fmap f (ClearLog fileName next) = ClearLog fileName (f next)
   fmap f (Hook hookScript g) = Hook hookScript (f . g)
+  fmap f (Version g) = Version (f . g)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -112,3 +114,6 @@ clearLog fileName = liftF $ ClearLog fileName ()
 
 hook :: String -> Pipeline T.Text
 hook hookScript = liftF $ Hook hookScript id
+
+version :: Pipeline T.Text
+version = liftF $ Version id

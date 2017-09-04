@@ -26,17 +26,28 @@ run = do
               $ Task.runTask
               $ Free.foldFree PipelineI.interpreter program
   case result of
-    Right (Just warnings) -> Message.warning warnings
-    Right Nothing -> Message.success
+    Right (Warnings warnings) -> Message.warning warnings
+    Right (Info info) -> Message.info info
+    Right Success -> Message.success
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
 
 
-program :: P.Pipeline (Maybe T.Text)
+data Result = Success | Warnings T.Text | Info T.Text
+
+program :: P.Pipeline Result
 program = do
   -- SETUP
-  args      <- P.readCliArgs
+  args <- P.readCliArgs
+  if CliArguments.version args then
+    versionProgram
+  else
+    compileProgram args
+
+compileProgram :: CliArguments.Args -> P.Pipeline Result
+compileProgram args = do
+  -- SETUP
   _         <- P.readConfig (CliArguments.configPath args)
   toolPaths <- P.setup
   _         <- traverse P.clearLog Logger.allLogs
@@ -72,9 +83,14 @@ program = do
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap snd out)
   return $ case warnings of
-    [] -> Nothing
-    xs -> Just $ T.unlines xs
+    [] -> Success
+    xs -> Warnings $ T.unlines xs
 
+
+versionProgram :: P.Pipeline Result
+versionProgram = do
+  version <- P.version
+  return $ Info version
 
 
 maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()

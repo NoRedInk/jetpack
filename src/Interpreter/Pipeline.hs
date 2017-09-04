@@ -9,9 +9,11 @@ import ConcatModule
 import Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import Control.Monad.Free (foldFree)
+import qualified Version
 
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
 import qualified DependencyTree
 import qualified EntryPoints
 import qualified Hooks
@@ -43,8 +45,8 @@ interpreter command =
     AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
     ClearLog fileName next               -> Logger.clearLog fileName >> return next
     Hook hookScript next                 -> next <$> Hooks.run hookScript
+    Version next                         -> next <$> (return Version.print :: Task T.Text)
     Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
-
 
 createdModulesJson :: [FilePath] -> Task ()
 createdModulesJson paths = do
