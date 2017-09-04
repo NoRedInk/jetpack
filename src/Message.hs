@@ -7,8 +7,6 @@ import qualified Data.Text as T
 import qualified Error
 import Rainbow
     ( Chunk
-    , blue
-    , brightBlue
     , brightRed
     , brightYellow
     , chunk
@@ -57,8 +55,7 @@ warning warnings = do
   putChunkLn (separator width "*" & fore yellow)
 
 info :: T.Text -> IO ()
-info msg = do
-  putChunkLn (chunk msg & fore brightBlue)
+info = putStrLn . T.unpack
 
 message :: Int -> T.Text -> Chunk T.Text
 message width msg =
