@@ -39,34 +39,13 @@ library:
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
-  exposed-modules:
-  - Lib
-  - CliArguments
-  - Compile
-  - ConcatModule
-  - Config
-  - Dependencies
-  - DependencyTree
-  - EntryPoints
-  - Env
-  - Error
-  - Hooks
-  - Init
-  - Interpreter.Pipeline
-  - Logger
-  - Message
-  - Parser.Ast
-  - Parser.Comment
-  - Parser.Import
-  - Parser.PackageJson
-  - Parser.Require
-  - Pipeline
-  - ProgressBar
-  - ProgressSpinner
-  - Resolver
-  - Task
-  - ToolPaths
-  - Version
+  other-modules:
+  - Utils.Files
+  - Utils.Free
+  - Utils.Parser
+  - Utils.Text
+  - Utils.Tree
+  - Paths_jetpack
 executables:
   jetpack:
     main: Main.hs
