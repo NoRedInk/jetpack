@@ -30,3 +30,4 @@ cabal.sandbox.config
 .DS_Store
 *~
 test/index.html
+*.cabal
