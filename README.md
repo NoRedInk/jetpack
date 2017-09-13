@@ -5,9 +5,9 @@ Motivation
 ----------
 
 Webpack didn't work out for us, since it was super slow and does way to much for our process.
-Jetpack only compiles the stuff we need and creates the concatinated output js.
+Jetpack only compiles the stuff we need and creates the concatenated output js.
 Jetpack compiles elm, coffeeScript and sass.
-Given an entrypoint it follows all `require` statements and creates a dependency-tree. It will then builds all files using the appropriate compiler and concatinates the compiled js and wraps modules in functions so that the requires know how to get the right functions.
+Given an entrypoint it follows all `require` statements and creates a dependency-tree. It will then builds all files using the appropriate compiler and concatenates the compiled js and wraps modules in functions so that the requires know how to get the right functions.
 
 
 Configuration
