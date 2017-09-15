@@ -113,6 +113,7 @@ addBoilerplate root fns =
   T.unlines
   [ "(function() {"
   , "var jetpackCache = {};"
+  , "function require(x) { throw new Error('Jetpack didn't parse this require!', x) }"
   , "function jetpackRequire(fn, fnName) {"
   , "  var e = {};"
   , "  var m = { exports : e };"
