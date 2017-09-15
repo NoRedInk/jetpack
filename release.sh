@@ -6,8 +6,8 @@ else
   ./package/mac/build-package.sh
   ./package/linux/build-in-docker.sh
 
-  sed -i '' "s/^version:\s*.*/version: ${1}/g" jetpack.cabal
-  git add jetpack.cabal
+  sed -i '' "s/^version:\s*.*/version: ${1}/g" package.yaml
+  git add package.yaml
 
   git add ./binaries
   git commit -m "bump version to $1"
