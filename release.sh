@@ -3,10 +3,13 @@
 if [ -z "$1" ]; then
   echo "You need to pass this script a new version"
 else
+  for f in package.yaml jetpack.cabal
+  do
+    sed -i '' "s/^version:\s*.*/version: ${1}/g" $f
+  done
+
   ./package/mac/build-package.sh
   ./package/linux/build-in-docker.sh
-
-  sed -i '' "s/^version:\s*.*/version: ${1}/g" package.yaml
   git add package.yaml
 
   git add ./binaries
