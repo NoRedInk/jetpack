@@ -5,15 +5,16 @@ module Main where
 import Lib
 import Control.Concurrent
 import Twitch (defaultMainWithOptions, (|>), Options(..), LoggerType(..), DebounceType(..))
+import qualified System.Console.AsciiProgress as Progress
 
 main :: IO ()
 main = do
-  threadId <- Control.Concurrent.forkIO Lib.run
-  mVar <- Control.Concurrent.newMVar threadId
+  threadId <- forkIO Lib.run
+  mVar <- newMVar threadId
 
   defaultMainWithOptions
      (Options
-         Twitch.LogToStdout -- log
+         LogToStdout -- log
          Nothing -- logFile
          (Just "ui/src") -- root
          True -- recurseThroughDirectories
@@ -30,7 +31,9 @@ rebuild mVar = do
 
   case maybeChildId of
     Nothing -> pure ()
-    Just childId -> Control.Concurrent.killThread childId
+    Just childId -> killThread childId
 
-  threadId <- Control.Concurrent.forkIO Lib.run
-  Control.Concurrent.putMVar mVar threadId
+  -- _ <- System.Process.system "reset"
+  Progress.displayConsoleRegions $ do
+    threadId <- forkIO Lib.run
+    putMVar mVar threadId
