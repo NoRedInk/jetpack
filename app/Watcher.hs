@@ -3,19 +3,23 @@
 module Main where
 
 import Lib
+import Control.Concurrent
 import Twitch (defaultMainWithOptions, (|>), Options(..), LoggerType(..), DebounceType(..))
 
 main :: IO ()
 main =
   defaultMainWithOptions
      (Options
-         NoLogger
-         Nothing
-         (Just "ui/src")
-         True
-         Debounce
-         500
-         0
-         False)
+         Twitch.LogToStdout -- log
+         -- Twitch.NoLogger -- log
+         Nothing -- logFile
+         (Just "ui/src") -- root
+         True -- recurseThroughDirectories
+         Twitch.Debounce -- debounce
+         1 -- debounceAmount
+         0 -- pollInterval
+         False -- usePolling
+     )
   $ do
-  "*.elm"   |> \_ -> Lib.run
+  "**/*.elm" |>
+    \_ -> Control.Concurrent.forkIO Lib.run
