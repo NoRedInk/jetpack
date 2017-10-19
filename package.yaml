@@ -34,6 +34,7 @@ dependencies:
 - rainbow == 0.28.0.4
 - questioner == 0.1.1.0
 - terminal-size == 0.3.2.1
+- twitch == 0.1.7.1
 library:
   source-dirs: src
   ghc-options:

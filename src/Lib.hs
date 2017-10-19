@@ -19,9 +19,27 @@ import qualified Pipeline as P
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
 import qualified Task
+import Twitch (defaultMainWithOptions, (|>), Options(..), LoggerType(..), DebounceType(..))
+
 
 run :: IO ()
-run = do
+run =
+  defaultMainWithOptions
+     (Options
+         NoLogger
+         Nothing
+         (Just "ui/src")
+         True
+         Debounce
+         500
+         0
+         False)
+  $ do
+  "*.elm"   |> \filePath -> runSingle
+
+
+runSingle :: IO ()
+runSingle = do
   result <- AsciiProgress.displayConsoleRegions
               $ Task.runTask
               $ Free.foldFree PipelineI.interpreter program
