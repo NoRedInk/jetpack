@@ -57,6 +57,15 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - jetpack
+  jetpack-watch:
+    main: Watcher.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - jetpack
 tests:
   jetpack-test:
     main: Spec.hs

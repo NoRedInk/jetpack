@@ -35,7 +35,7 @@ run =
          0
          False)
   $ do
-  "*.elm"   |> \filePath -> runSingle
+  "*.elm"   |> \_ -> runSingle
 
 
 runSingle :: IO ()
