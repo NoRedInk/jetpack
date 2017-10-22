@@ -8,7 +8,6 @@ import CliArguments (Args(..))
 import Config
 import Control.Monad.Except (throwError)
 
-import qualified Data.Maybe as M
 import Error
 import qualified System.Directory as Dir
 import System.FilePath ((</>), makeRelative)
@@ -19,11 +18,14 @@ find :: Task [FilePath]
 find = do
   Config {entry_points} <- Task.getConfig
   Args {entryPointGlob} <- Task.getArgs
-  paths <-
-    findFilesIn entry_points $ M.fromMaybe ("**" </> "*.*") entryPointGlob
+  let (root, glob) =
+        case entryPointGlob of
+          Just entryPoints -> ("", entryPoints)
+          Nothing -> (entry_points, "**" </> "*.*")
+  paths <- findFilesIn root glob
   cwd <- toTask Dir.getCurrentDirectory
   case paths of
-    [] -> throwError [NoModulesPresent $ show entry_points]
+    [] -> throwError [NoModulesPresent $ show root]
     _ -> return $ (makeRelative $ cwd </> entry_points) <$> paths
 
 {-| Returns a list of files in the given direcory and all it's subdirectories.
