@@ -2,10 +2,16 @@
 
 module Main where
 
-import Lib
 import Control.Concurrent
-import Twitch (defaultMainWithOptions, (|>), Options(..), LoggerType(..), DebounceType(..))
+import Lib
 import qualified System.Console.AsciiProgress as Progress
+import Twitch
+    ( DebounceType (..)
+    , LoggerType (..)
+    , Options (..)
+    , defaultMainWithOptions
+    , (|>)
+    )
 
 main :: IO ()
 main = do
@@ -30,7 +36,7 @@ rebuild mVar = do
   maybeChildId  <- tryTakeMVar mVar
 
   case maybeChildId of
-    Nothing -> pure ()
+    Nothing      -> pure ()
     Just childId -> killThread childId
 
   -- _ <- System.Process.system "reset"
