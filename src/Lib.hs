@@ -6,6 +6,7 @@ module Lib
   ) where
 
 import qualified CliArguments
+import Control.Concurrent (threadDelay)
 import qualified Control.Monad.Free as Free
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
@@ -23,6 +24,7 @@ import qualified Task
 
 run :: IO ()
 run = do
+  threadDelay 50000 -- quick delay because Twitch (watcher) prints something
   result <- AsciiProgress.displayConsoleRegions
               $ Task.runTask
               $ Free.foldFree PipelineI.interpreter program
