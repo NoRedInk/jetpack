@@ -14,7 +14,7 @@ main = do
 
   defaultMainWithOptions
      (Options
-         LogToStdout -- log
+         NoLogger -- log
          Nothing -- logFile
          (Just "ui/src") -- root
          True -- recurseThroughDirectories
