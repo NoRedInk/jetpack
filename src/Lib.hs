@@ -6,6 +6,7 @@ module Lib
   ) where
 
 import qualified CliArguments
+import Control.Concurrent (threadDelay)
 import qualified Control.Monad.Free as Free
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
@@ -19,6 +20,7 @@ import qualified Pipeline as P
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
 import qualified Task
+
 
 run :: IO ()
 run = do

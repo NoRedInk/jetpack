@@ -56,6 +56,16 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - jetpack
+  jetpack-watch:
+    main: Watcher.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - jetpack
+    - twitch == 0.1.7.1
 tests:
   jetpack-test:
     main: Spec.hs
