@@ -24,7 +24,6 @@ import qualified Task
 
 run :: IO ()
 run = do
-  threadDelay 100000 -- quick delay because Twitch (watcher) prints something
   result <- AsciiProgress.displayConsoleRegions
               $ Task.runTask
               $ Free.foldFree PipelineI.interpreter program
