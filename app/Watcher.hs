@@ -46,11 +46,8 @@ main = do
 
 rebuild :: MVar Control.Concurrent.ThreadId -> IO ()
 rebuild mVar = do
-  maybeChildId  <- tryTakeMVar mVar
-
-  case maybeChildId of
-    Nothing      -> pure ()
-    Just childId -> killThread childId
+  childId  <- tryTakeMVar mVar
+  traverse killThread childId
 
   -- _ <- System.Process.system "reset"
   Progress.displayConsoleRegions $ do
