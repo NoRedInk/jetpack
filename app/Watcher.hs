@@ -48,8 +48,6 @@ rebuild :: MVar Control.Concurrent.ThreadId -> IO ()
 rebuild mVar = do
   childId  <- tryTakeMVar mVar
   traverse killThread childId
-
-  -- _ <- System.Process.system "reset"
   Progress.displayConsoleRegions $ do
     threadId <- forkIO Lib.run
     putMVar mVar threadId
