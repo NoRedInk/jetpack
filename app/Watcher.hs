@@ -4,10 +4,18 @@ module Main where
 
 import qualified Config
 import Control.Concurrent
+import Control.Monad.Except (throwError)
 import Data.Foldable (for_)
-import qualified Lib
+import qualified Data.Text as T
+import Error
+import GHC.IO.Handle
 import qualified System.Console.AsciiProgress as Progress
 import qualified System.Directory as Dir
+import System.Environment
+import System.Exit
+import System.FilePath ()
+import System.Process
+import Task (Task, toTask)
 import qualified Task
 import Twitch
     ( DebounceType (..)
@@ -29,6 +37,7 @@ main = Progress.displayConsoleRegions $ do
 watch :: Config.Config -> IO ()
 watch config = do
   mVar <- newEmptyMVar
+  rebuild mVar
   defaultMainWithOptions (options config)
     $ for_ fileTypesToWatch
     $ addModify
@@ -53,13 +62,20 @@ options config =
     (Just $ Config.source_directory config) -- root
     True -- recurseThroughDirectories
     Twitch.Debounce -- debounce
-    1 -- debounceAmount
+    (10^6) -- debounceAmount (1sec)
     0 -- pollInterval
     False -- usePolling
 
-rebuild :: MVar Control.Concurrent.ThreadId -> IO ()
+rebuild :: MVar ProcessHandle -> IO ()
 rebuild mVar = do
-  childId  <- tryTakeMVar mVar
-  for_ childId killThread
-  threadId <- forkIO Lib.run
-  putMVar mVar threadId
+  runningProcess  <- tryTakeMVar mVar
+  for_ runningProcess terminateProcess
+  ph <- run
+  putMVar mVar ph
+
+run :: IO ProcessHandle
+run = do
+  args <- getArgs
+  let argsAsString = unwords args
+  (_, _, _, ph) <- createProcess (proc "bash" ["-c", "jetpack " ++ argsAsString]) { cwd = Nothing }
+  return ph
