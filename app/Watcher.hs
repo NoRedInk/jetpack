@@ -69,6 +69,8 @@ options config =
 rebuild :: MVar ProcessHandle -> IO ()
 rebuild mVar = do
   runningProcess  <- tryTakeMVar mVar
+  -- NOTE: there might be a race condition here,
+  -- where we didn't add the process handle to the MVar yet.
   for_ runningProcess terminateProcess
   ph <- run
   putMVar mVar ph
