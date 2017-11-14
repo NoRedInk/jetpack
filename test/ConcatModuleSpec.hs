@@ -133,10 +133,10 @@ suite =
         wrapModule "" "" @?= ""
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
-    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function, fnName)" $ do
+    , testCase "#replaceRequire replaces require('string') with jetpackRequire(function, fnName)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require('foo')"
         @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
-    , testCase "#replaceRequire replaces require(string) with jetpackRequire(function, fnName)" $ do
+    , testCase "#replaceRequire replaces require(\"string\") with jetpackRequire(function, fnName)" $ do
         replaceRequire (mockDependency "foo" $ "ui" </> "src" </> "foo") "var x = require(\"foo\")"
         @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
