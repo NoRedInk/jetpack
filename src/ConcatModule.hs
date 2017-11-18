@@ -49,7 +49,7 @@ replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
   T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
   where fnName = T.unpack $ F.pathToFunctionName filePath "js"
-        requireRegex = mkRegex $ "require\\(['\"]" ++ requiredAs ++ "['\"]\\)"
+        requireRegex = mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
         jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
 
 compilesToJs :: Dependency -> Bool
