@@ -43,7 +43,9 @@ stringContent = P.choice [quotes manyNotQuotes, doubleQuotes manyNotQuotes]
     expecting "("
 -}
 betweenParens :: P.Parsec T.Text u String -> P.Parsec T.Text u String
-betweenParens = P.between (P.char '(') $ P.char ')'
+betweenParens = P.between openAndSpaces spacesAndClose
+  where openAndSpaces = (P.char '(') *> (P.skipMany P.space)
+        spacesAndClose = (P.skipMany P.space) *> (P.char ')')
 
 
 manyNotQuotes :: P.Parsec T.Text u String
