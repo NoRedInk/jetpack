@@ -44,6 +44,9 @@ suite =
     , testCase "no ext" $
       assertRequire "require(\"foo.bar\")"
         [ Ast.Require Ast.Js $ "foo" <.> "bar" ]
+    , testCase "with whitespaces" $
+      assertRequire "require( \t\"jquery\"\t )"
+        [ Ast.Require Ast.Js $ "jquery" ]
     , testCase "js" $
       assertRequire "require(\"foo.bar.js\")"
         [ Ast.Require Ast.Js $ "foo" <.> "bar.js" ]
