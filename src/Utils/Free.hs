@@ -6,12 +6,8 @@ module Utils.Free
 import Control.Monad.Free (Free, hoistFree)
 import Data.Functor.Sum (Sum(..))
 
-toLeft
-  :: (Functor f, Functor g)
-  => Free f a -> Free (Sum f g) a
+toLeft :: (Functor f, Functor g) => Free f a -> Free (Sum f g) a
 toLeft = hoistFree InL
 
-toRight
-  :: (Functor f, Functor g)
-  => Free g a -> Free (Sum f g) a
+toRight :: (Functor f, Functor g) => Free g a -> Free (Sum f g) a
 toRight = hoistFree InR
