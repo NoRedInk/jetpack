@@ -9,46 +9,50 @@ github: githubuser/jetpack
 extra-source-files:
 - README.md
 default-extensions:
+- DeriveFunctor
+- DeriveGeneric
+- DuplicateRecordFields
 - NamedFieldPuns
 - OverloadedStrings
+- PackageImports
 dependencies:
-- base >= 4.7 && < 5
-- aeson == 1.1.2.0
-- text == 1.2.2.2
-- filepath == 1.4.1.1
-- containers == 0.5.7.1
-- transformers == 0.5.2.0
-- mtl == 2.2.1
-- directory == 1.3.0.0
-- parsec == 3.1.11
-- free == 4.12.4
-- filepath == 1.4.1.1
 - Glob == 0.8.0
-- process == 1.4.3.0
 - MissingH == 1.4.0.1
-- lifted-async == 0.9.3
-- unix == 2.7.2.1
-- time == 1.6.0.1
-- bytestring == 0.10.8.1
-- safe == 0.3.15
+- aeson == 1.1.2.0
 - ascii-progress == 0.3.3.0
-- regex-compat == 0.95.1
+- base >= 4.7 && < 5
+- bytestring == 0.10.8.1
+- containers == 0.5.7.1
+- directory == 1.3.0.0
+- filepath == 1.4.1.1
+- filepath == 1.4.1.1
+- free == 4.12.4
+- lifted-async == 0.9.3
+- mtl == 2.2.1
 - optparse-applicative == 0.13.2.0
-- rainbow == 0.28.0.4
+- parsec == 3.1.11
+- process == 1.4.3.0
 - questioner == 0.1.1.0
+- rainbow == 0.28.0.4
+- regex-compat == 0.95.1
+- safe == 0.3.15
 - terminal-size == 0.3.2.1
+- text == 1.2.2.2
+- time == 1.6.0.1
+- transformers == 0.5.2.0
+- unix == 2.7.2.1
 library:
   source-dirs: src
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
   other-modules:
+  - Paths_jetpack
   - Utils.Files
   - Utils.Free
   - Utils.Parser
   - Utils.Text
   - Utils.Tree
-  - Paths_jetpack
 executables:
   jetpack:
     main: Main.hs

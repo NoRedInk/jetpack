@@ -1,5 +1,3 @@
-{-# LANGUAGE PackageImports #-}
-
 {-| Finds all entrypoints. Find either uses a passed glob or **/*.* to search in the `entry_points`.
 -}
 module EntryPoints

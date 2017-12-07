@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 {-| Parser for line and block comments in js or coffeescript.
 
 

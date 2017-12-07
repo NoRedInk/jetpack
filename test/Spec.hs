@@ -32,4 +32,11 @@ runTests = do
 runDocTests :: IO ()
 runDocTests = do
   tests <- glob "src/**/*.hs"
-  doctest (["-XNamedFieldPuns", "-XOverloadedStrings"] ++ tests)
+  doctest
+    ([ "-XNamedFieldPuns"
+     , "-XOverloadedStrings"
+     , "-XDeriveFunctor"
+     , "-XDeriveGeneric"
+     , "-XPackageImports"
+     ] ++
+     tests)

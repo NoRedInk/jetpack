@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Parser.PackageJson where
 
 import Control.Monad.Except (throwError)

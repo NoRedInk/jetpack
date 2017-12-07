@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 {-| Resolves `requires`-statements. It tries to locate the module in the following directories.
 
 1. relative to the file requiring the module

@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 {-| Finds all dependencies of a module. It creates a try like the following for each module.
   ```
   (Dependency "./app/assets/modules/js/Super/foo_bar.js" Js <fullpath>)
@@ -121,7 +118,7 @@ findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
 findInCache_ dep = fmap toTuple . searchNode ((==) dep . Tree.rootLabel)
   where
-    toTuple Tree.Node {rootLabel, subForest} =
+    toTuple Tree.Node {Tree.rootLabel, Tree.subForest} =
       (rootLabel, fmap Tree.rootLabel subForest)
 
 parseModule ::

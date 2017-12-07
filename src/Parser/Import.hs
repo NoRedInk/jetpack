@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 {-| Parser for `import`s in elm.
 * It returns a list of `Elm String`
 * It ignores `import`s in commments.
