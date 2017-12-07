@@ -7,7 +7,6 @@ import Data.Foldable (for_)
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
-import qualified System.Console.AsciiProgress as Progress
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
@@ -20,13 +19,12 @@ import Twitch
         defaultMainWithOptions)
 
 main :: IO ()
-main =
-  Progress.displayConsoleRegions $ do
-    cwd <- Dir.getCurrentDirectory
-    maybeConfig <- Task.runTask $ Config.load cwd
-    case maybeConfig of
-      Right (Just config) -> watch config
-      _ -> putStrLn "no jetpack config found."
+main = do
+  cwd <- Dir.getCurrentDirectory
+  maybeConfig <- Task.runTask $ Config.load cwd
+  case maybeConfig of
+    Right (Just config) -> watch config
+    _ -> putStrLn "no jetpack config found."
 
 watch :: Config.Config -> IO ()
 watch config = do
