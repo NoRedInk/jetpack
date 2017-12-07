@@ -30,4 +30,13 @@ runTests = do
       ]
 
 runDocTests :: IO ()
-runDocTests = glob "src/**/*.hs" >>= doctest
+runDocTests = do
+  tests <- glob "src/**/*.hs"
+  doctest
+    ([ "-XDeriveFunctor"
+     , "-XDeriveGeneric"
+     , "-XNamedFieldPuns"
+     , "-XOverloadedStrings"
+     , "-XPackageImports"
+     ] ++
+     tests)

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module ConfigSpec where
 
 import Config
@@ -19,18 +17,18 @@ suite =
           Left _ -> assertFailure $ "Couldn't decode jetpack.json"
           Right config ->
             config @=?
-            Just ( Config.Config
-              ("app" </> "modules")
-              []
-              ("app" </> "sources")
-              ("app" </> "sources")
-              []
-              ("app" </> "tmp")
-              ("app" </> "logs")
-              ("app" </> "js")
-              ("app" </> "css")
-              Nothing
-              Nothing
-              Nothing
-            )
+            Just
+              (Config.Config
+                 ("app" </> "modules")
+                 []
+                 ("app" </> "sources")
+                 ("app" </> "sources")
+                 []
+                 ("app" </> "tmp")
+                 ("app" </> "logs")
+                 ("app" </> "js")
+                 ("app" </> "css")
+                 Nothing
+                 Nothing
+                 Nothing)
     ]

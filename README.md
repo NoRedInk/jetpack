@@ -47,10 +47,10 @@ stack build
 stack test
 ```
 
-* install `stylish` `stack install stylish`
 * install [`entr`](http://entrproject.org/)
 
 Run `./watch-tests` during development. It will rerun all tests when a `hs` file changes.
+Run `./hindent.sh` to format everything correctly.
 
 ### Releasing a new version
 
