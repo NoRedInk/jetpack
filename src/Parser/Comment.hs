@@ -4,7 +4,6 @@
 
 
 ### imports for doctests
-   >>> :set -XOverloadedStrings
    >>> import qualified Data.Text as T
 -}
 module Parser.Comment

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
 import qualified Config
@@ -18,41 +16,28 @@ import System.Process
 import Task (Task, toTask)
 import qualified Task
 import Twitch
-    ( DebounceType (..)
-    , Dep
-    , LoggerType (..)
-    , Options (..)
-    , addModify
-    , defaultMainWithOptions
-    )
+       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify,
+        defaultMainWithOptions)
 
 main :: IO ()
-main = Progress.displayConsoleRegions $ do
-  cwd <- Dir.getCurrentDirectory
-  maybeConfig <- Task.runTask $ Config.load cwd
-  case maybeConfig of
-    Right (Just config) -> watch config
-    _                   -> putStrLn "no jetpack config found."
+main =
+  Progress.displayConsoleRegions $ do
+    cwd <- Dir.getCurrentDirectory
+    maybeConfig <- Task.runTask $ Config.load cwd
+    case maybeConfig of
+      Right (Just config) -> watch config
+      _ -> putStrLn "no jetpack config found."
 
 watch :: Config.Config -> IO ()
 watch config = do
   mVar <- newEmptyMVar
   rebuild mVar
-  defaultMainWithOptions (options config)
-    $ for_ fileTypesToWatch
-    $ addModify
-    $ const
-    $ rebuild mVar
+  defaultMainWithOptions (options config) $
+    for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
 
 fileTypesToWatch :: [Dep]
 fileTypesToWatch =
-  [ "**/*.elm"
-  , "**/*.coffee"
-  , "**/*.js"
-  , "**/*.sass"
-  , "**/*.scss"
-  , "**/*.json"
-  ]
+  ["**/*.elm", "**/*.coffee", "**/*.js", "**/*.sass", "**/*.scss", "**/*.json"]
 
 options :: Config.Config -> Options
 options config =
@@ -62,13 +47,13 @@ options config =
     (Just $ Config.source_directory config) -- root
     True -- recurseThroughDirectories
     Twitch.Debounce -- debounce
-    (10^6) -- debounceAmount (1sec)
+    (10 ^ 6) -- debounceAmount (1sec)
     0 -- pollInterval
     False -- usePolling
 
 rebuild :: MVar ProcessHandle -> IO ()
 rebuild mVar = do
-  runningProcess  <- tryTakeMVar mVar
+  runningProcess <- tryTakeMVar mVar
   -- NOTE: there might be a race condition here,
   -- where we didn't add the process handle to the MVar yet.
   for_ runningProcess terminateProcess
@@ -79,5 +64,7 @@ run :: IO ProcessHandle
 run = do
   args <- getArgs
   let argsAsString = unwords args
-  (_, _, _, ph) <- createProcess (proc "bash" ["-c", "jetpack " ++ argsAsString]) { cwd = Nothing }
+  (_, _, _, ph) <-
+    createProcess
+      (proc "bash" ["-c", "jetpack " ++ argsAsString]) {cwd = Nothing}
   return ph

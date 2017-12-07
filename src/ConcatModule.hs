@@ -138,7 +138,6 @@ addBoilerplate root fns =
     ]
 
 {-| Wraps a module in a function and injects require, module, exports.
-    >>> :set -XOverloadedStrings
     >>> wrapModule "foo" "console.log(42);"
     "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);} /* END: foo */\n"
 -}

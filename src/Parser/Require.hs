@@ -8,7 +8,6 @@
 ### imports for doctests
    >>> import Parser.Ast
    >>> import qualified Data.Text as T
-   >>> :set -XOverloadedStrings
 -}
 module Parser.Require
   ( requires

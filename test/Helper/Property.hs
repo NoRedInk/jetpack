@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-| Helpers for property based tests.
 -}
 module Helper.Property where

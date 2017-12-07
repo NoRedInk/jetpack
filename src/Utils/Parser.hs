@@ -8,7 +8,6 @@ import qualified Data.Text as T
 import qualified Text.Parsec as P
 
 {-| imports for doctests
-    >>> :set -XOverloadedStrings
     >>> import qualified Text.Parsec as P
     >>> import qualified Data.Text as T
 -}

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Parser.CommentSpec where
 
 import Control.Monad.Except (runExceptT)
@@ -68,7 +66,8 @@ properties =
         (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) /=
         (codeWithJsComments b1 b2 b3)
     , testProperty "#eatJsComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatJsComments $ codeWithJsComments b1 b2 b3) ==
+        code b1 b2 b3
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatCoffeeComments $
          Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) ==
@@ -77,7 +76,8 @@ properties =
         (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) /=
         (codeWithCoffeeComments b1 b2 b3)
     , testProperty "#eatCoffeeComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatCoffeeComments $ codeWithCoffeeComments b1 b2 b3) ==
+        code b1 b2 b3
     , testProperty "#eatElmComments" $ \b1 b2 b3 ->
         (Parser.Comment.eatElmComments $
          Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) ==
@@ -86,7 +86,8 @@ properties =
         (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) /=
         (codeWithElmComments b1 b2 b3)
     , testProperty "#eatElmComments" $ \b1 b2 b3 ->
-        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) == code b1 b2 b3
+        (Parser.Comment.eatElmComments $ codeWithElmComments b1 b2 b3) ==
+        code b1 b2 b3
     ]
   where
     code (CodeNoComments b1) (CodeNoComments b2) (CodeNoComments b3) =
