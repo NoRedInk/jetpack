@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-| Parser for `import`s in elm.
 * It returns a list of `Elm String`
@@ -29,7 +28,7 @@ import' :: T.Text -> Maybe Ast.Require
 import' content =
   case extractImport content of
     Right mod -> Just $ Ast.Import $ T.pack mod
-    Left _    -> Nothing
+    Left _ -> Nothing
 
 {-| running the parser
    >>> extractImport "import Page.Foo.Bar exposing (view)"

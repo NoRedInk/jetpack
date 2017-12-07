@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-| Setup working dir for jetpack.
 -}
 module Init where

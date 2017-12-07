@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Logger
   ( clearLog

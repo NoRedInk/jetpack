@@ -41,6 +41,7 @@ library:
   - -fno-warn-name-shadowing
   default-extensions:
   - NamedFieldPuns
+  - OverloadedStrings
   other-modules:
   - Utils.Files
   - Utils.Free

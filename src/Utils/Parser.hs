@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Utils.Parser
   ( stringContent
   , betweenParens
@@ -44,16 +42,17 @@ stringContent = P.choice [quotes manyNotQuotes, doubleQuotes manyNotQuotes]
 -}
 betweenParens :: P.Parsec T.Text u String -> P.Parsec T.Text u String
 betweenParens = P.between openAndSpaces spacesAndClose
-  where openAndSpaces = (P.char '(') *> (P.skipMany P.space)
-        spacesAndClose = (P.skipMany P.space) *> (P.char ')')
-
+  where
+    openAndSpaces = (P.char '(') *> (P.skipMany P.space)
+    spacesAndClose = (P.skipMany P.space) *> (P.char ')')
 
 manyNotQuotes :: P.Parsec T.Text u String
 manyNotQuotes = P.many1 $ P.noneOf "'\""
 
-between :: P.Parsec T.Text u Char
-        -> P.Parsec T.Text u String
-        -> P.Parsec T.Text u String
+between ::
+     P.Parsec T.Text u Char
+  -> P.Parsec T.Text u String
+  -> P.Parsec T.Text u String
 between c = P.between c c
 
 quotes :: P.Parsec T.Text u String -> P.Parsec T.Text u String

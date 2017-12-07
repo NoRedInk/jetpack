@@ -1,8 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-| Helpers for working with files/paths/dirs)
 -}
-
 module Utils.Files
   ( fileExistsTask
   , pathToFileName
@@ -13,9 +10,9 @@ import Control.Monad.Except
 
 import Data.List as L
 import Data.Text as T
-import Error (Error (..))
+import Error (Error(..))
 import System.Directory (doesFileExist)
-import System.FilePath (splitDirectories, (<.>))
+import System.FilePath ((<.>), splitDirectories)
 import Task (Task, toTask)
 
 {-| Checks if file exists and returns a failing task if it doesn't
@@ -24,7 +21,7 @@ fileExistsTask :: FilePath -> Task ()
 fileExistsTask path = do
   exists <- toTask $ doesFileExist path
   case exists of
-    True  -> toTask $ return ()
+    True -> toTask $ return ()
     False -> throwError $ [FileNotFound (show path)]
 
 {-| Converts a path into a flat filename.
@@ -36,17 +33,14 @@ fileExistsTask path = do
     "bar.elm.js"
 -}
 pathToFileName :: FilePath -> String -> FilePath
-pathToFileName filePath extension =
-  newFileName <.> extension
+pathToFileName filePath extension = newFileName <.> extension
   where
     newFileName =
-      T.unpack
-        $ T.replace "-" "_"
-        $ T.concat
-        $ L.intersperse "___"
-        $ L.filter ((/=) ".")
-        $ L.map T.pack
-        $ splitDirectories filePath
+      T.unpack $
+      T.replace "-" "_" $
+      T.concat $
+      L.intersperse "___" $
+      L.filter ((/=) ".") $ L.map T.pack $ splitDirectories filePath
 
 pathToFunctionName :: FilePath -> String -> T.Text
 pathToFunctionName filePath extension =

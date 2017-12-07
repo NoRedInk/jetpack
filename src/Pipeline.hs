@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE OverloadedStrings         #-}
 
 {-| This is our grammar to build jetpack.
 -}
@@ -13,27 +12,43 @@ import Dependencies (Dependencies, Dependency, DependencyTree)
 import System.FilePath ()
 import ToolPaths
 
-
 data PipelineF next
   = ReadCliArgs (Args -> next)
-  | ReadConfig (Maybe FilePath) (Config -> next)
+  | ReadConfig (Maybe FilePath)
+               (Config -> next)
   | ReadDependencyCache (Dependencies -> next)
-  | WriteDependencyCache Dependencies next
+  | WriteDependencyCache Dependencies
+                         next
   | FindEntryPoints ([FilePath] -> next)
-  | FindDependency Dependencies FilePath (DependencyTree -> next)
-  | Compile ToolPaths Dependency ((T.Text, Maybe T.Text) -> next)
+  | FindDependency Dependencies
+                   FilePath
+                   (DependencyTree -> next)
+  | Compile ToolPaths
+            Dependency
+            ((T.Text, Maybe T.Text) -> next)
   | Init (ToolPaths -> next)
-  | ConcatModule DependencyTree (FilePath -> next)
-  | OutputCreatedModules [FilePath] next
-  | StartProgress T.Text Int next
+  | ConcatModule DependencyTree
+                 (FilePath -> next)
+  | OutputCreatedModules [FilePath]
+                         next
+  | StartProgress T.Text
+                  Int
+                  next
   | EndProgress next
-  | StartSpinner T.Text next
-  | EndSpinner T.Text next
-  | AppendLog T.Text T.Text next
-  | ClearLog T.Text next
-  | Hook String (T.Text -> next)
+  | StartSpinner T.Text
+                 next
+  | EndSpinner T.Text
+               next
+  | AppendLog T.Text
+              T.Text
+              next
+  | ClearLog T.Text
+             next
+  | Hook String
+         (T.Text -> next)
   | Version (T.Text -> next)
-  | forall a.Async [Pipeline a] ([a] -> next)
+  | forall a. Async [Pipeline a]
+                    ([a] -> next)
 
 instance Functor PipelineF where
   fmap f (ReadCliArgs g) = ReadCliArgs (f . g)
@@ -60,7 +75,6 @@ type Pipeline = Free PipelineF
 
 -- Helper functions to create a `Free PiplineF`
 --
-
 async :: [Pipeline a] -> Pipeline [a]
 async commands = liftF $ Async commands id
 
@@ -86,7 +100,7 @@ compile :: ToolPaths -> Dependency -> Pipeline (T.Text, Maybe T.Text)
 compile toolPaths dep = liftF $ Compile toolPaths dep id
 
 setup :: Pipeline ToolPaths
-setup  = liftF $ Init id
+setup = liftF $ Init id
 
 concatModule :: DependencyTree -> Pipeline FilePath
 concatModule dependency = liftF $ ConcatModule dependency id

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-| Concat all modules required in an entrypoint into one file.
 -}
 module ConcatModule where

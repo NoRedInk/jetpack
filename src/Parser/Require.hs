@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-| Parser for `require` in js and coffeescript.
 * It returns a list of `Require (Coffee|Js|Elm|Sass) fileName`
@@ -22,7 +21,7 @@ module Parser.Require
 import qualified Data.Text as T
 import Parser.Ast as Ast
 import Parser.Comment as Comment
-import System.FilePath (splitExtension, (<.>))
+import System.FilePath ((<.>), splitExtension)
 import Text.Parsec
 import qualified Utils.Parser as UP
 
@@ -50,9 +49,9 @@ requires sourceType = concatMap require . T.lines . eatComments
   where
     eatComments =
       case sourceType of
-        Ast.Js     -> Comment.eatJsComments
+        Ast.Js -> Comment.eatJsComments
         Ast.Coffee -> Comment.eatCoffeeComments
-        _          -> id
+        _ -> id
 
 {-| Partially applied `requires` for js files.
 -}
@@ -78,8 +77,9 @@ coffeeRequires = requires Ast.Coffee
 require :: T.Text -> [Ast.Require]
 require content =
   case extractRequire content of
-    Right rs -> fmap (\(path, ext) -> Ast.Require (getFileType ext) $ path <.> ext) rs
-    Left _            -> []
+    Right rs ->
+      fmap (\(path, ext) -> Ast.Require (getFileType ext) $ path <.> ext) rs
+    Left _ -> []
 
 {-| Converts a file extension into a union type.
 
@@ -93,10 +93,10 @@ This is because you might importe something like `require('MyModule.Foo')`
 -}
 getFileType :: String -> Ast.SourceType
 getFileType ".coffee" = Coffee
-getFileType ".elm"    = Elm
-getFileType ".sass"   = Sass
-getFileType ".js"     = Js
-getFileType _         = Js
+getFileType ".elm" = Elm
+getFileType ".sass" = Sass
+getFileType ".js" = Js
+getFileType _ = Js
 
 {-| running the parser
 -}
