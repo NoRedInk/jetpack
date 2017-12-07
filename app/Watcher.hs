@@ -7,10 +7,14 @@ import Data.Foldable (for_)
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
+import qualified Lib
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
 import System.FilePath ()
+import System.Posix.Process
+import System.Posix.Signals
+import System.Posix.Types (ProcessID)
 import System.Process
 import Task (Task, toTask)
 import qualified Task
@@ -49,20 +53,19 @@ options config =
     0 -- pollInterval
     False -- usePolling
 
-rebuild :: MVar ProcessHandle -> IO ()
+rebuild :: MVar ProcessID -> IO ()
 rebuild mVar = do
   runningProcess <- tryTakeMVar mVar
   -- NOTE: there might be a race condition here,
   -- where we didn't add the process handle to the MVar yet.
-  for_ runningProcess terminateProcess
-  ph <- run
-  putMVar mVar ph
+  for_ runningProcess (signalProcess softwareTermination)
+  for_ runningProcess (getProcessStatus True False) -- here be dragons, potentially
+  processID <- run
+  putMVar mVar processID
 
-run :: IO ProcessHandle
+run :: IO ProcessID
 run = do
   args <- getArgs
   let argsAsString = unwords args
-  (_, _, _, ph) <-
-    createProcess
-      (proc "bash" ["-c", "jetpack " ++ argsAsString]) {cwd = Nothing}
-  return ph
+  procId <- forkProcess Lib.run
+  return procId
