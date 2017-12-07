@@ -7,6 +7,7 @@ module Env
   ) where
 
 import Data.Aeson as Aeson
+import qualified Data.Text as T
 import Data.Time.Clock
 import GHC.Generics (Generic)
 import qualified System.Console.AsciiProgress as Progress
@@ -42,6 +43,7 @@ data Config = Config
   , elm_make_path        :: Maybe FilePath
   , sassc_path           :: Maybe FilePath
   , coffee_path          :: Maybe FilePath
+  , no_parse             :: [T.Text]
   } deriving (Show, Eq, Generic)
 
 

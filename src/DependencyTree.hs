@@ -128,7 +128,19 @@ parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do
+      Config {no_parse} <- Task.getConfig
       content <- toTask $ readFile filePath
       let requires = parser $ T.pack content
-      let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
+      let filteredRequires = filter (not . noParse no_parse) requires
+      let dependencies = fmap (requireToDep $ takeDirectory filePath) filteredRequires
       return (dep, dependencies)
+
+noParse :: [T.Text] -> Ast.Require -> Bool
+noParse paths require =
+  case require of
+    Ast.Require _ filePath ->
+      case paths of
+        [] -> False
+        x:xs ->
+          x == (T.pack filePath) || noParse xs require
+    Ast.Import _ -> False

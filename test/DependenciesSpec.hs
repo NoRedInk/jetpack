@@ -34,6 +34,7 @@ basicsFixtures =
     Nothing
     Nothing
     Nothing
+    ["./notParsed.coffee"]
 
 failingFixtures :: Config
 failingFixtures =
@@ -50,6 +51,7 @@ failingFixtures =
     Nothing
     Nothing
     Nothing
+    ["./notParsed.coffee"]
 
 suite :: TestTree
 suite =
