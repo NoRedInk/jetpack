@@ -39,6 +39,8 @@ library:
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
+  default-extensions:
+  - NamedFieldPuns
   other-modules:
   - Utils.Files
   - Utils.Free

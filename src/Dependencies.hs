@@ -1,7 +1,6 @@
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Dependencies
   ( Dependencies
@@ -17,18 +16,20 @@ import qualified Parser.Ast as Ast
 import System.FilePath ()
 
 data Dependency = Dependency
-  { fileType             :: Ast.SourceType
-  , requiredAs           :: FilePath
-  , filePath             :: FilePath
+  { fileType :: Ast.SourceType
+  , requiredAs :: FilePath
+  , filePath :: FilePath
   , lastModificationTime :: Maybe UTCTime
   } deriving (Eq, Generic)
 
 instance FromJSON Dependency
+
 instance ToJSON Dependency
 
 instance Show Dependency where
   show (Dependency t r p l) =
-    "(Dependency: " ++ show r ++ " " ++ show t ++ " <" ++ show p ++ "> " ++ show l ++ ")"
+    "(Dependency: " ++
+    show r ++ " " ++ show t ++ " <" ++ show p ++ "> " ++ show l ++ ")"
 
 type DependencyTree = Tree.Tree Dependency
 

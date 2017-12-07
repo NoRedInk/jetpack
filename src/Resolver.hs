@@ -1,7 +1,6 @@
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-| Resolves `requires`-statements. It tries to locate the module in the following directories.
 
@@ -28,19 +27,21 @@ In each directory we search for the following names.
 8. `{folder}/{name}/index.coffee`
 
 -}
-module Resolver (resolve) where
+module Resolver
+  ( resolve
+  ) where
 
-import Config (Config (..))
+import Config (Config(..))
 import Control.Applicative ((<|>))
 import Control.Monad.Except (throwError)
 
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
-import Dependencies (Dependency (..))
-import Error (Error (ModuleNotFound))
+import Dependencies (Dependency(..))
+import Error (Error(ModuleNotFound))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
-import System.FilePath (takeExtension, (<.>), (</>))
+import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
 import Task (Task, getConfig, toTask)
 import Utils.Files (fileExistsTask)
@@ -48,17 +49,15 @@ import Utils.Files (fileExistsTask)
 resolve :: Dependency -> Task Dependency
 resolve dep = do
   Config {modules_directories} <- Task.getConfig
-  resolved <- findRelative dep
-    <|> findRelativeNodeModules dep
-    <|> findInEntryPoints dep
-    <|> findInSources dep
-    <|> findInModules dep modules_directories
-    <|> moduleNotFound (requiredAs dep)
+  resolved <-
+    findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
+    findInSources dep <|>
+    findInModules dep modules_directories <|>
+    moduleNotFound (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
-findRelative parent =
-  tryToFind (filePath parent) (requiredAs parent) parent
+findRelative parent = tryToFind (filePath parent) (requiredAs parent) parent
 
 findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
@@ -70,10 +69,9 @@ findInEntryPoints parent = do
   tryToFind entry_points (requiredAs parent) parent
 
 findInModules :: Dependency -> [FilePath] -> Task Dependency
-findInModules parent []= moduleNotFound (requiredAs parent)
-findInModules parent ( x:xs )=
-  tryToFind x (requiredAs parent) parent
-  <|> findInModules parent xs
+findInModules parent [] = moduleNotFound (requiredAs parent)
+findInModules parent (x:xs) =
+  tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
 findInSources :: Dependency -> Task Dependency
 findInSources parent = do
@@ -90,33 +88,35 @@ tryToFind basePath fileName require = do
 
 tryJs :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryJs basePath fileName require =
-  tryMainFromPackageJson basePath fileName require
-  <|> moduleExistsInBase "" require
-  <|> moduleExistsInBase fileName require
-  <|> moduleExistsInBase (fileName <.> "js") require
-  <|> moduleExistsInBase (fileName </> "index.js") require
-  where moduleExistsInBase = moduleExists basePath
+  tryMainFromPackageJson basePath fileName require <|>
+  moduleExistsInBase "" require <|>
+  moduleExistsInBase fileName require <|>
+  moduleExistsInBase (fileName <.> "js") require <|>
+  moduleExistsInBase (fileName </> "index.js") require
+  where
+    moduleExistsInBase = moduleExists basePath
 
 tryJsWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryJsWithExt basePath fileName require =
-  tryMainFromPackageJson basePath fileName require
-  <|> moduleExistsInBase "" require
-  <|> moduleExistsInBase fileName require
-  where moduleExistsInBase = moduleExists basePath
+  tryMainFromPackageJson basePath fileName require <|>
+  moduleExistsInBase "" require <|>
+  moduleExistsInBase fileName require
+  where
+    moduleExistsInBase = moduleExists basePath
 
 tryCoffee :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryCoffee basePath fileName require =
-  moduleExistsInBase fileName require
-  <|> moduleExistsInBase (fileName <.> "coffee") require
-  <|> moduleExistsInBase (fileName </> "index.coffee") require
-  where moduleExistsInBase = moduleExists basePath
+  moduleExistsInBase fileName require <|>
+  moduleExistsInBase (fileName <.> "coffee") require <|>
+  moduleExistsInBase (fileName </> "index.coffee") require
+  where
+    moduleExistsInBase = moduleExists basePath
 
 tryCoffeeWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryCoffeeWithExt basePath fileName require =
-  moduleExistsInBase "" require
-  <|> moduleExistsInBase fileName require
-  where moduleExistsInBase = moduleExists basePath
-
+  moduleExistsInBase "" require <|> moduleExistsInBase fileName require
+  where
+    moduleExistsInBase = moduleExists basePath
 
 {-| check if we have a package.json. It contains information about the main file.
 -}
@@ -136,15 +136,19 @@ moduleNotFound fileName = do
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =
-  fileExistsTask searchPath >> return (require { filePath = searchPath })
-  where searchPath = basePath </> path
+  fileExistsTask searchPath >> return (require {filePath = searchPath})
+  where
+    searchPath = basePath </> path
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
-  where newType = Parser.Require.getFileType $ takeExtension p
+  where
+    newType = Parser.Require.getFileType $ takeExtension p
 
 updateDepTime :: Dependency -> Task Dependency
-updateDepTime (Dependency t r p _) = toTask $ do
-  status <- getFileStatus p
-  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency t r p $ Just lastModificationTime
+updateDepTime (Dependency t r p _) =
+  toTask $ do
+    status <- getFileStatus p
+    let lastModificationTime =
+          posixSecondsToUTCTime $ modificationTimeHiRes status
+    return $ Dependency t r p $ Just lastModificationTime

@@ -1,7 +1,6 @@
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-| Finds all dependencies of a module. It creates a try like the following for each module.
   ```
@@ -65,7 +64,7 @@ import qualified Parser.Require
 import qualified ProgressBar
 import qualified Resolver
 import Safe
-import System.FilePath (takeDirectory, (<.>), (</>))
+import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
 import Task (Task, getConfig, toTask)
 import Utils.Tree (searchNode)
@@ -86,44 +85,51 @@ buildTree cache dep = do
 
 readTreeCache :: Task Dependencies
 readTreeCache = do
-  Config{temp_directory} <- Task.getConfig
+  Config {temp_directory} <- Task.getConfig
   depsJson <- toTask $ BL.readFile $ temp_directory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
 
 writeTreeCache :: Dependencies -> Task ()
-writeTreeCache  deps = do
-  Config{temp_directory} <- Task.getConfig
-  toTask $ BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
+writeTreeCache deps = do
+  Config {temp_directory} <- Task.getConfig
+  toTask $
+    BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
-toDependency entry_points path  = toTask $ do
-  status <- getFileStatus $ entry_points </> path
-  let lastModificationTime = posixSecondsToUTCTime $ modificationTimeHiRes status
-  return $ Dependency Ast.Js path path $ Just lastModificationTime
+toDependency entry_points path =
+  toTask $ do
+    status <- getFileStatus $ entry_points </> path
+    let lastModificationTime =
+          posixSecondsToUTCTime $ modificationTimeHiRes status
+    return $ Dependency Ast.Js path path $ Just lastModificationTime
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
-requireToDep _path (Ast.Import _n)  = undefined
+requireToDep _path (Ast.Import _n) = undefined
 
 findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
 findRequires cache parent = do
   resolved <- Resolver.resolve parent
   case fileType resolved of
-    Ast.Js     -> parseModule cache resolved Parser.Require.jsRequires
+    Ast.Js -> parseModule cache resolved Parser.Require.jsRequires
     Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires
-    Ast.Elm    -> return (resolved, [])
-    Ast.Sass   -> return (resolved, [])
+    Ast.Elm -> return (resolved, [])
+    Ast.Sass -> return (resolved, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
 
 findInCache_ :: Dependency -> DependencyTree -> Maybe (Dependency, [Dependency])
-findInCache_ dep =
-  fmap toTuple . searchNode ((==) dep . Tree.rootLabel)
-  where toTuple Tree.Node{rootLabel, subForest} =
-          (rootLabel, fmap Tree.rootLabel subForest)
+findInCache_ dep = fmap toTuple . searchNode ((==) dep . Tree.rootLabel)
+  where
+    toTuple Tree.Node {rootLabel, subForest} =
+      (rootLabel, fmap Tree.rootLabel subForest)
 
-parseModule :: Dependencies -> Dependency -> (T.Text -> [Ast.Require]) -> Task (Dependency, [Dependency])
+parseModule ::
+     Dependencies
+  -> Dependency
+  -> (T.Text -> [Ast.Require])
+  -> Task (Dependency, [Dependency])
 parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached

@@ -1,5 +1,5 @@
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 {-| ProgressBar displayes a small progressbar. Running tasks can call `step` to tick the bar one step further.
 -}
 module ProgressBar
@@ -23,14 +23,18 @@ step = do
 
 start :: Int -> T.Text -> Task ()
 start total title = do
-  pg <- toTask $ AP.newProgressBar def
+  pg <-
+    toTask $
+    AP.newProgressBar
+      def
       { pgTotal = toInteger total
-      , pgOnCompletion = Just (T.unpack title ++ " finished after :elapsed seconds")
+      , pgOnCompletion =
+          Just (T.unpack title ++ " finished after :elapsed seconds")
       , pgCompletedChar = '█'
       , pgPendingChar = '░'
       , pgFormat = T.unpack title ++ " ╢:bar╟ :current/:total"
       }
-  modify (\env -> env { progressBar = Just pg })
+  modify (\env -> env {progressBar = Just pg})
   return ()
 
 end :: Task ()

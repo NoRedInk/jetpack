@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger
@@ -11,7 +10,6 @@ module Logger
   , allLogs
   ) where
 
-
 import Config
 import Data.Text as T
 import System.FilePath ((</>))
@@ -19,7 +17,9 @@ import Task
 
 compileLog, preHookLog, postHookLog :: T.Text
 compileLog = "compile.log"
+
 preHookLog = "pre-hook.log"
+
 postHookLog = "post-hook.log"
 
 allLogs :: [T.Text]

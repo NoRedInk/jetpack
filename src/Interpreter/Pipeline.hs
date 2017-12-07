@@ -1,6 +1,5 @@
-{-# LANGUAGE NamedFieldPuns #-}
 module Interpreter.Pipeline
-  (interpreter
+  ( interpreter
   ) where
 
 import CliArguments (readArguments)
@@ -28,25 +27,29 @@ import Task (Task, getConfig, toTask)
 interpreter :: PipelineF a -> Task a
 interpreter command =
   case command of
-    ReadCliArgs next                     -> next <$> readArguments
-    ReadConfig _ next                    -> next <$> Config.readConfig
-    ReadDependencyCache next             -> next <$> DependencyTree.readTreeCache
-    WriteDependencyCache deps next       -> DependencyTree.writeTreeCache deps >> return next
-    FindEntryPoints next                 -> next <$> EntryPoints.find
-    FindDependency cache entryPoint next -> next <$> DependencyTree.build cache entryPoint
-    Compile toolPaths dep next           -> next <$> Compile.compile toolPaths dep
-    Init next                            -> next <$> Init.setup
-    ConcatModule dep next                -> next <$> ConcatModule.wrap dep
-    OutputCreatedModules paths next      -> createdModulesJson paths >> return next
-    StartProgress title total next       -> ProgressBar.start total title >> return next
-    EndProgress next                     -> ProgressBar.end >> return next
-    StartSpinner title next              -> ProgressSpinner.start title >> return next
-    EndSpinner title next                -> ProgressSpinner.end title >> return next
-    AppendLog fileName msg next          -> Logger.appendLog fileName msg >> return next
-    ClearLog fileName next               -> Logger.clearLog fileName >> return next
-    Hook hookScript next                 -> next <$> Hooks.run hookScript
-    Version next                         -> next <$> (return Version.print :: Task T.Text)
-    Async commands next                  -> next <$> Concurrent.forConcurrently commands (foldFree interpreter)
+    ReadCliArgs next -> next <$> readArguments
+    ReadConfig _ next -> next <$> Config.readConfig
+    ReadDependencyCache next -> next <$> DependencyTree.readTreeCache
+    WriteDependencyCache deps next ->
+      DependencyTree.writeTreeCache deps >> return next
+    FindEntryPoints next -> next <$> EntryPoints.find
+    FindDependency cache entryPoint next ->
+      next <$> DependencyTree.build cache entryPoint
+    Compile toolPaths dep next -> next <$> Compile.compile toolPaths dep
+    Init next -> next <$> Init.setup
+    ConcatModule dep next -> next <$> ConcatModule.wrap dep
+    OutputCreatedModules paths next -> createdModulesJson paths >> return next
+    StartProgress title total next ->
+      ProgressBar.start total title >> return next
+    EndProgress next -> ProgressBar.end >> return next
+    StartSpinner title next -> ProgressSpinner.start title >> return next
+    EndSpinner title next -> ProgressSpinner.end title >> return next
+    AppendLog fileName msg next -> Logger.appendLog fileName msg >> return next
+    ClearLog fileName next -> Logger.clearLog fileName >> return next
+    Hook hookScript next -> next <$> Hooks.run hookScript
+    Version next -> next <$> (return Version.print :: Task T.Text)
+    Async commands next ->
+      next <$> Concurrent.forConcurrently commands (foldFree interpreter)
 
 createdModulesJson :: [FilePath] -> Task ()
 createdModulesJson paths = do
