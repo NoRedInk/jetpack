@@ -11,6 +11,7 @@ import qualified Lib
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
+import qualified System.FSNotify as FS
 import System.FilePath ()
 import System.Posix.Process
 import System.Posix.Signals
@@ -19,8 +20,8 @@ import System.Process
 import Task (Task, toTask)
 import qualified Task
 import Twitch
-       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify,
-        defaultMainWithOptions)
+       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify)
+import Twitch.Extra (defaultMainWithOptions)
 
 main :: IO ()
 main = do
@@ -33,6 +34,7 @@ main = do
 watch :: Config.Config -> IO ()
 watch config = do
   mVar <- newEmptyMVar
+  putStrLn "Watching. Hit ctrl-c to exit."
   rebuild mVar
   defaultMainWithOptions (options config) $
     for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
