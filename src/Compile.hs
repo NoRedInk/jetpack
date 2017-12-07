@@ -89,7 +89,7 @@ jsCompiler =
     return
       ( T.unlines
           [ commandFinished
-          , T.concat ["moved ", T.pack input, " => ", T.pack output]
+          , T.unwords ["moved", T.pack input, "=>", T.pack output]
           ]
       , Nothing)
 

@@ -49,9 +49,7 @@ separator width c = chunk $ T.replicate width c
 
 errorMessage :: Int -> [Chunk T.Text]
 errorMessage width =
-  fmap
-    (fore red . chunk . center width . T.pack)
-    ["¡Compilation failed!", "¯\\_(ツ)_/¯"]
+  (fore red . chunk . center width) <$> ["¡Compilation failed!", "¯\\_(ツ)_/¯"]
 
 center :: Int -> T.Text -> T.Text
 center width msg = T.append (T.replicate n " ") msg
