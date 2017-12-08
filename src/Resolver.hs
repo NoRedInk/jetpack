@@ -48,7 +48,8 @@ resolve requiredIn dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
     findInSources dep <|>
-    findInModules requiredIn dep modules_directories
+    findInModules dep modules_directories <|>
+    moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
@@ -63,11 +64,10 @@ findInEntryPoints parent = do
   Config {entry_points} <- Task.getConfig
   tryToFind entry_points (requiredAs parent) parent
 
-findInModules :: Maybe Dependency -> Dependency -> [FilePath] -> Task Dependency
-findInModules requiredIn parent [] =
-  moduleNotFound requiredIn (requiredAs parent)
-findInModules requiredIn parent (x:xs) =
-  tryToFind x (requiredAs parent) parent <|> findInModules requiredIn parent xs
+findInModules :: Dependency -> [FilePath] -> Task Dependency
+findInModules _parent [] = throwError []
+findInModules parent (x:xs) =
+  tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
 findInSources :: Dependency -> Task Dependency
 findInSources parent = do
