@@ -13,6 +13,7 @@ import System.Environment
 import System.Exit
 import qualified System.FSNotify as FS
 import System.FilePath ()
+import System.IO
 import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
@@ -38,6 +39,29 @@ watch config = do
   rebuild mVar
   defaultMainWithOptions (options config) $
     for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
+  keyCommands mVar config
+
+keyCommands :: MVar ProcessID -> Config.Config -> IO ()
+keyCommands mVar config = do
+  char <- getChar
+  case char of
+    'r' -> do
+      putStrLn "force rebuild"
+      rebuild mVar
+      defaultMainWithOptions (options config) $
+        for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
+      keyCommands mVar config
+    'q' -> do
+      putStrLn "👋"
+      System.Exit.exitFailure
+      return ()
+    '?' -> do
+      putStrLn "`r`:\t to force a rebuild."
+      putStrLn "`q`:\t to stop jetpack."
+      keyCommands mVar config
+    _ -> do
+      putStrLn "Unknown command. Press `?` to see the help."
+      keyCommands mVar config
 
 fileTypesToWatch :: [Dep]
 fileTypesToWatch =
