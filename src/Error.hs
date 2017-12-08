@@ -32,9 +32,12 @@ description (NoModulesPresent path) =
     ]
 description (ModuleNotFound (Just requiredIn) file) =
   L.unlines
-    ["I had troubles finding " ++ file ++ " required in " ++ requiredIn ++ "."]
+    [ ""
+    , ""
+    , "I had troubles finding " ++ file ++ " required in " ++ requiredIn ++ "."
+    ]
 description (ModuleNotFound Nothing file) =
-  L.unlines ["I had troubles finding the entry point " ++ file ++ "."]
+  L.unlines ["", "", "I had troubles finding the entry point " ++ file ++ "."]
 description (BinNotFound bin) =
   L.unlines
     [ "I had troubles finding the " ++ bin ++ " command."

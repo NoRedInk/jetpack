@@ -46,6 +46,7 @@ module DependencyTree
   ) where
 
 import Config
+import Control.Monad ((<=<))
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
@@ -76,7 +77,7 @@ build cache entryPoint = do
 buildTree :: Dependencies -> Dependency -> Task DependencyTree
 buildTree cache dep = do
   resolved <- Resolver.resolve Nothing dep
-  tree <- Tree.unfoldTreeM (findRequires cache) resolved
+  tree <- Tree.unfoldTreeM (resolveChildren <=< findRequires cache) resolved
   _ <- ProgressBar.step
   return tree
 
@@ -133,6 +134,9 @@ parseModule cache dep@Dependency {filePath} parser =
       content <- toTask $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
-      resolvedDependencies <-
-        traverse (Resolver.resolve $ Just dep) dependencies
-      return (dep, resolvedDependencies)
+      return (dep, dependencies)
+
+resolveChildren :: (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
+resolveChildren (parent, children) = do
+  resolved <- traverse (Resolver.resolve (Just parent)) children
+  return (parent, resolved)

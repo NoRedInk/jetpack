@@ -48,8 +48,7 @@ resolve requiredIn dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
     findInSources dep <|>
-    findInModules requiredIn dep modules_directories <|>
-    moduleNotFound requiredIn (requiredAs dep)
+    findInModules requiredIn dep modules_directories
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
