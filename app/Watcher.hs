@@ -33,7 +33,7 @@ main = do
 
 watch :: Config.Config -> IO ()
 watch config = do
-  mVar <- newEmptyMVar
+  mVar <- newMVar Nothing
   putStrLn "Watching. Hit ctrl-c to exit."
   rebuild mVar
   defaultMainWithOptions (options config) $
@@ -55,15 +55,16 @@ options config =
     0 -- pollInterval
     False -- usePolling
 
-rebuild :: MVar ProcessID -> IO ()
+rebuild :: MVar (Maybe ProcessID) -> IO ()
 rebuild mVar = do
-  runningProcess <- tryTakeMVar mVar
-  -- NOTE: there might be a race condition here,
-  -- where we didn't add the process handle to the MVar yet.
+  -- takeMVar blocks if there is nothing inside it.
+  -- This prevents a race condition that could happen if multiple files are
+  -- written at once.
+  runningProcess <- takeMVar mVar
   for_ runningProcess (signalProcess softwareTermination)
   for_ runningProcess (getProcessStatus True False) -- here be dragons, potentially
   processID <- run
-  putMVar mVar processID
+  putMVar mVar (Just processID)
 
 run :: IO ProcessID
 run = do
