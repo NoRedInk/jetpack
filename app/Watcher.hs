@@ -50,8 +50,8 @@ options config =
     Nothing -- logFile
     (Just $ Config.source_directory config) -- root
     True -- recurseThroughDirectories
-    Twitch.DebounceDefault -- debounce
-    0 -- debounce interval (required but not used)
+    Twitch.Debounce
+    0.5 -- debounce time, in seconds.
     0 -- pollInterval
     False -- usePolling
 
