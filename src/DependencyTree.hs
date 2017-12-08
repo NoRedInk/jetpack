@@ -75,7 +75,7 @@ build cache entryPoint = do
 
 buildTree :: Dependencies -> Dependency -> Task DependencyTree
 buildTree cache dep = do
-  resolved <- Resolver.resolve dep
+  resolved <- Resolver.resolve Nothing dep
   tree <- Tree.unfoldTreeM (findRequires cache) resolved
   _ <- ProgressBar.step
   return tree
@@ -133,5 +133,6 @@ parseModule cache dep@Dependency {filePath} parser =
       content <- toTask $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
-      resolvedDependencies <- traverse Resolver.resolve dependencies
+      resolvedDependencies <-
+        traverse (Resolver.resolve $ Just dep) dependencies
       return (dep, resolvedDependencies)

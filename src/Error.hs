@@ -10,8 +10,7 @@ data Error
   = FileNotFound String
   | JsonInvalid String
   | NoModulesPresent String
-  | ModuleNotFound FilePath
-                   FilePath
+  | ModuleNotFound (Maybe FilePath)
                    String
   | BinNotFound String
   | CompileError String
@@ -31,18 +30,11 @@ description (NoModulesPresent path) =
     , "I didn't find anything in " ++ path
     , ""
     ]
-description (ModuleNotFound moduleDirectory sourceDirectory file) =
+description (ModuleNotFound (Just requiredIn) file) =
   L.unlines
-    [ "I had troubles finding " ++ file ++ "."
-    , ""
-    , "I looked in:"
-    , show $ moduleDirectory
-    , show $ sourceDirectory
-    , show $ sourceDirectory </> ".." </> "node_modules"
-    , ""
-    , "In addition I tried it with a `.js` extension and with `/index.js`"
-    , ""
-    ]
+    ["I had troubles finding " ++ file ++ " required in " ++ requiredIn ++ "."]
+description (ModuleNotFound Nothing file) =
+  L.unlines ["I had troubles finding the entry point " ++ file ++ "."]
 description (BinNotFound bin) =
   L.unlines
     [ "I had troubles finding the " ++ bin ++ " command."
