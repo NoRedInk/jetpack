@@ -41,6 +41,8 @@ dependencies:
 - time == 1.6.0.1
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
+- fsnotify == 0.2.1.1
+- twitch == 0.1.7.1
 library:
   source-dirs: src
   ghc-options:
@@ -72,7 +74,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - jetpack
-    - twitch == 0.1.7.1
 tests:
   jetpack-test:
     main: Spec.hs
