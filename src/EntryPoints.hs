@@ -16,23 +16,23 @@ import Task (Task, getArgs, getConfig, toTask)
 
 find :: Task [FilePath]
 find = do
-  Config {entry_points} <- Task.getConfig
-  Args {entryPointGlob} <- Task.getArgs
-  let normalisedPattern = normalisePattern entry_points entryPointGlob
-  paths <- findFilesIn normalisedPattern
+  config <- Task.getConfig
+  args <- Task.getArgs
+  let entryPointsGlob = normalisedEntryPointsGlob config args
+  paths <- findFilesIn entryPointsGlob
   cwd <- toTask Dir.getCurrentDirectory
   case paths of
-    [] -> throwError [NoModulesPresent $ show (takeDirectory normalisedPattern)]
-    _ -> return $ (makeRelative $ cwd </> entry_points) <$> paths
+    [] -> throwError [NoModulesPresent $ show (takeDirectory entryPointsGlob)]
+    _ -> return $ (makeRelative $ cwd </> entry_points config) <$> paths
 
-normalisePattern :: FilePath -> Maybe FilePath -> FilePath
-normalisePattern entryPointsRoot suppliedEntryPoints =
-  case suppliedEntryPoints of
-    Nothing ->
-      entryPointsRoot </> "**" </> "*.*"
-    Just entryPoints ->
-      -- handle arguments with and without a leading "./"
-      "." </> (normalise entryPoints)
+normalisedEntryPointsGlob :: Config -> Args -> FilePath
+normalisedEntryPointsGlob config args =
+    case entryPointGlob args of
+      Nothing ->
+        entry_points config </> "**" </> "*.*"
+      Just entryPoints ->
+        -- handle arguments with and without a leading "./"
+        "." </> (normalise entryPoints)
 
 findFilesIn :: FilePath -> Task [FilePath]
 findFilesIn = toTask . glob
