@@ -8,27 +8,31 @@ import CliArguments (Args(..))
 import Config
 import Control.Monad.Except (throwError)
 
-import qualified Data.Maybe as M
 import Error
 import qualified System.Directory as Dir
-import System.FilePath ((</>), makeRelative)
+import System.FilePath ((</>), makeRelative, normalise, takeDirectory)
 import "Glob" System.FilePath.Glob (glob)
 import Task (Task, getArgs, getConfig, toTask)
 
 find :: Task [FilePath]
 find = do
-  Config {entry_points} <- Task.getConfig
-  Args {entryPointGlob} <- Task.getArgs
-  paths <-
-    findFilesIn entry_points $ M.fromMaybe ("**" </> "*.*") entryPointGlob
+  config <- Task.getConfig
+  args <- Task.getArgs
+  let entryPointsGlob = normalisedEntryPointsGlob config args
+  paths <- findFilesIn entryPointsGlob
   cwd <- toTask Dir.getCurrentDirectory
   case paths of
-    [] -> throwError [NoModulesPresent $ show entry_points]
-    _ -> return $ (makeRelative $ cwd </> entry_points) <$> paths
+    [] -> throwError [NoModulesPresent $ show (takeDirectory entryPointsGlob)]
+    _ -> return $ (makeRelative $ cwd </> entry_points config) <$> paths
 
-{-| Returns a list of files in the given direcory and all it's subdirectories.
--}
-findFilesIn :: FilePath -> FilePath -> Task [FilePath]
-findFilesIn path userGlob = do
-  let globi = path </> userGlob
-  toTask $ glob globi
+normalisedEntryPointsGlob :: Config -> Args -> FilePath
+normalisedEntryPointsGlob config args =
+    case entryPointGlob args of
+      Nothing ->
+        entry_points config </> "**" </> "*.*"
+      Just entryPoints ->
+        -- handle arguments with and without a leading "./"
+        "." </> (normalise entryPoints)
+
+findFilesIn :: FilePath -> Task [FilePath]
+findFilesIn = toTask . glob
