@@ -42,14 +42,14 @@ import System.Posix.Files
 import Task (Task, getConfig, toTask)
 import Utils.Files (fileExistsTask)
 
-resolve :: Dependency -> Task Dependency
-resolve dep = do
+resolve :: Maybe Dependency -> Dependency -> Task Dependency
+resolve requiredIn dep = do
   Config {modules_directories} <- Task.getConfig
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
     findInSources dep <|>
     findInModules dep modules_directories <|>
-    moduleNotFound (requiredAs dep)
+    moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
@@ -65,7 +65,7 @@ findInEntryPoints parent = do
   tryToFind entry_points (requiredAs parent) parent
 
 findInModules :: Dependency -> [FilePath] -> Task Dependency
-findInModules parent [] = moduleNotFound (requiredAs parent)
+findInModules _parent [] = throwError []
 findInModules parent (x:xs) =
   tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
@@ -125,10 +125,9 @@ tryMainFromPackageJson basePath fileName require = do
       moduleExists basePath (fileName </> T.unpack entryPoint) require
     Nothing -> throwError []
 
-moduleNotFound :: FilePath -> Task Dependency
-moduleNotFound fileName = do
-  Config {source_directory, entry_points} <- Task.getConfig
-  throwError [ModuleNotFound entry_points source_directory $ show fileName]
+moduleNotFound :: Maybe Dependency -> FilePath -> Task Dependency
+moduleNotFound requiredIn fileName =
+  throwError [ModuleNotFound (filePath <$> requiredIn) $ show fileName]
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =

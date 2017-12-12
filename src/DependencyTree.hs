@@ -46,6 +46,7 @@ module DependencyTree
   ) where
 
 import Config
+import Control.Monad ((<=<))
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
@@ -75,7 +76,8 @@ build cache entryPoint = do
 
 buildTree :: Dependencies -> Dependency -> Task DependencyTree
 buildTree cache dep = do
-  tree <- Tree.unfoldTreeM (findRequires cache) dep
+  resolved <- Resolver.resolve Nothing dep
+  tree <- Tree.unfoldTreeM (resolveChildren <=< findRequires cache) resolved
   _ <- ProgressBar.step
   return tree
 
@@ -105,12 +107,11 @@ requireToDep _path (Ast.Import _n) = undefined
 
 findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
 findRequires cache parent = do
-  resolved <- Resolver.resolve parent
-  case fileType resolved of
-    Ast.Js -> parseModule cache resolved Parser.Require.jsRequires
-    Ast.Coffee -> parseModule cache resolved Parser.Require.coffeeRequires
-    Ast.Elm -> return (resolved, [])
-    Ast.Sass -> return (resolved, [])
+  case fileType parent of
+    Ast.Js -> parseModule cache parent Parser.Require.jsRequires
+    Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
+    Ast.Elm -> return (parent, [])
+    Ast.Sass -> return (parent, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
@@ -134,3 +135,8 @@ parseModule cache dep@Dependency {filePath} parser =
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
+
+resolveChildren :: (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
+resolveChildren (parent, children) = do
+  resolved <- traverse (Resolver.resolve (Just parent)) children
+  return (parent, resolved)

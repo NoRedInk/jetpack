@@ -106,8 +106,7 @@ suite =
           Left errors ->
             L.last errors @?=
             ModuleNotFound
-              (Config.entry_points failingFixtures)
-              (Config.source_directory failingFixtures)
+              (Just "./test/fixtures/failing/modules/test.js")
               "\"index\""
     ]
 
