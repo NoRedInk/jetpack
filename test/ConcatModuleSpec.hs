@@ -25,7 +25,7 @@ wrappedModule =
     , "var foo = require('foo.js');"
     , ""
     , "foo(42)"
-    , "} /* END: testFunction */"
+    , "\n} /* END: testFunction */"
     ]
 
 mockDependencyTree :: D.DependencyTree
@@ -115,13 +115,13 @@ expectedOutput =
       , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
       , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
       , "moo(4, 2);"
-      , "} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
+      , "\n} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
       , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
       , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
       , "module.exports = function(a, b) {"
       , "  console.log(a + b + \"\");"
       , "};"
-      , "} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
+      , "\n} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
       , ""
       , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
       , "})();"

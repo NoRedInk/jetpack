@@ -44,4 +44,4 @@ pathToFileName filePath extension = newFileName <.> extension
 
 pathToFunctionName :: FilePath -> String -> T.Text
 pathToFunctionName filePath extension =
-  T.replace "." "_" $ T.pack $ pathToFileName filePath extension
+  T.replace "@" "_" $ T.replace "." "_" $ T.pack $ pathToFileName filePath extension

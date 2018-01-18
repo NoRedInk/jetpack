@@ -139,7 +139,7 @@ addBoilerplate root fns =
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> wrapModule "foo" "console.log(42);"
-    "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);} /* END: foo */\n"
+    "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);\n} /* END: foo */\n"
 -}
 wrapModule :: T.Text -> T.Text -> T.Text
 wrapModule _ "" = ""
@@ -151,7 +151,7 @@ wrapModule fnName body =
     , "\n"
     , T.concat ["function ", fnName, "(module, exports) {\n"]
     , body
-    , "} /* END: "
+    , "\n} /* END: "
     , fnName
     , " */"
     , "\n"
