@@ -11,12 +11,8 @@ import qualified Lib
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
-import qualified System.FSNotify as FS
 import System.FilePath ()
-import System.Posix.Files (accessModes)
-import System.Posix.IO
-       (OpenMode(WriteOnly), defaultFileFlags, dupTo, openFd, stdError,
-        stdOutput)
+import qualified System.Posix.IO as PIO
 import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
@@ -45,9 +41,10 @@ watch config = do
       -- redirect the process stdout and stderr to /dev/null. This probably won't
       -- work on Windows, but then nothing here does yet so... ok?
      do
-      devNull <- openFd "/dev/null" WriteOnly Nothing defaultFileFlags
-      dupTo devNull stdOutput
-      dupTo devNull stdError
+      devNull <-
+        PIO.openFd "/dev/null" PIO.WriteOnly Nothing PIO.defaultFileFlags
+      PIO.dupTo devNull PIO.stdOutput
+      PIO.dupTo devNull PIO.stdError
       defaultMainWithOptions (options config) $
         for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
   -- TODO: we're swallowing any errors that occur here. We were before too, but
