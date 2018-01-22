@@ -1,13 +1,15 @@
 jetpack
 =======
 
+> **NOTE:** Jetpack is an internal NoRedInk build tool that we decided to open source in hopes that it might be useful to others. It has never been our goal to develop a fully featured front-end build system for other use cases; it currently compiles only Elm, CoffeeScript and Sass because that's all our build needs. We're open to potentially accepting outside contributions to support other use cases, but please understand that this remains an internal tool first, and we can't make any promises that anything will be accepted. Thanks for understanding, and by all means don't feel bad about forking! ❤️
+
 Motivation
 ----------
 
-Webpack didn't work out for us, since it was super slow and does way to much for our process.
-Jetpack only compiles the stuff we need and creates the concatenated output js.
-Jetpack compiles elm, coffeeScript and sass.
-Given an entrypoint it follows all `require` statements and creates a dependency-tree. It will then builds all files using the appropriate compiler and concatenates the compiled js and wraps modules in functions so that the requires know how to get the right functions.
+Webpack didn't work out for us; it did more than we needed, and builds were taking too long.
+Jetpack is focused on compilation speed. It only compiles the stuff we need and creates the concatenated output js.
+
+Given an entry point, it follows all `require` statements and creates a dependency tree. It then builds all files using the appropriate compiler, concatenates the compiled js, and wraps modules in functions so that the requires know how to get the right functions.
 
 
 Configuration
@@ -37,8 +39,6 @@ Configuration
 ```
 
 ## Development
-
-https://paper.dropbox.com/doc/jetpack-1EgiUsPF7gx5lwPD1BCKe
 
 ```bash
 brew install haskell-stack
