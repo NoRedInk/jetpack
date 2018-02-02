@@ -7,7 +7,7 @@ import Control.Monad.Except (throwError)
 import Data.List as L
 import Data.Text as T
 import Data.Text.Lazy as TL
-import Data.Time.Clock
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import Dependencies (Dependency(..))
 import Env
 import Error
@@ -30,21 +30,28 @@ data Duration = Duration
   , end :: TimeSpec
   }
 
+data Result = Result
+  { duration :: Duration
+  , compiledAt :: UTCTime
+  , command :: T.Text
+  , stdout :: Maybe T.Text
+  , warnings :: Maybe T.Text
+  , compiledFile :: FilePath
+  } deriving (Show)
+
 instance Show Duration where
   show (Duration start end) = TL.unpack $ format timeSpecs start end
 
 newtype Compiler = Compiler
-  { runCompiler :: FilePath -> FilePath -> Task (Duration, T.Text, Maybe T.Text)
+  { runCompiler :: FilePath -> FilePath -> Task Result
   }
 
-compile ::
-     ToolPaths -> Dependency -> Task (FilePath, Duration, T.Text, Maybe T.Text)
+compile :: ToolPaths -> Dependency -> Task Result
 compile toolPaths Dependency {fileType, filePath} = do
   config <- Task.getConfig
   let (c, outputType) = compiler fileType config toolPaths
   let outputPath = buildArtifactPath config outputType filePath
-  (duration, log, warnings) <- (runCompiler c) filePath outputPath
-  return (filePath, duration, log, warnings)
+  runCompiler c filePath outputPath
 
 compiler :: Ast.SourceType -> Config -> ToolPaths -> (Compiler, String)
 compiler fileType config ToolPaths {elmMake, sassc, coffee} =
@@ -82,13 +89,13 @@ elmCompiler Config {elm_root_directory} elmMake =
           "../" ++
           input ++
           " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-    runCmd cmd $ Just elm_root_directory
+    runCmd input cmd $ Just elm_root_directory
 
 coffeeCompiler :: FilePath -> Compiler
 coffeeCompiler coffee =
   Compiler $ \input output -> do
     let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-    runCmd cmd Nothing
+    runCmd input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -99,16 +106,16 @@ jsCompiler =
     _ <- toTask $ copyFile input output
     _ <- ProgressBar.step
     currentTime <- toTask getCurrentTime
-    let commandFinished = T.pack $ show currentTime
     end <- toTask $ getTime Monotonic
-    let duration = Duration start end
-    return
-      ( duration
-      , T.unlines
-          [ commandFinished
-          , T.unwords ["moved", T.pack input, "=>", T.pack output]
-          ]
-      , Nothing)
+    return $
+      Result
+      { duration = Duration start end
+      , compiledAt = currentTime
+      , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
+      , stdout = Nothing
+      , warnings = Nothing
+      , compiledFile = input
+      }
 
 sassCompiler :: Config -> FilePath -> Compiler
 sassCompiler Config {sass_load_paths} sassc =
@@ -117,29 +124,31 @@ sassCompiler Config {sass_load_paths} sassc =
     let cmd =
           "SASS_PATH=" ++
           loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
-    runCmd cmd Nothing
+    runCmd input cmd Nothing
 
-runCmd :: String -> Maybe String -> Task (Duration, T.Text, Maybe T.Text)
-runCmd cmd maybeCwd = do
+runCmd :: FilePath -> String -> Maybe String -> Task Result
+runCmd input cmd maybeCwd = do
   start <- toTask $ getTime Monotonic
   (ec, errContent, content) <- toTask $ runAndWaitForProcess cmd maybeCwd
   end <- toTask $ getTime Monotonic
   Args {warn} <- Task.getArgs
-  let duration = Duration start end
   case ec of
     ExitSuccess -> do
       _ <- ProgressBar.step
       currentTime <- toTask $ getCurrentTime
-      let commandFinished = T.pack $ show currentTime
-      let warnText =
+      return $
+        Result
+        { duration = Duration start end
+        , compiledAt = currentTime
+        , command = (T.pack cmd)
+        , stdout = (Just $ T.pack content)
+        , warnings =
             T.pack <$>
             if warn && errContent /= ""
               then Just errContent
               else Nothing
-      return
-        ( duration
-        , T.unlines [commandFinished, T.pack cmd, T.pack content]
-        , warnText)
+        , compiledFile = input
+        }
     ExitFailure _ -> do
       throwError [CompileError cmd (content ++ errContent)]
 

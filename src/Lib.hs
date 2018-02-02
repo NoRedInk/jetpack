@@ -3,6 +3,7 @@ module Lib
   ) where
 
 import qualified CliArguments
+import qualified Compile
 import Control.Concurrent (threadDelay)
 import qualified Control.Monad.Free as Free
 import qualified Data.List as L
@@ -67,24 +68,27 @@ compileProgram args
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   _ <- P.startProgress "Compiling" $ L.length modules
-  out <- traverse (P.compile toolPaths) modules
-  _ <- traverse (\(_, _, log, _) -> P.appendLog Logger.compileLog log) out
+  result <- traverse (P.compile toolPaths) modules
+  _ <- traverse (P.appendLog Logger.compileLog . T.pack . show) result
   _ <-
     traverse
-      (\(path, duration, _, _) ->
+      (\Compile.Result {compiledFile, duration} ->
          P.appendLog Logger.compileTime $
-         (T.pack path) <> ": " <> (T.pack $ show duration) <> "\n")
-      out
+         (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
+      result
   _ <- P.endProgress
   _ <- P.startProgress "Write modules" $ L.length deps
   modules <- P.async $ fmap P.concatModule deps
   _ <- P.outputCreatedModules modules
   _ <- P.endProgress
-  _ <- traverse (\(file, duration, _, _) -> P.time file duration) out
+  _ <-
+    traverse
+      (\Compile.Result {compiledFile, duration} -> P.time compiledFile duration)
+      result
   -- HOOK
   _ <- maybeRunHook Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
-  let warnings = Data.Maybe.catMaybes (fmap (\(_, _, _, warn) -> warn) out)
+  let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
     case warnings of
       [] -> Success $ fmap T.pack entryPoints
