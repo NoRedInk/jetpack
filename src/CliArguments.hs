@@ -22,6 +22,7 @@ defaultArguments =
   , postHook = Nothing
   , preHook = Nothing
   , version = False
+  , time = False
   }
 
 readArguments :: Task Args
@@ -50,7 +51,8 @@ parser =
     (maybeReader go)
     (long "post-hook" <> value Nothing <>
      help "Bash commands that will get executed after jetpack runs.") <*>
-  switch (long "version" <> short 'v' <> help "display the version of jetpack")
+  switch (long "version" <> short 'v' <> help "display the version of jetpack") <*>
+  switch (long "time" <> short 't' <> help "display compile times.")
   where
     go :: String -> Maybe (Maybe String)
     go "" = Just Nothing

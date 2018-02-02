@@ -26,6 +26,7 @@ data Args = Args
   , preHook :: Maybe String
   , postHook :: Maybe String
   , version :: Bool
+  , time :: Bool
   }
 
 data Config = Config

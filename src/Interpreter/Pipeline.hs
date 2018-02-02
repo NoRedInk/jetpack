@@ -8,6 +8,7 @@ import ConcatModule
 import Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import Control.Monad.Free (foldFree)
+import Data.Semigroup ((<>))
 import qualified Version
 
 import qualified Data.Aeson as Aeson
@@ -22,7 +23,7 @@ import Pipeline
 import qualified ProgressBar
 import qualified ProgressSpinner
 import System.FilePath ((<.>), (</>))
-import Task (Task, getConfig, toTask)
+import Task (Task, getArgs, getConfig, toTask)
 
 interpreter :: PipelineF a -> Task a
 interpreter command =
@@ -48,8 +49,18 @@ interpreter command =
     ClearLog fileName next -> Logger.clearLog fileName >> return next
     Hook hookScript next -> next <$> Hooks.run hookScript
     Version next -> next <$> (return Version.print :: Task T.Text)
+    Time fileName duration next -> printTime fileName duration >> return next
     Async commands next ->
       next <$> Concurrent.forConcurrently commands (foldFree interpreter)
+
+printTime :: FilePath -> Compile.Duration -> Task ()
+printTime path duration = do
+  Args {time} <- Task.getArgs
+  if time
+    then do
+      toTask $
+        putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
+    else return ()
 
 createdModulesJson :: [FilePath] -> Task ()
 createdModulesJson paths = do

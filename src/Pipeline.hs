@@ -47,6 +47,9 @@ data PipelineF next
              next
   | Hook String
          (T.Text -> next)
+  | Time FilePath
+         Duration
+         next
   | Version (T.Text -> next)
   | forall a. Async [Pipeline a]
                     ([a] -> next)
@@ -70,6 +73,7 @@ instance Functor PipelineF where
   fmap f (ClearLog fileName next) = ClearLog fileName (f next)
   fmap f (Hook hookScript g) = Hook hookScript (f . g)
   fmap f (Version g) = Version (f . g)
+  fmap f (Time file duration next) = Time file duration (f next)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -132,6 +136,9 @@ clearLog fileName = liftF $ ClearLog fileName ()
 
 hook :: String -> Pipeline T.Text
 hook hookScript = liftF $ Hook hookScript id
+
+time :: FilePath -> Duration -> Pipeline ()
+time file duration = liftF $ Time file duration ()
 
 version :: Pipeline T.Text
 version = liftF $ Version id

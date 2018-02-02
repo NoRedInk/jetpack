@@ -80,6 +80,7 @@ compileProgram args
   modules <- P.async $ fmap P.concatModule deps
   _ <- P.outputCreatedModules modules
   _ <- P.endProgress
+  _ <- traverse (\(file, duration, _, _) -> P.time file duration) out
   -- HOOK
   _ <- maybeRunHook Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
