@@ -8,6 +8,7 @@ import qualified Control.Monad.Free as Free
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import qualified Interpreter.Pipeline as PipelineI
@@ -26,13 +27,13 @@ run = do
   case result of
     Right (Warnings warnings) -> Message.warning warnings
     Right (Info info) -> Message.info info
-    Right Success -> Message.success
+    Right (Success entrypoints) -> Message.success entrypoints
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
 
 data Result
-  = Success
+  = Success [T.Text]
   | Warnings T.Text
   | Info T.Text
 
@@ -67,7 +68,13 @@ compileProgram args
   let modules = LU.uniq $ concatMap Tree.flatten deps
   _ <- P.startProgress "Compiling" $ L.length modules
   out <- traverse (P.compile toolPaths) modules
-  _ <- traverse (\(log, _) -> P.appendLog "compile.log" log) out
+  _ <- traverse (\(_, _, log, _) -> P.appendLog Logger.compileLog log) out
+  _ <-
+    traverse
+      (\(path, duration, _, _) ->
+         P.appendLog Logger.compileTime $
+         (T.pack path) <> ": " <> (T.pack $ show duration) <> "\n")
+      out
   _ <- P.endProgress
   _ <- P.startProgress "Write modules" $ L.length deps
   modules <- P.async $ fmap P.concatModule deps
@@ -76,10 +83,10 @@ compileProgram args
   -- HOOK
   _ <- maybeRunHook Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
-  let warnings = Data.Maybe.catMaybes (fmap snd out)
+  let warnings = Data.Maybe.catMaybes (fmap (\(_, _, _, warn) -> warn) out)
   return $
     case warnings of
-      [] -> Success
+      [] -> Success $ fmap T.pack entryPoints
       xs -> Warnings $ T.unlines xs
 
 versionProgram :: P.Pipeline Result

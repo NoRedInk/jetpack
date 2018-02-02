@@ -39,6 +39,8 @@ dependencies:
 - terminal-size == 0.3.2.1
 - text == 1.2.2.2
 - time == 1.6.0.1
+- clock == 0.7.2
+- formatting == 6.2.5
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
 - fsnotify == 0.2.1.1

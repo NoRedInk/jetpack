@@ -5,6 +5,7 @@
 module Pipeline where
 
 import CliArguments (Args)
+import Compile (Duration)
 import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import qualified Data.Text as T
@@ -25,7 +26,7 @@ data PipelineF next
                    (DependencyTree -> next)
   | Compile ToolPaths
             Dependency
-            ((T.Text, Maybe T.Text) -> next)
+            ((FilePath, Duration, T.Text, Maybe T.Text) -> next)
   | Init (ToolPaths -> next)
   | ConcatModule DependencyTree
                  (FilePath -> next)
@@ -96,7 +97,10 @@ findEntryPoints = liftF $ FindEntryPoints id
 findDependency :: Dependencies -> FilePath -> Pipeline DependencyTree
 findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
 
-compile :: ToolPaths -> Dependency -> Pipeline (T.Text, Maybe T.Text)
+compile ::
+     ToolPaths
+  -> Dependency
+  -> Pipeline (FilePath, Duration, T.Text, Maybe T.Text)
 compile toolPaths dep = liftF $ Compile toolPaths dep id
 
 setup :: Pipeline ToolPaths
