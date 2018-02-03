@@ -11,7 +11,7 @@ import Data.Time.Clock (UTCTime, getCurrentTime)
 import Dependencies (Dependency(..))
 import Env
 import Error
-import Formatting ((%), format)
+import Formatting (format)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
@@ -25,11 +25,6 @@ import Task (Task, getArgs, getConfig, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
-data Duration = Duration
-  { start :: TimeSpec
-  , end :: TimeSpec
-  }
-
 data Result = Result
   { duration :: Duration
   , compiledAt :: UTCTime
@@ -39,92 +34,104 @@ data Result = Result
   , compiledFile :: FilePath
   } deriving (Show)
 
+data Duration = Duration
+  { start :: TimeSpec
+  , end :: TimeSpec
+  }
+
 instance Show Duration where
   show (Duration start end) = TL.unpack $ format timeSpecs start end
-
-newtype Compiler = Compiler
-  { runCompiler :: FilePath -> FilePath -> Task Result
-  }
 
 compile :: ToolPaths -> Dependency -> Task Result
 compile toolPaths Dependency {fileType, filePath} = do
   config <- Task.getConfig
-  let (c, outputType) = compiler fileType config toolPaths
-  let outputPath = buildArtifactPath config outputType filePath
-  runCompiler c filePath outputPath
+  runCompiler
+    config
+    fileType
+    toolPaths
+    Arguments
+    {input = filePath, output = buildArtifactPath config fileType filePath}
 
-compiler :: Ast.SourceType -> Config -> ToolPaths -> (Compiler, String)
-compiler fileType config ToolPaths {elmMake, sassc, coffee} =
+data Arguments = Arguments
+  { input :: FilePath
+  , output :: FilePath
+  }
+
+runCompiler :: Config -> Ast.SourceType -> ToolPaths -> Arguments -> Task Result
+runCompiler config fileType ToolPaths {elmMake, sassc, coffee} arguments =
   case fileType of
-    Ast.Elm -> (elmCompiler config elmMake, "js")
-    Ast.Js -> (jsCompiler, "js")
-    Ast.Coffee -> (coffeeCompiler coffee, "js")
-    Ast.Sass -> (sassCompiler config sassc, "css")
+    Ast.Elm -> elmCompiler elmMake config arguments
+    Ast.Js -> jsCompiler arguments
+    Ast.Coffee -> coffeeCompiler coffee arguments
+    Ast.Sass -> sassCompiler sassc config arguments
 
-buildArtifactPath :: Config -> String -> FilePath -> String
-buildArtifactPath Config {temp_directory} extension inputPath =
+buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
+buildArtifactPath Config {temp_directory} fileType inputPath =
   temp_directory </> pathToFileName inputPath extension
+  where
+    extension =
+      case fileType of
+        Ast.Elm -> "js"
+        Ast.Js -> "js"
+        Ast.Coffee -> "js"
+        Ast.Sass -> "css"
 
 ---------------
 -- COMPILERS --
 ---------------
-elmCompiler :: Config -> FilePath -> Compiler
-elmCompiler Config {elm_root_directory} elmMake =
-  Compiler $ \input output
+elmCompiler :: FilePath -> Config -> Arguments -> Task Result
+elmCompiler elmMake Config {elm_root_directory} Arguments {input, output}
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
-   -> do
-    Args {debug, warn} <- Task.getArgs
-    let debugFlag =
-          if debug
-            then " --debug"
-            else ""
-    let warnFlag =
-          if warn
-            then " --warn"
-            else ""
-    let cmd =
-          elmMake ++
-          " " ++
-          "../" ++
-          input ++
-          " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-    runCmd input cmd $ Just elm_root_directory
+ = do
+  Args {debug, warn} <- Task.getArgs
+  let debugFlag =
+        if debug
+          then " --debug"
+          else ""
+  let warnFlag =
+        if warn
+          then " --warn"
+          else ""
+  let cmd =
+        elmMake ++
+        " " ++
+        "../" ++
+        input ++
+        " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
+  runCmd input cmd $ Just elm_root_directory
 
-coffeeCompiler :: FilePath -> Compiler
-coffeeCompiler coffee =
-  Compiler $ \input output -> do
-    let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-    runCmd input cmd Nothing
+coffeeCompiler :: FilePath -> Arguments -> Task Result
+coffeeCompiler coffee Arguments {input, output} = do
+  let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
+  runCmd input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: Compiler
-jsCompiler =
-  Compiler $ \input output -> do
-    start <- toTask $ getTime Monotonic
-    _ <- toTask $ copyFile input output
-    _ <- ProgressBar.step
-    currentTime <- toTask getCurrentTime
-    end <- toTask $ getTime Monotonic
-    return $
-      Result
-      { duration = Duration start end
-      , compiledAt = currentTime
-      , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
-      , stdout = Nothing
-      , warnings = Nothing
-      , compiledFile = input
-      }
+jsCompiler :: Arguments -> Task Result
+jsCompiler Arguments {input, output} = do
+  start <- toTask $ getTime Monotonic
+  _ <- toTask $ copyFile input output
+  _ <- ProgressBar.step
+  currentTime <- toTask getCurrentTime
+  end <- toTask $ getTime Monotonic
+  return
+    Result
+    { duration = Duration start end
+    , compiledAt = currentTime
+    , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
+    , stdout = Nothing
+    , warnings = Nothing
+    , compiledFile = input
+    }
 
-sassCompiler :: Config -> FilePath -> Compiler
-sassCompiler Config {sass_load_paths} sassc =
-  Compiler $ \input output -> do
-    let loadPath = L.intercalate ":" sass_load_paths
-    let cmd =
-          "SASS_PATH=" ++
-          loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
-    runCmd input cmd Nothing
+sassCompiler :: FilePath -> Config -> Arguments -> Task Result
+sassCompiler sassc Config {sass_load_paths} Arguments {input, output} = do
+  let loadPath = L.intercalate ":" sass_load_paths
+  let cmd =
+        "SASS_PATH=" ++
+        loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
+  runCmd input cmd Nothing
 
 runCmd :: FilePath -> String -> Maybe String -> Task Result
 runCmd input cmd maybeCwd = do
@@ -135,8 +142,8 @@ runCmd input cmd maybeCwd = do
   case ec of
     ExitSuccess -> do
       _ <- ProgressBar.step
-      currentTime <- toTask $ getCurrentTime
-      return $
+      currentTime <- toTask getCurrentTime
+      return
         Result
         { duration = Duration start end
         , compiledAt = currentTime
@@ -149,8 +156,7 @@ runCmd input cmd maybeCwd = do
               else Nothing
         , compiledFile = input
         }
-    ExitFailure _ -> do
-      throwError [CompileError cmd (content ++ errContent)]
+    ExitFailure _ -> throwError [CompileError cmd (content ++ errContent)]
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
