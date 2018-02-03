@@ -34,20 +34,22 @@ import Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
 import Dependencies (Dependency(..))
+import Env
 import Error (Error(ModuleNotFound))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
-import Task (Task, getConfig, toTask)
+import Task (Task, toTask)
 import Utils.Files (fileExistsTask)
 
-resolve :: Maybe Dependency -> Dependency -> Task Dependency
-resolve requiredIn dep = do
-  Config {modules_directories} <- Task.getConfig
+resolve :: Env -> Maybe Dependency -> Dependency -> Task Dependency
+resolve env requiredIn dep = do
+  let Config {modules_directories} = Env.config env
   resolved <-
-    findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
-    findInSources dep <|>
+    findRelative dep <|> findRelativeNodeModules dep <|>
+    findInEntryPoints env dep <|>
+    findInSources env dep <|>
     findInModules dep modules_directories <|>
     moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
@@ -59,9 +61,9 @@ findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
 
-findInEntryPoints :: Dependency -> Task Dependency
-findInEntryPoints parent = do
-  Config {entry_points} <- Task.getConfig
+findInEntryPoints :: Env -> Dependency -> Task Dependency
+findInEntryPoints Env {config} parent = do
+  let Config {entry_points} = config
   tryToFind entry_points (requiredAs parent) parent
 
 findInModules :: Dependency -> [FilePath] -> Task Dependency
@@ -69,9 +71,9 @@ findInModules _parent [] = throwError []
 findInModules parent (x:xs) =
   tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
-findInSources :: Dependency -> Task Dependency
-findInSources parent = do
-  Config {source_directory} <- Task.getConfig
+findInSources :: Env -> Dependency -> Task Dependency
+findInSources Env {config} parent = do
+  let Config {source_directory} = config
   tryToFind source_directory (requiredAs parent) parent
 
 tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency

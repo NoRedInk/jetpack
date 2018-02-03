@@ -2,29 +2,40 @@ module Lib
   ( run
   ) where
 
+import CliArguments (readArguments)
 import qualified CliArguments
 import qualified Compile
+import ConcatModule
+import Config
 import Control.Concurrent (threadDelay)
-import qualified Control.Monad.Free as Free
+import qualified Control.Concurrent.Async.Lifted as Concurrent
+import Control.Monad.State as State
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
-import qualified Interpreter.Pipeline as PipelineI
+import qualified DependencyTree
+import qualified EntryPoints
+import qualified Hooks
+import qualified Init
 import qualified Logger
 import qualified Message
-import qualified Pipeline as P
+import qualified ProgressBar
+import qualified ProgressSpinner
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
+import System.FilePath ((<.>), (</>))
+import Task (Task, toTask)
 import qualified Task
+import qualified Version
 
 run :: IO ()
 run = do
-  result <-
-    AsciiProgress.displayConsoleRegions $
-    Task.runTask $ Free.foldFree PipelineI.interpreter program
+  result <- AsciiProgress.displayConsoleRegions $ Task.runTask program
   case result of
     Right (Warnings warnings) -> Message.warning warnings
     Right (Info info) -> Message.info info
@@ -38,55 +49,64 @@ data Result
   | Warnings T.Text
   | Info T.Text
 
-program :: P.Pipeline Result
+program :: Task Result
 program
   -- SETUP
  = do
-  args <- P.readCliArgs
+  args <- readArguments
   if CliArguments.version args
-    then versionProgram
+    then return versionProgram
     else compileProgram args
 
-compileProgram :: CliArguments.Args -> P.Pipeline Result
+compileProgram :: CliArguments.Args -> Task Result
 compileProgram args
   -- SETUP
  = do
-  _ <- P.readConfig (CliArguments.configPath args)
-  toolPaths <- P.setup
-  _ <- traverse P.clearLog Logger.allLogs
+  _ <- Config.readConfig
+  env <- State.get
+  toolPaths <- Init.setup env
+  _ <- traverse (Logger.clearLog env) Logger.allLogs
   -- HOOK
-  maybeRunHook Pre (CliArguments.preHook args)
-  entryPoints <- P.findEntryPoints
+  maybeRunHook env Pre (CliArguments.preHook args)
+  entryPoints <- EntryPoints.find env
   -- GETTING DEPENDENCY TREE
   _ <-
-    P.startProgress "Finding dependencies for entrypoints" $
-    L.length entryPoints
-  cache <- P.readDependencyCache
-  deps <- P.async $ fmap (P.findDependency cache) entryPoints
-  _ <- P.writeDependencyCache deps
-  _ <- P.endProgress
+    ProgressBar.start
+      (L.length entryPoints)
+      "Finding dependencies for entrypoints"
+  cache <- DependencyTree.readTreeCache env
+  deps
+    -- TODO Concurrent.forConcurrently $
+     <-
+    traverse (DependencyTree.build env cache) entryPoints
+  _ <- DependencyTree.writeTreeCache env deps
+  _ <- ProgressBar.end
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
-  _ <- P.startProgress "Compiling" $ L.length modules
-  result <- traverse (P.compile toolPaths) modules
-  _ <- traverse (P.appendLog Logger.compileLog . T.pack . show) result
+  _ <- ProgressBar.start (L.length modules) "Compiling"
+  result <- traverse (Compile.compile env toolPaths) modules
+  _ <- traverse (Logger.appendLog env Logger.compileLog . T.pack . show) result
   _ <-
     traverse
       (\Compile.Result {compiledFile, duration} ->
-         P.appendLog Logger.compileTime $
+         Logger.appendLog env Logger.compileTime $
          (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
       result
-  _ <- P.endProgress
-  _ <- P.startProgress "Write modules" $ L.length deps
-  modules <- P.async $ fmap P.concatModule deps
-  _ <- P.outputCreatedModules modules
-  _ <- P.endProgress
+  _ <- ProgressBar.end
+  _ <- ProgressBar.start (L.length deps) "Write modules"
+  modules
+    -- TODO Concurrent.forConcurrently $
+     <-
+    traverse (ConcatModule.wrap env) deps
+  _ <- createdModulesJson env modules
+  _ <- ProgressBar.end
   _ <-
     traverse
-      (\Compile.Result {compiledFile, duration} -> P.time compiledFile duration)
+      (\Compile.Result {compiledFile, duration} ->
+         printTime env compiledFile duration)
       result
   -- HOOK
-  _ <- maybeRunHook Post (CliArguments.postHook args)
+  _ <- maybeRunHook env Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
@@ -94,16 +114,15 @@ compileProgram args
       [] -> Success $ fmap T.pack entryPoints
       xs -> Warnings $ T.unlines xs
 
-versionProgram :: P.Pipeline Result
-versionProgram = do
-  version <- P.version
-  return $ Info version
+versionProgram :: Result
+versionProgram = Info Version.print
 
-maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()
-maybeRunHook _ Nothing = return ()
-maybeRunHook type_ (Just hookScript) =
-  P.startSpinner title >> P.hook hookScript >>= P.appendLog (log type_) >>
-  P.endSpinner title
+maybeRunHook :: Env -> Hook -> Maybe String -> Task ()
+maybeRunHook env _ Nothing = return ()
+maybeRunHook env type_ (Just hookScript) =
+  ProgressSpinner.start title >> Hooks.run hookScript >>=
+  Logger.appendLog env (log type_) >>
+  ProgressSpinner.end title
   where
     title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")")
     log Pre = Logger.preHookLog
@@ -113,3 +132,21 @@ data Hook
   = Pre
   | Post
   deriving (Show)
+
+printTime :: Env -> FilePath -> Compile.Duration -> Task ()
+printTime Env {args} path duration = do
+  let Args {time} = args
+  if time
+    then do
+      toTask $
+        putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
+    else return ()
+
+createdModulesJson :: Env -> [FilePath] -> Task ()
+createdModulesJson Env {config} paths = do
+  let encodedPaths = Aeson.encode paths
+  let Config {temp_directory} = config
+  let jsonPath = temp_directory </> "modules" <.> "json"
+  _ <- toTask $ BL.writeFile jsonPath encodedPaths
+  _ <- ProgressBar.step
+  return ()

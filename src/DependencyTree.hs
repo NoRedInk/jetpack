@@ -55,6 +55,7 @@ import Data.Time.Clock ()
 import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
 import Dependencies
+import Env
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
@@ -63,33 +64,33 @@ import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
-import Task (Task, getConfig, toTask)
+import Task (Task, toTask)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: Dependencies -> FilePath -> Task DependencyTree
-build cache entryPoint = do
-  Config {entry_points} <- Task.getConfig
+build :: Env -> Dependencies -> FilePath -> Task DependencyTree
+build env cache entryPoint = do
+  let Config {entry_points} = Env.config env
   dependency <- toDependency entry_points entryPoint
-  buildTree cache dependency
+  buildTree env cache dependency
 
-buildTree :: Dependencies -> Dependency -> Task DependencyTree
-buildTree cache dep = do
-  resolved <- Resolver.resolve Nothing dep
-  tree <- Tree.unfoldTreeM (resolveChildren <=< findRequires cache) resolved
+buildTree :: Env -> Dependencies -> Dependency -> Task DependencyTree
+buildTree env cache dep = do
+  resolved <- Resolver.resolve env Nothing dep
+  tree <- Tree.unfoldTreeM (resolveChildren env <=< findRequires cache) resolved
   _ <- ProgressBar.step
   return tree
 
-readTreeCache :: Task Dependencies
-readTreeCache = do
-  Config {temp_directory} <- Task.getConfig
+readTreeCache :: Env -> Task Dependencies
+readTreeCache Env {config} = do
+  let Config {temp_directory} = config
   depsJson <- toTask $ BL.readFile $ temp_directory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
 
-writeTreeCache :: Dependencies -> Task ()
-writeTreeCache deps = do
-  Config {temp_directory} <- Task.getConfig
+writeTreeCache :: Env -> Dependencies -> Task ()
+writeTreeCache Env {config} deps = do
+  let Config {temp_directory} = config
   toTask $
     BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
 
@@ -136,7 +137,8 @@ parseModule cache dep@Dependency {filePath} parser =
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
 
-resolveChildren :: (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
-resolveChildren (parent, children) = do
-  resolved <- traverse (Resolver.resolve (Just parent)) children
+resolveChildren ::
+     Env -> (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
+resolveChildren env (parent, children) = do
+  resolved <- traverse (Resolver.resolve env (Just parent)) children
   return (parent, resolved)

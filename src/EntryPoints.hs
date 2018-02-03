@@ -8,16 +8,16 @@ import CliArguments (Args(..))
 import Config
 import Control.Monad.Except (throwError)
 
+import Env
 import Error
 import qualified System.Directory as Dir
-import System.FilePath ((</>), makeRelative, normalise, takeDirectory)
+import System.FilePath
+       ((</>), makeRelative, normalise, takeDirectory)
 import "Glob" System.FilePath.Glob (glob)
-import Task (Task, getArgs, getConfig, toTask)
+import Task (Task, toTask)
 
-find :: Task [FilePath]
-find = do
-  config <- Task.getConfig
-  args <- Task.getArgs
+find :: Env -> Task [FilePath]
+find Env {args, config} = do
   let entryPointsGlob = normalisedEntryPointsGlob config args
   paths <- findFilesIn entryPointsGlob
   cwd <- toTask Dir.getCurrentDirectory
@@ -27,12 +27,11 @@ find = do
 
 normalisedEntryPointsGlob :: Config -> Args -> FilePath
 normalisedEntryPointsGlob config args =
-    case entryPointGlob args of
-      Nothing ->
-        entry_points config </> "**" </> "*.*"
-      Just entryPoints ->
+  case entryPointGlob args of
+    Nothing -> entry_points config </> "**" </> "*.*"
+    Just entryPoints
         -- handle arguments with and without a leading "./"
-        "." </> (normalise entryPoints)
+     -> "." </> (normalise entryPoints)
 
 findFilesIn :: FilePath -> Task [FilePath]
 findFilesIn = toTask . glob

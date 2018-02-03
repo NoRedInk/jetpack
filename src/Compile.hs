@@ -21,7 +21,7 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task, getArgs, getConfig, toTask)
+import Task (Task, toTask)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -42,33 +42,33 @@ data Duration = Duration
 instance Show Duration where
   show (Duration start end) = TL.unpack $ format timeSpecs start end
 
-compile :: ToolPaths -> Dependency -> Task Result
-compile toolPaths Dependency {fileType, filePath} = do
-  config <- Task.getConfig
+compile :: Env -> ToolPaths -> Dependency -> Task Result
+compile env toolPaths Dependency {fileType, filePath} = do
   runCompiler
-    config
+    env
     fileType
     toolPaths
     Arguments
-    {input = filePath, output = buildArtifactPath config fileType filePath}
+    {input = filePath, output = buildArtifactPath env fileType filePath}
 
 data Arguments = Arguments
   { input :: FilePath
   , output :: FilePath
   }
 
-runCompiler :: Config -> Ast.SourceType -> ToolPaths -> Arguments -> Task Result
-runCompiler config fileType ToolPaths {elmMake, sassc, coffee} arguments =
+runCompiler :: Env -> Ast.SourceType -> ToolPaths -> Arguments -> Task Result
+runCompiler env fileType ToolPaths {elmMake, sassc, coffee} arguments =
   case fileType of
-    Ast.Elm -> elmCompiler elmMake config arguments
+    Ast.Elm -> elmCompiler elmMake env arguments
     Ast.Js -> jsCompiler arguments
-    Ast.Coffee -> coffeeCompiler coffee arguments
-    Ast.Sass -> sassCompiler sassc config arguments
+    Ast.Coffee -> coffeeCompiler env coffee arguments
+    Ast.Sass -> sassCompiler sassc env arguments
 
-buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
-buildArtifactPath Config {temp_directory} fileType inputPath =
-  temp_directory </> pathToFileName inputPath extension
+buildArtifactPath :: Env -> Ast.SourceType -> FilePath -> String
+buildArtifactPath env fileType inputPath =
+  tmp </> pathToFileName inputPath extension
   where
+    tmp = Config.temp_directory $ Env.config env
     extension =
       case fileType of
         Ast.Elm -> "js"
@@ -79,12 +79,13 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
 ---------------
 -- COMPILERS --
 ---------------
-elmCompiler :: FilePath -> Config -> Arguments -> Task Result
-elmCompiler elmMake Config {elm_root_directory} Arguments {input, output}
+elmCompiler :: FilePath -> Env -> Arguments -> Task Result
+elmCompiler elmMake env Arguments {input, output}
   -- TODO use elm_root_directory instead of the "../" below
   -- also pass in absolute paths
  = do
-  Args {debug, warn} <- Task.getArgs
+  let Config {elm_root_directory} = Env.config env
+  let Args {debug, warn} = Env.args env
   let debugFlag =
         if debug
           then " --debug"
@@ -99,12 +100,12 @@ elmCompiler elmMake Config {elm_root_directory} Arguments {input, output}
         "../" ++
         input ++
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-  runCmd input cmd $ Just elm_root_directory
+  runCmd env input cmd $ Just elm_root_directory
 
-coffeeCompiler :: FilePath -> Arguments -> Task Result
-coffeeCompiler coffee Arguments {input, output} = do
+coffeeCompiler :: Env -> FilePath -> Arguments -> Task Result
+coffeeCompiler env coffee Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd input cmd Nothing
+  runCmd env input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -125,20 +126,21 @@ jsCompiler Arguments {input, output} = do
     , compiledFile = input
     }
 
-sassCompiler :: FilePath -> Config -> Arguments -> Task Result
-sassCompiler sassc Config {sass_load_paths} Arguments {input, output} = do
+sassCompiler :: FilePath -> Env -> Arguments -> Task Result
+sassCompiler sassc env Arguments {input, output} = do
+  let Config {sass_load_paths} = Env.config env
   let loadPath = L.intercalate ":" sass_load_paths
   let cmd =
         "SASS_PATH=" ++
         loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
-  runCmd input cmd Nothing
+  runCmd env input cmd Nothing
 
-runCmd :: FilePath -> String -> Maybe String -> Task Result
-runCmd input cmd maybeCwd = do
+runCmd :: Env -> FilePath -> String -> Maybe String -> Task Result
+runCmd env input cmd maybeCwd = do
   start <- toTask $ getTime Monotonic
   (ec, errContent, content) <- toTask $ runAndWaitForProcess cmd maybeCwd
   end <- toTask $ getTime Monotonic
-  Args {warn} <- Task.getArgs
+  let Args {warn} = Env.args env
   case ec of
     ExitSuccess -> do
       _ <- ProgressBar.step

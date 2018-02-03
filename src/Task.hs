@@ -5,8 +5,6 @@ module Task
   , ExceptIO
   , toTask
   , runTask
-  , getArgs
-  , getConfig
   ) where
 
 import Control.Monad.Except
@@ -24,17 +22,3 @@ toTask = lift . lift
 
 runTask :: Monad m => StateT Env (ExceptT e m) a -> m (Either e a)
 runTask t = runExceptT $ evalStateT t $ Env {progressBar = Nothing}
-
-{-| Get config from state.
--}
-getConfig :: Task Config
-getConfig = do
-  Env {config} <- get
-  return config
-
-{-| Get args from state.
--}
-getArgs :: Task Args
-getArgs = do
-  Env {args} <- get
-  return args

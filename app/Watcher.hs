@@ -56,10 +56,11 @@ options config =
     False -- usePolling
 
 rebuild :: MVar (Maybe ProcessID) -> IO ()
-rebuild mVar = do
+rebuild mVar
   -- takeMVar blocks if there is nothing inside it.
   -- This prevents a race condition that could happen if multiple files are
   -- written at once.
+ = do
   runningProcess <- takeMVar mVar
   for_ runningProcess (signalProcess softwareTermination)
   for_ runningProcess (getProcessStatus True False) -- here be dragons, potentially

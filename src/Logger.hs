@@ -25,12 +25,12 @@ postHookLog = "post-hook.log"
 allLogs :: [T.Text]
 allLogs = [compileTime, compileLog, preHookLog, postHookLog]
 
-appendLog :: T.Text -> T.Text -> Task ()
-appendLog fileName msg = do
-  Config {log_directory} <- Task.getConfig
+appendLog :: Env -> T.Text -> T.Text -> Task ()
+appendLog Env {config} fileName msg = do
+  let Config {log_directory} = config
   toTask $ appendFile (log_directory </> (T.unpack fileName)) $ T.unpack msg
 
-clearLog :: T.Text -> Task ()
-clearLog fileName = do
-  Config {log_directory} <- Task.getConfig
+clearLog :: Env -> T.Text -> Task ()
+clearLog Env {config} fileName = do
+  let Config {log_directory} = config
   toTask $ writeFile (log_directory </> (T.unpack fileName)) ""
