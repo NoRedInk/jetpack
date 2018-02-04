@@ -9,6 +9,7 @@ import ConcatModule
 import Config
 import Control.Concurrent (threadDelay)
 import qualified Control.Concurrent.Async.Lifted as Concurrent
+import Control.Monad (when)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
@@ -54,7 +55,7 @@ program
  = do
   args <- readArguments
   if CliArguments.version args
-    then return versionProgram
+    then return $ Info Version.print
     else compileProgram args
 
 compileProgram :: CliArguments.Args -> Task Result
@@ -70,10 +71,10 @@ compileProgram args
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
   cache <- DependencyTree.readTreeCache config
-  deps
-    -- TODO Concurrent.forConcurrently $
-     <-
-    traverse (DependencyTree.build pg config cache) entryPoints
+  deps <-
+    Concurrent.mapConcurrently
+      (DependencyTree.build pg config cache)
+      entryPoints
   _ <- DependencyTree.writeTreeCache config deps
   _ <- lift $ complete pg
   -- COMPILATION
@@ -90,13 +91,11 @@ compileProgram args
       result
   _ <- lift $ complete pg
   pg <- start (L.length deps) "Write modules"
-  modules
-    -- TODO Concurrent.forConcurrently $
-     <-
-    traverse (ConcatModule.wrap pg config) deps
+  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
   _ <- lift $ createdModulesJson pg config modules
   _ <- lift $ complete pg
   _ <-
+    lift $
     traverse
       (\Compile.Result {compiledFile, duration} ->
          printTime args compiledFile duration)
@@ -109,9 +108,6 @@ compileProgram args
     case warnings of
       [] -> Success $ fmap T.pack entryPoints
       xs -> Warnings $ T.unlines xs
-
-versionProgram :: Result
-versionProgram = Info Version.print
 
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook config _ Nothing = return ()
@@ -130,14 +126,10 @@ data Hook
   | Post
   deriving (Show)
 
-printTime :: Args -> FilePath -> Compile.Duration -> Task ()
-printTime args path duration = do
-  let Args {time} = args
-  if time
-    then do
-      lift $
-        putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
-    else return ()
+printTime :: Args -> FilePath -> Compile.Duration -> IO ()
+printTime Args {time} path duration =
+  when time $
+  putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
