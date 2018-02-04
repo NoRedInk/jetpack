@@ -21,7 +21,7 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task, toTask)
+import Task (Task, lift)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -44,7 +44,7 @@ instance Show Duration where
 
 compile ::
      ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> Task Result
-compile pg args config toolPaths Dependency {fileType, filePath} = do
+compile pg args config toolPaths Dependency {fileType, filePath} =
   runCompiler
     pg
     args
@@ -52,7 +52,7 @@ compile pg args config toolPaths Dependency {fileType, filePath} = do
     fileType
     toolPaths
     Arguments
-    {input = filePath, output = buildArtifactPath args config fileType filePath}
+    {input = filePath, output = buildArtifactPath config fileType filePath}
 
 data Arguments = Arguments
   { input :: FilePath
@@ -71,14 +71,13 @@ runCompiler pg args config fileType ToolPaths {elmMake, sassc, coffee} arguments
   case fileType of
     Ast.Elm -> elmCompiler elmMake pg args config arguments
     Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg args config arguments
+    Ast.Coffee -> coffeeCompiler coffee pg args arguments
     Ast.Sass -> sassCompiler sassc pg args config arguments
 
-buildArtifactPath :: Args -> Config -> Ast.SourceType -> FilePath -> String
-buildArtifactPath args config fileType inputPath =
-  tmp </> pathToFileName inputPath extension
+buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
+buildArtifactPath Config {temp_directory} fileType inputPath =
+  temp_directory </> pathToFileName inputPath extension
   where
-    tmp = Config.temp_directory config
     extension =
       case fileType of
         Ast.Elm -> "js"
@@ -91,11 +90,9 @@ buildArtifactPath args config fileType inputPath =
 ---------------
 elmCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
-elmCompiler elmMake pg args config Arguments {input, output}
-  -- TODO use elm_root_directory instead of the "../" below
-  -- also pass in absolute paths
- = do
-  let Config {elm_root_directory} = config
+elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
+                                                                  , output
+                                                                  } = do
   let Args {debug, warn} = args
   let debugFlag =
         if debug
@@ -113,9 +110,8 @@ elmCompiler elmMake pg args config Arguments {input, output}
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
   runCmd pg args input cmd $ Just elm_root_directory
 
-coffeeCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
-coffeeCompiler coffee pg args config Arguments {input, output} = do
+coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> Task Result
+coffeeCompiler coffee pg args Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
   runCmd pg args input cmd Nothing
 
@@ -123,7 +119,7 @@ coffeeCompiler coffee pg args config Arguments {input, output} = do
 -}
 jsCompiler :: ProgressBar -> Arguments -> Task Result
 jsCompiler pg Arguments {input, output} =
-  toTask $ do
+  lift $ do
     start <- getTime Monotonic
     _ <- copyFile input output
     _ <- tick pg
@@ -141,8 +137,7 @@ jsCompiler pg Arguments {input, output} =
 
 sassCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
-sassCompiler sassc pg args config Arguments {input, output} = do
-  let Config {sass_load_paths} = config
+sassCompiler sassc pg args Config {sass_load_paths} Arguments {input, output} = do
   let loadPath = L.intercalate ":" sass_load_paths
   let cmd =
         "SASS_PATH=" ++
@@ -151,15 +146,14 @@ sassCompiler sassc pg args config Arguments {input, output} = do
 
 runCmd ::
      ProgressBar -> Args -> FilePath -> String -> Maybe String -> Task Result
-runCmd pg args input cmd maybeCwd = do
-  start <- toTask $ getTime Monotonic
-  (ec, errContent, content) <- toTask $ runAndWaitForProcess cmd maybeCwd
-  end <- toTask $ getTime Monotonic
-  let Args {warn} = args
+runCmd pg Args {warn} input cmd maybeCwd = do
+  start <- lift $ getTime Monotonic
+  (ec, errContent, content) <- lift $ runAndWaitForProcess cmd maybeCwd
+  end <- lift $ getTime Monotonic
   case ec of
     ExitSuccess -> do
-      _ <- toTask $ tick pg
-      currentTime <- toTask getCurrentTime
+      _ <- lift $ tick pg
+      currentTime <- lift getCurrentTime
       return
         Result
         { duration = Duration start end

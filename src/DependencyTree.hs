@@ -63,7 +63,7 @@ import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
-import Task (Task, toTask)
+import Task (Task, lift)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
@@ -81,24 +81,24 @@ buildTree pg config cache dep = do
   resolved <- Resolver.resolve config Nothing dep
   tree <-
     Tree.unfoldTreeM (resolveChildren config <=< findRequires cache) resolved
-  _ <- toTask $ tick pg
+  _ <- lift $ tick pg
   return tree
 
 readTreeCache :: Config -> Task Dependencies
 readTreeCache config = do
   let Config {temp_directory} = config
-  depsJson <- toTask $ BL.readFile $ temp_directory </> "deps" <.> "json"
+  depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
   return $ fromMaybe [] $ Aeson.decode depsJson
 
 writeTreeCache :: Config -> Dependencies -> Task ()
 writeTreeCache config deps = do
   let Config {temp_directory} = config
-  toTask $
+  lift $
     BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
 
 toDependency :: FilePath -> FilePath -> Task Dependency
 toDependency entry_points path =
-  toTask $ do
+  lift $ do
     status <- getFileStatus $ entry_points </> path
     let lastModificationTime =
           posixSecondsToUTCTime $ modificationTimeHiRes status
@@ -134,7 +134,7 @@ parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do
-      content <- toTask $ readFile filePath
+      content <- lift $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)

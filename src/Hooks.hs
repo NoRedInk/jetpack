@@ -9,21 +9,21 @@ import GHC.IO.Handle
 import System.Exit
 import System.FilePath ()
 import System.Process
-import Task (Task, toTask)
+import Task (Task, lift)
 
 run :: String -> Task T.Text
 run hookScript = do
   (_, Just out, Just err, ph) <-
-    toTask $
+    lift $
     createProcess
       (proc "bash" ["-c", hookScript])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = Nothing}
-  ec <- toTask $ waitForProcess ph
+  ec <- lift $ waitForProcess ph
   case ec of
     ExitSuccess -> do
-      content <- toTask $ hGetContents out
+      content <- lift $ hGetContents out
       return (T.pack $ content)
     ExitFailure _ -> do
-      content <- toTask $ hGetContents out
-      errContent <- toTask $ hGetContents err
+      content <- lift $ hGetContents out
+      errContent <- lift $ hGetContents err
       throwError [HookFailed (content ++ errContent) hookScript]

@@ -22,7 +22,7 @@ wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
 wrap pg env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
   out <- writeModule env dep $ catMaybes wrapped
-  _ <- toTask $ tick pg
+  _ <- lift $ tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
@@ -32,7 +32,7 @@ wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
 wrapper config (d@Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   if compilesToJs d
-    then toTask $ do
+    then lift $ do
            let name = F.pathToFileName filePath "js"
            content <- readFile $ temp_directory </> name
            let fnName = F.pathToFunctionName filePath "js"
@@ -69,7 +69,7 @@ writeModule config dependencyTree fns = do
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
 writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
-  toTask $ do
+  lift $ do
     let out =
           outputPath $
           Output
@@ -84,7 +84,7 @@ writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
 
 writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
 writeCssModule Config {output_css_directory, entry_points, temp_directory} rootFilePath deps =
-  toTask $ do
+  lift $ do
     let out =
           outputPath $
           Output

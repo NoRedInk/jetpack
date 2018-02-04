@@ -7,7 +7,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import Error (Error(..))
 import GHC.Generics (Generic)
-import Task (Task, toTask)
+import Task (Task, lift)
 import Utils.Files (fileExistsTask)
 
 data PackageJson = PackageJson
@@ -22,5 +22,5 @@ instance FromJSON PackageJson
 load :: FilePath -> Task PackageJson
 load path = do
   _ <- fileExistsTask path
-  content <- toTask $ BL.readFile path
+  content <- lift $ BL.readFile path
   maybe (throwError [JsonInvalid path]) return $ Aeson.decode content

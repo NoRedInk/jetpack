@@ -28,7 +28,7 @@ import qualified ProgressSpinner
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
-import Task (Task, toTask)
+import Task (Task, lift)
 import qualified Task
 import qualified Version
 
@@ -75,7 +75,7 @@ compileProgram args
      <-
     traverse (DependencyTree.build pg config cache) entryPoints
   _ <- DependencyTree.writeTreeCache config deps
-  _ <- toTask $ complete pg
+  _ <- lift $ complete pg
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   pg <- start (L.length modules) "Compiling"
@@ -88,14 +88,14 @@ compileProgram args
          Logger.appendLog config Logger.compileTime $
          (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
       result
-  _ <- toTask $ complete pg
+  _ <- lift $ complete pg
   pg <- start (L.length deps) "Write modules"
   modules
     -- TODO Concurrent.forConcurrently $
      <-
     traverse (ConcatModule.wrap pg config) deps
-  _ <- toTask $ createdModulesJson pg config modules
-  _ <- toTask $ complete pg
+  _ <- lift $ createdModulesJson pg config modules
+  _ <- lift $ complete pg
   _ <-
     traverse
       (\Compile.Result {compiledFile, duration} ->
@@ -116,10 +116,10 @@ versionProgram = Info Version.print
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook config _ Nothing = return ()
 maybeRunHook config type_ (Just hookScript) = do
-  spinner <- toTask $ ProgressSpinner.start title
+  spinner <- lift $ ProgressSpinner.start title
   out <- Hooks.run hookScript
   Logger.appendLog config (log type_) out
-  toTask $ ProgressSpinner.end spinner title
+  lift $ ProgressSpinner.end spinner title
   where
     title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")")
     log Pre = Logger.preHookLog
@@ -135,7 +135,7 @@ printTime args path duration = do
   let Args {time} = args
   if time
     then do
-      toTask $
+      lift $
         putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
     else return ()
 

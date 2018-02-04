@@ -39,7 +39,7 @@ import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
-import Task (Task, toTask)
+import Task (Task, lift)
 import Utils.Files (fileExistsTask)
 
 resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
@@ -143,7 +143,7 @@ updateDepType (Dependency _ r p l) = Dependency newType r p l
 
 updateDepTime :: Dependency -> Task Dependency
 updateDepTime (Dependency t r p _) =
-  toTask $ do
+  lift $ do
     status <- getFileStatus p
     let lastModificationTime =
           posixSecondsToUTCTime $ modificationTimeHiRes status

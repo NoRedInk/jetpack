@@ -168,7 +168,7 @@ suite =
     , testCase "#wrap" $ do
         e <-
           runExceptT $ do
-            pg <- toTask mockProgressBar
+            pg <- lift mockProgressBar
             traverse (wrap pg mockConfig) mockDependencies
         case e of
           Left _ -> assertFailure ""

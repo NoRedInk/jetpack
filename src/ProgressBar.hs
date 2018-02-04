@@ -9,11 +9,11 @@ module ProgressBar
 
 import qualified Data.Text as T
 import System.Console.AsciiProgress as AP
-import Task (Task, toTask)
+import Task (Task, lift)
 
 start :: Int -> T.Text -> Task AP.ProgressBar
 start total title =
-  toTask $
+  lift $
   AP.newProgressBar
     def
     { pgTotal = toInteger total

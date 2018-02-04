@@ -12,7 +12,7 @@ import Parser.Ast as Ast
 import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
 import Task
-import Task (Task, toTask)
+import Task (Task, lift)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -66,7 +66,7 @@ suite =
     [ testCase "#find success" $ do
         e <-
           runExceptT $ do
-            pg <- toTask mockProgressBar
+            pg <- lift mockProgressBar
             DependencyTree.build pg basicsFixtures [] ("test" <.> "js")
         case e of
           Left msg -> do
@@ -111,7 +111,7 @@ suite =
     , testCase "#find failing" $ do
         e <-
           runExceptT $ do
-            pg <- toTask mockProgressBar
+            pg <- lift mockProgressBar
             DependencyTree.build pg failingFixtures [] ("test" <.> "js")
         case e of
           Right x -> assertFailure $ "This shouldn't pass"

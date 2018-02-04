@@ -12,7 +12,7 @@ import Error (Error(..))
 import GHC.Generics (Generic)
 import qualified System.Directory as Dir
 import System.FilePath ((</>))
-import Task (Task, toTask)
+import Task (Task, lift)
 
 data Config = Config
   { entry_points :: FilePath
@@ -35,7 +35,7 @@ instance FromJSON Config
 
 readConfig :: Task Config
 readConfig = do
-  cwd <- toTask Dir.getCurrentDirectory
+  cwd <- lift Dir.getCurrentDirectory
   maybeLocalConfig <- load cwd
   case maybeLocalConfig of
     Just config -> return config
@@ -65,10 +65,10 @@ defaultConfig =
 load :: FilePath -> Task (Maybe Config)
 load root = do
   let path = root </> "jetpack.json"
-  exists <- toTask $ Dir.doesFileExist path
+  exists <- lift $ Dir.doesFileExist path
   if exists
     then do
-      content <- toTask $ BL.readFile path
+      content <- lift $ BL.readFile path
       case Aeson.decode content of
         Just config -> return $ Just config
         Nothing -> throwError $ [JsonInvalid path]

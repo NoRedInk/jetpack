@@ -17,7 +17,7 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process
-import Task (Task, toTask)
+import Task (Task, lift)
 import qualified Task
 import Twitch
        (DebounceType(..), Dep, LoggerType(..), Options(..), addModify)

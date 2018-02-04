@@ -35,7 +35,7 @@ defaultArguments =
 
 readArguments :: Task Args
 readArguments =
-  toTask $ execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
+  lift $ execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
 
 parser :: Parser Args
 parser =

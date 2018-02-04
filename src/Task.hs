@@ -2,7 +2,7 @@
 -}
 module Task
   ( Task
-  , toTask
+  , lift
   , runExceptT
   ) where
 
@@ -10,6 +10,3 @@ import Control.Monad.Except
 import Error
 
 type Task = ExceptT [Error] IO
-
-toTask :: IO a -> Task a
-toTask = lift
