@@ -35,6 +35,7 @@ runDocTests = do
   doctest
     ([ "-XDeriveFunctor"
      , "-XDeriveGeneric"
+     , "-XDuplicateRecordFields"
      , "-XNamedFieldPuns"
      , "-XOverloadedStrings"
      , "-XPackageImports"

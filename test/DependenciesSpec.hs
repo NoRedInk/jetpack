@@ -12,8 +12,20 @@ import Parser.Ast as Ast
 import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
 import Task
+import Task (Task, toTask)
 import Test.Tasty
 import Test.Tasty.HUnit
+
+mockProgressBar :: IO ProgressBar
+mockProgressBar =
+  newProgressBar
+    def
+    { pgTotal = toInteger 1
+    , pgOnCompletion = Just ""
+    , pgCompletedChar = ' '
+    , pgPendingChar = ' '
+    , pgFormat = ""
+    }
 
 basicsFixtures :: Config
 basicsFixtures =
@@ -54,8 +66,8 @@ suite =
     [ testCase "#find success" $ do
         e <-
           runExceptT $ do
-            modify (\env -> env {config = basicsFixtures})
-            DependencyTree.build [] ("test" <.> "js")
+            pg <- toTask mockProgressBar
+            DependencyTree.build pg basicsFixtures [] ("test" <.> "js")
         case e of
           Left msg -> do
             _ <- traverse print msg
@@ -99,8 +111,8 @@ suite =
     , testCase "#find failing" $ do
         e <-
           runExceptT $ do
-            modify (\env -> env {config = failingFixtures})
-            DependencyTree.build [] ("test" <.> "js")
+            pg <- toTask mockProgressBar
+            DependencyTree.build pg failingFixtures [] ("test" <.> "js")
         case e of
           Right x -> assertFailure $ "This shouldn't pass"
           Left errors ->

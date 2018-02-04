@@ -8,11 +8,23 @@ import Data.Text as T
 import Data.Tree as Tree
 import Dependencies as D
 import Parser.Ast as Ast
+import System.Console.AsciiProgress
 import System.Directory (removeFile)
 import System.FilePath ((<.>), (</>))
 import Task
 import Test.Tasty
 import Test.Tasty.HUnit
+
+mockProgressBar :: IO ProgressBar
+mockProgressBar =
+  newProgressBar
+    def
+    { pgTotal = toInteger 1
+    , pgOnCompletion = Just ""
+    , pgCompletedChar = ' '
+    , pgPendingChar = ' '
+    , pgFormat = ""
+    }
 
 mockModule :: T.Text
 mockModule = T.unlines ["var foo = require('foo.js');", "", "foo(42)"]
@@ -156,8 +168,8 @@ suite =
     , testCase "#wrap" $ do
         e <-
           runExceptT $ do
-            modify (\env -> env {config = mockConfig})
-            traverse wrap mockDependencies
+            pg <- toTask mockProgressBar
+            traverse (wrap pg mockConfig) mockDependencies
         case e of
           Left _ -> assertFailure ""
           Right paths -> do
