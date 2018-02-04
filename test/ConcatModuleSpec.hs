@@ -155,7 +155,7 @@ suite =
      @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
         e <-
-          runTask $ do
+          runExceptT $ do
             modify (\env -> env {config = mockConfig})
             traverse wrap mockDependencies
         case e of

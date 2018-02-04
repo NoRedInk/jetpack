@@ -9,9 +9,8 @@ import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
-import Env ()
 import qualified Parser.Ast as Ast
-import qualified ProgressBar
+import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
@@ -19,18 +18,18 @@ import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: Env -> DependencyTree -> Task FilePath
-wrap env dep = do
+wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
+wrap pg env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
   out <- writeModule env dep $ catMaybes wrapped
-  _ <- ProgressBar.step
+  _ <- toTask $ tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Env -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper Env {config} (d@Dependency {filePath}, ds) = do
+wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper config (d@Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   if compilesToJs d
     then toTask $ do
@@ -60,8 +59,8 @@ compilesToJs Dependency {filePath, fileType} =
     Ast.Coffee -> True
     _ -> False
 
-writeModule :: Env -> DependencyTree -> [T.Text] -> Task FilePath
-writeModule Env {config} dependencyTree fns = do
+writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
+writeModule config dependencyTree fns = do
   let root@Dependency {filePath} = Tree.rootLabel dependencyTree
   if compilesToJs root
     then writeJsModule config filePath fns

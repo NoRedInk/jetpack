@@ -26,7 +26,7 @@ import Twitch.Extra (defaultMainWithOptions)
 main :: IO ()
 main = do
   cwd <- Dir.getCurrentDirectory
-  maybeConfig <- Task.runTask $ Config.load cwd
+  maybeConfig <- Task.runExceptT $ Config.load cwd
   case maybeConfig of
     Right (Just config) -> watch config
     _ -> putStrLn "no jetpack config found."

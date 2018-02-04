@@ -8,7 +8,6 @@ import CliArguments (Args(..))
 import Config
 import Control.Monad.Except (throwError)
 
-import Env
 import Error
 import qualified System.Directory as Dir
 import System.FilePath
@@ -16,8 +15,8 @@ import System.FilePath
 import "Glob" System.FilePath.Glob (glob)
 import Task (Task, toTask)
 
-find :: Env -> Task [FilePath]
-find Env {args, config} = do
+find :: Args -> Config -> Task [FilePath]
+find args config = do
   let entryPointsGlob = normalisedEntryPointsGlob config args
   paths <- findFilesIn entryPointsGlob
   cwd <- toTask Dir.getCurrentDirectory

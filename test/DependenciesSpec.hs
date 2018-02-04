@@ -53,7 +53,7 @@ suite =
     "Dependencies"
     [ testCase "#find success" $ do
         e <-
-          runTask $ do
+          runExceptT $ do
             modify (\env -> env {config = basicsFixtures})
             DependencyTree.build [] ("test" <.> "js")
         case e of
@@ -98,7 +98,7 @@ suite =
             ]
     , testCase "#find failing" $ do
         e <-
-          runTask $ do
+          runExceptT $ do
             modify (\env -> env {config = failingFixtures})
             DependencyTree.build [] ("test" <.> "js")
         case e of

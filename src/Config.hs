@@ -3,29 +3,43 @@ module Config
   , readConfig
   , load
   , defaultConfig
-  , module Env
   ) where
 
 import Control.Monad.Except
-import Control.Monad.State (modify)
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import Env
 import Error (Error(..))
+import GHC.Generics (Generic)
 import qualified System.Directory as Dir
 import System.FilePath ((</>))
 import Task (Task, toTask)
+
+data Config = Config
+  { entry_points :: FilePath
+  , modules_directories :: [FilePath]
+  , source_directory :: FilePath
+  , elm_root_directory :: FilePath
+  , sass_load_paths :: [FilePath]
+  , temp_directory :: FilePath
+  , log_directory :: FilePath
+  , output_js_directory :: FilePath
+  , output_css_directory :: FilePath
+  , elm_make_path :: Maybe FilePath
+  , sassc_path :: Maybe FilePath
+  , coffee_path :: Maybe FilePath
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON Config
+
+instance FromJSON Config
 
 readConfig :: Task Config
 readConfig = do
   cwd <- toTask Dir.getCurrentDirectory
   maybeLocalConfig <- load cwd
-  c <-
-    case maybeLocalConfig of
-      Just config -> return config
-      Nothing -> return defaultConfig
-  modify (\env -> env {config = c})
-  return c
+  case maybeLocalConfig of
+    Just config -> return config
+    Nothing -> return defaultConfig
 
 defaultConfig :: Config
 defaultConfig =

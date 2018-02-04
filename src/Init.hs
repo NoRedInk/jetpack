@@ -9,8 +9,8 @@ import System.FilePath
 import Task (Task, toTask)
 import qualified ToolPaths
 
-setup :: Env -> Task ToolPaths.ToolPaths
-setup Env {config} = do
+setup :: Config -> Task ToolPaths.ToolPaths
+setup config = do
   let Config { temp_directory
              , log_directory
              , output_js_directory

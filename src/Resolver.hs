@@ -34,7 +34,6 @@ import Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
 import Dependencies (Dependency(..))
-import Env
 import Error (Error(ModuleNotFound))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
@@ -43,13 +42,13 @@ import System.Posix.Files
 import Task (Task, toTask)
 import Utils.Files (fileExistsTask)
 
-resolve :: Env -> Maybe Dependency -> Dependency -> Task Dependency
-resolve env requiredIn dep = do
-  let Config {modules_directories} = Env.config env
+resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
+resolve config requiredIn dep = do
+  let Config {modules_directories} = config
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
-    findInEntryPoints env dep <|>
-    findInSources env dep <|>
+    findInEntryPoints config dep <|>
+    findInSources config dep <|>
     findInModules dep modules_directories <|>
     moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
@@ -61,8 +60,8 @@ findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
 
-findInEntryPoints :: Env -> Dependency -> Task Dependency
-findInEntryPoints Env {config} parent = do
+findInEntryPoints :: Config -> Dependency -> Task Dependency
+findInEntryPoints config parent = do
   let Config {entry_points} = config
   tryToFind entry_points (requiredAs parent) parent
 
@@ -71,8 +70,8 @@ findInModules _parent [] = throwError []
 findInModules parent (x:xs) =
   tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
-findInSources :: Env -> Dependency -> Task Dependency
-findInSources Env {config} parent = do
+findInSources :: Config -> Dependency -> Task Dependency
+findInSources config parent = do
   let Config {source_directory} = config
   tryToFind source_directory (requiredAs parent) parent
 
