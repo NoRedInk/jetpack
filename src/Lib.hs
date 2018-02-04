@@ -9,7 +9,6 @@ import ConcatModule
 import Config
 import Control.Concurrent (threadDelay)
 import qualified Control.Concurrent.Async.Lifted as Concurrent
-import Control.Monad (when)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
@@ -64,7 +63,7 @@ compileProgram args
  = do
   config <- Config.readConfig
   toolPaths <- Init.setup config
-  _ <- traverse (Logger.clearLog config) Logger.allLogs
+  traverse (Logger.clearLog config) Logger.allLogs
   -- HOOK
   maybeRunHook config Pre (CliArguments.preHook args)
   entryPoints <- EntryPoints.find args config
@@ -75,33 +74,27 @@ compileProgram args
     Concurrent.mapConcurrently
       (DependencyTree.build pg config cache)
       entryPoints
-  _ <- DependencyTree.writeTreeCache config deps
-  _ <- lift $ complete pg
+  DependencyTree.writeTreeCache config deps
+  lift $ complete pg
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   pg <- start (L.length modules) "Compiling"
   result <- traverse (Compile.compile pg args config toolPaths) modules
-  _ <-
-    traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
-  _ <-
-    traverse
-      (\Compile.Result {compiledFile, duration} ->
-         Logger.appendLog config Logger.compileTime $
-         (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
-      result
-  _ <- lift $ complete pg
+  traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
+  traverse
+    (\Compile.Result {compiledFile, duration} ->
+       Logger.appendLog config Logger.compileTime $
+       (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
+    result
+  lift $ complete pg
   pg <- start (L.length deps) "Write modules"
   modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
-  _ <- lift $ createdModulesJson pg config modules
-  _ <- lift $ complete pg
-  _ <-
-    lift $
-    traverse
-      (\Compile.Result {compiledFile, duration} ->
-         printTime args compiledFile duration)
-      result
+  lift $ do
+    createdModulesJson pg config modules
+    complete pg
+    traverse (Compile.printTime args) result
   -- HOOK
-  _ <- maybeRunHook config Post (CliArguments.postHook args)
+  maybeRunHook config Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
@@ -125,11 +118,6 @@ data Hook
   = Pre
   | Post
   deriving (Show)
-
-printTime :: Args -> FilePath -> Compile.Duration -> IO ()
-printTime Args {time} path duration =
-  when time $
-  putStrLn $ T.unpack $ (T.pack path) <> ": " <> (T.pack $ show duration)
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do

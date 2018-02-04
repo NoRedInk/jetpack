@@ -4,8 +4,10 @@ module Compile where
 
 import CliArguments (Args(..))
 import Config (Config(..))
+import Control.Monad (when)
 import Control.Monad.Except (throwError)
 import Data.List as L
+import Data.Semigroup ((<>))
 import Data.Text as T
 import Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -33,6 +35,12 @@ data Result = Result
   , warnings :: Maybe T.Text
   , compiledFile :: FilePath
   } deriving (Show)
+
+printTime :: Args -> Compile.Result -> IO ()
+printTime Args {time} Compile.Result {compiledFile, duration} =
+  when time $
+  putStrLn $
+  T.unpack $ (T.pack compiledFile) <> ": " <> (T.pack $ show duration)
 
 data Duration = Duration
   { start :: TimeSpec
