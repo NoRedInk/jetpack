@@ -10,7 +10,8 @@
   ```
 
 
-## Finding modules
+Finding modules
+---------------
 
 We are searching in the following folders.
 

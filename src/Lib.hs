@@ -85,7 +85,7 @@ compileProgram args
   traverse
     (\Compile.Result {compiledFile, duration} ->
        Logger.appendLog config Logger.compileTime $
-       (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
+       T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
     result
   lift $ complete pg
   pg <- start (L.length deps) "Write modules"
@@ -111,7 +111,7 @@ maybeRunHook config type_ (Just hookScript) = do
   Logger.appendLog config (log type_) out
   lift $ ProgressSpinner.end spinner title
   where
-    title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")")
+    title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
     log Pre = Logger.preHookLog
     log Post = Logger.postHookLog
 

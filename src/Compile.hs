@@ -39,8 +39,7 @@ data Result = Result
 printTime :: Args -> Compile.Result -> IO ()
 printTime Args {time} Compile.Result {compiledFile, duration} =
   when time $
-  putStrLn $
-  T.unpack $ (T.pack compiledFile) <> ": " <> (T.pack $ show duration)
+  putStrLn $ T.unpack $ T.pack compiledFile <> ": " <> T.pack (show duration)
 
 data Duration = Duration
   { start :: TimeSpec
@@ -166,8 +165,8 @@ runCmd pg Args {warn} input cmd maybeCwd = do
         Result
         { duration = Duration start end
         , compiledAt = currentTime
-        , command = (T.pack cmd)
-        , stdout = (Just $ T.pack content)
+        , command = T.pack cmd
+        , stdout = Just $ T.pack content
         , warnings =
             T.pack <$>
             if warn && errContent /= ""

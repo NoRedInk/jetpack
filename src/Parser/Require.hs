@@ -3,7 +3,7 @@
 * It ignores `require` in commments.
 
 
-### imports for doctests
+imports for doctests
    >>> import Parser.Ast
    >>> import qualified Data.Text as T
 -}
@@ -98,7 +98,7 @@ getFileType _ = Js
 {-| running the parser
 -}
 extractRequire :: T.Text -> Either ParseError [(FilePath, String)]
-extractRequire str = parse (many $ try requireParser) "Error" str
+extractRequire = parse (many $ try requireParser) "Error"
 
 requireParser :: Parsec T.Text u (FilePath, String)
 requireParser = do

@@ -22,7 +22,7 @@ run hookScript = do
   case ec of
     ExitSuccess -> do
       content <- lift $ hGetContents out
-      return (T.pack $ content)
+      return (T.pack content)
     ExitFailure _ -> do
       content <- lift $ hGetContents out
       errContent <- lift $ hGetContents err

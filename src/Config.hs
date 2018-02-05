@@ -71,5 +71,5 @@ load root = do
       content <- lift $ BL.readFile path
       case Aeson.decode content of
         Just config -> return $ Just config
-        Nothing -> throwError $ [JsonInvalid path]
+        Nothing -> throwError [JsonInvalid path]
     else return Nothing

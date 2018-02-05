@@ -71,12 +71,12 @@ writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
 writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
   lift $ do
     let out =
-          outputPath $
-          Output
-          { outDir = output_js_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+          outputPath
+            Output
+            { outDir = output_js_directory
+            , moduleDir = entry_points
+            , name = rootFilePath
+            }
     let rootName = F.pathToFunctionName rootFilePath "js"
     createDirectoryIfMissing True $ FP.takeDirectory out
     writeFile out $ T.unpack $ addBoilerplate rootName fns
@@ -86,16 +86,16 @@ writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
 writeCssModule Config {output_css_directory, entry_points, temp_directory} rootFilePath deps =
   lift $ do
     let out =
-          outputPath $
-          Output
-          { outDir = output_css_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+          outputPath
+            Output
+            { outDir = output_css_directory
+            , moduleDir = entry_points
+            , name = rootFilePath
+            }
     createDirectoryIfMissing True $ FP.takeDirectory out
     let cssPaths =
           fmap
-            ((</>) temp_directory . (flip F.pathToFileName "css") . filePath)
+            ((</>) temp_directory . flip F.pathToFileName "css" . filePath)
             deps
     css <- traverse readFile cssPaths
     writeFile out $ T.unpack $ T.unlines $ fmap T.pack css

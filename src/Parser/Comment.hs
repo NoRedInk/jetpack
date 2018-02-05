@@ -1,7 +1,7 @@
 {-| Parser for line and block comments in js or coffeescript.
 
 
-### imports for doctests
+imports for doctests
    >>> import qualified Data.Text as T
 -}
 module Parser.Comment
@@ -64,7 +64,7 @@ eatCoffeeComments = eatComments coffeeBlockCommentParser coffeeLineCommentParser
 
 eatComments :: Parsec T.Text () () -> Parsec T.Text () () -> T.Text -> T.Text
 eatComments blockParser lineParser str =
-  case (parse parser "Error" str) of
+  case parse parser "Error" str of
     Right parsed -> parsed
     Left _ -> str
   where

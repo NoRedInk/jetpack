@@ -18,7 +18,7 @@ end (pg, startTime) prompt = do
   currentTime <- getCurrentTime
   let diffTime = diffUTCTime currentTime startTime :: NominalDiffTime
   _ <- Spinner.stopIndicator pg
-  let diff = ((fromInteger $ floor $ diffTime * 100) / 100) :: NominalDiffTime
+  let diff = (fromInteger (floor $ diffTime * 100) / 100) :: NominalDiffTime
   let diffShow = show $ realToFrac $ toRational diff
   putStrLn $
     "Finished " ++ T.unpack prompt ++ " after   " ++ diffShow ++ " seconds"
