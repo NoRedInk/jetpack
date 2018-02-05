@@ -58,7 +58,7 @@ import Dependencies
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
-import ProgressBar (ProgressBar, tick)
+import ProgressBar (ProgressBar, pipeAndTick, tick)
 import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
@@ -70,34 +70,25 @@ import Utils.Tree (searchNode)
 -}
 build ::
      ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
-build pg config cache entryPoint = do
-  let Config {entry_points} = config
-  dependency <- toDependency entry_points entryPoint
-  buildTree pg config cache dependency
+build pg config cache entryPoint =
+  toDependency config entryPoint >>= buildTree config cache >>= pipeAndTick pg
 
-buildTree ::
-     ProgressBar -> Config -> Dependencies -> Dependency -> Task DependencyTree
-buildTree pg config cache dep = do
-  resolved <- Resolver.resolve config Nothing dep
-  tree <-
-    Tree.unfoldTreeM (resolveChildren config <=< findRequires cache) resolved
-  _ <- lift $ tick pg
-  return tree
+buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
+buildTree config cache =
+  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache) <=<
+  Resolver.resolve config Nothing
 
-readTreeCache :: Config -> Task Dependencies
-readTreeCache config = do
-  let Config {temp_directory} = config
-  depsJson <- lift $ BL.readFile $ temp_directory </> "deps" <.> "json"
-  return $ fromMaybe [] $ Aeson.decode depsJson
+readTreeCache :: FilePath -> IO Dependencies
+readTreeCache temp_directory =
+  (fromMaybe [] . Aeson.decode) <$>
+  BL.readFile (temp_directory </> "deps" <.> "json")
 
-writeTreeCache :: Config -> Dependencies -> Task ()
-writeTreeCache config deps = do
-  let Config {temp_directory} = config
-  lift $
-    BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
+writeTreeCache :: FilePath -> Dependencies -> IO ()
+writeTreeCache temp_directory =
+  BL.writeFile (temp_directory </> "deps" <.> "json") . Aeson.encode
 
-toDependency :: FilePath -> FilePath -> Task Dependency
-toDependency entry_points path =
+toDependency :: Config -> FilePath -> Task Dependency
+toDependency Config {entry_points} path =
   lift $ do
     status <- getFileStatus $ entry_points </> path
     let lastModificationTime =
@@ -106,10 +97,9 @@ toDependency entry_points path =
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
-requireToDep _path (Ast.Import _n) = undefined
 
 findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
-findRequires cache parent = do
+findRequires cache parent =
   case fileType parent of
     Ast.Js -> parseModule cache parent Parser.Require.jsRequires
     Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires

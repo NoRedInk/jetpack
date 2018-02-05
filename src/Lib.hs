@@ -69,12 +69,13 @@ compileProgram args
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
-  cache <- DependencyTree.readTreeCache config
+  let Config {temp_directory} = config
+  cache <- lift $ DependencyTree.readTreeCache temp_directory
   deps <-
     Concurrent.mapConcurrently
       (DependencyTree.build pg config cache)
       entryPoints
-  DependencyTree.writeTreeCache config deps
+  lift $ DependencyTree.writeTreeCache temp_directory deps
   lift $ complete pg
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps

@@ -5,6 +5,7 @@ module ProgressBar
   , AP.complete
   , AP.ProgressBar
   , AP.tick
+  , pipeAndTick
   ) where
 
 import qualified Data.Text as T
@@ -23,3 +24,8 @@ start total title =
     , pgPendingChar = '░'
     , pgFormat = T.unpack title ++ " ╢:bar╟ :current/:total"
     }
+
+pipeAndTick :: AP.ProgressBar -> a -> Task a
+pipeAndTick pg x = do
+  lift $ tick pg
+  return x
