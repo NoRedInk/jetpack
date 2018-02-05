@@ -10,7 +10,7 @@ import System.FilePath ()
 import Task
 
 data Args = Args
-  { entryPointGlob :: Maybe String
+  { entryPointGlob :: [String]
   , configPath :: Maybe FilePath
   , debug :: Bool
   , warn :: Bool
@@ -23,7 +23,7 @@ data Args = Args
 defaultArguments :: Args
 defaultArguments =
   Args
-  { entryPointGlob = Nothing
+  { entryPointGlob = []
   , configPath = Nothing
   , debug = False
   , warn = False
@@ -39,10 +39,7 @@ readArguments =
 
 parser :: Parser Args
 parser =
-  Args <$>
-  option
-    (maybeReader go)
-    (long "entry" <> short 'e' <> value Nothing <> help "Glob entry points.") <*>
+  Args <$> many (strArgument (help "Entry points to compile.")) <*>
   option
     auto
     (long "config" <> short 'c' <> value Nothing <> help "Path to config file.") <*>
