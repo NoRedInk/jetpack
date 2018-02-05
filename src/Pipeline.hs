@@ -5,6 +5,7 @@
 module Pipeline where
 
 import CliArguments (Args)
+import Compile
 import Config (Config)
 import Control.Monad.Free (Free, liftF)
 import qualified Data.Text as T
@@ -25,7 +26,7 @@ data PipelineF next
                    (DependencyTree -> next)
   | Compile ToolPaths
             Dependency
-            ((T.Text, Maybe T.Text) -> next)
+            (Compile.Result -> next)
   | Init (ToolPaths -> next)
   | ConcatModule DependencyTree
                  (FilePath -> next)
@@ -46,6 +47,9 @@ data PipelineF next
              next
   | Hook String
          (T.Text -> next)
+  | Time FilePath
+         Compile.Duration
+         next
   | Version (T.Text -> next)
   | forall a. Async [Pipeline a]
                     ([a] -> next)
@@ -69,6 +73,7 @@ instance Functor PipelineF where
   fmap f (ClearLog fileName next) = ClearLog fileName (f next)
   fmap f (Hook hookScript g) = Hook hookScript (f . g)
   fmap f (Version g) = Version (f . g)
+  fmap f (Time file duration next) = Time file duration (f next)
   fmap f (Async commands g) = Async commands (f . g)
 
 type Pipeline = Free PipelineF
@@ -96,7 +101,7 @@ findEntryPoints = liftF $ FindEntryPoints id
 findDependency :: Dependencies -> FilePath -> Pipeline DependencyTree
 findDependency cache entryPoint = liftF $ FindDependency cache entryPoint id
 
-compile :: ToolPaths -> Dependency -> Pipeline (T.Text, Maybe T.Text)
+compile :: ToolPaths -> Dependency -> Pipeline Compile.Result
 compile toolPaths dep = liftF $ Compile toolPaths dep id
 
 setup :: Pipeline ToolPaths
@@ -128,6 +133,9 @@ clearLog fileName = liftF $ ClearLog fileName ()
 
 hook :: String -> Pipeline T.Text
 hook hookScript = liftF $ Hook hookScript id
+
+time :: FilePath -> Compile.Duration -> Pipeline ()
+time file duration = liftF $ Time file duration ()
 
 version :: Pipeline T.Text
 version = liftF $ Version id

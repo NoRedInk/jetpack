@@ -3,11 +3,13 @@ module Lib
   ) where
 
 import qualified CliArguments
+import qualified Compile
 import Control.Concurrent (threadDelay)
 import qualified Control.Monad.Free as Free
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import qualified Interpreter.Pipeline as PipelineI
@@ -26,13 +28,13 @@ run = do
   case result of
     Right (Warnings warnings) -> Message.warning warnings
     Right (Info info) -> Message.info info
-    Right Success -> Message.success
+    Right (Success entrypoints) -> Message.success entrypoints
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
 
 data Result
-  = Success
+  = Success [T.Text]
   | Warnings T.Text
   | Info T.Text
 
@@ -66,20 +68,30 @@ compileProgram args
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   _ <- P.startProgress "Compiling" $ L.length modules
-  out <- traverse (P.compile toolPaths) modules
-  _ <- traverse (\(log, _) -> P.appendLog "compile.log" log) out
+  result <- traverse (P.compile toolPaths) modules
+  _ <- traverse (P.appendLog Logger.compileLog . T.pack . show) result
+  _ <-
+    traverse
+      (\Compile.Result {compiledFile, duration} ->
+         P.appendLog Logger.compileTime $
+         (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
+      result
   _ <- P.endProgress
   _ <- P.startProgress "Write modules" $ L.length deps
   modules <- P.async $ fmap P.concatModule deps
   _ <- P.outputCreatedModules modules
   _ <- P.endProgress
+  _ <-
+    traverse
+      (\Compile.Result {compiledFile, duration} -> P.time compiledFile duration)
+      result
   -- HOOK
   _ <- maybeRunHook Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
-  let warnings = Data.Maybe.catMaybes (fmap snd out)
+  let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
     case warnings of
-      [] -> Success
+      [] -> Success $ fmap T.pack entryPoints
       xs -> Warnings $ T.unlines xs
 
 versionProgram :: P.Pipeline Result

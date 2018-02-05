@@ -1,6 +1,7 @@
 module Message where
 
 import qualified Data.Maybe as M
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Error
 import Rainbow
@@ -11,11 +12,16 @@ import qualified System.Console.Terminal.Size as TermSize
 termWidth :: IO Int
 termWidth = max 20 <$> M.maybe 20 TermSize.width <$> TermSize.size
 
-success :: IO ()
-success = do
+success :: [T.Text] -> IO ()
+success entrypoints = do
   width <- termWidth
   _ <- putChunkLn (separator width "*" & fore green)
   _ <- putChunkLn (message width "Compilation Succeeded" & fore green)
+  _ <-
+    traverse
+      (\entry ->
+         putChunkLn ((chunk $ center width $ "* " <> entry) & fore green))
+      entrypoints
   putChunkLn (separator width "*" & fore green)
 
 error :: [Error.Error] -> IO ()
