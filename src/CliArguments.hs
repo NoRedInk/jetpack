@@ -2,15 +2,23 @@ module CliArguments
   ( Args(..)
   , defaultArguments
   , readArguments
-  , module Env
   ) where
 
-import Control.Monad.State (modify)
 import Data.Semigroup ((<>))
-import Env
 import Options.Applicative
 import System.FilePath ()
 import Task
+
+data Args = Args
+  { entryPointGlob :: Maybe String
+  , configPath :: Maybe FilePath
+  , debug :: Bool
+  , warn :: Bool
+  , preHook :: Maybe String
+  , postHook :: Maybe String
+  , version :: Bool
+  , time :: Bool
+  }
 
 defaultArguments :: Args
 defaultArguments =
@@ -26,11 +34,8 @@ defaultArguments =
   }
 
 readArguments :: Task Args
-readArguments = do
-  a <-
-    toTask $ execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
-  _ <- modify (\env -> env {args = a})
-  return a
+readArguments =
+  lift $ execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
 
 parser :: Parser Args
 parser =

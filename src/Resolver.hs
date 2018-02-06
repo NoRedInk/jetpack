@@ -39,15 +39,16 @@ import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
-import Task (Task, getConfig, toTask)
+import Task (Task, lift)
 import Utils.Files (fileExistsTask)
 
-resolve :: Maybe Dependency -> Dependency -> Task Dependency
-resolve requiredIn dep = do
-  Config {modules_directories} <- Task.getConfig
+resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
+resolve config requiredIn dep = do
+  let Config {modules_directories} = config
   resolved <-
-    findRelative dep <|> findRelativeNodeModules dep <|> findInEntryPoints dep <|>
-    findInSources dep <|>
+    findRelative dep <|> findRelativeNodeModules dep <|>
+    findInEntryPoints config dep <|>
+    findInSources config dep <|>
     findInModules dep modules_directories <|>
     moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
@@ -59,9 +60,9 @@ findRelativeNodeModules :: Dependency -> Task Dependency
 findRelativeNodeModules parent =
   tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
 
-findInEntryPoints :: Dependency -> Task Dependency
-findInEntryPoints parent = do
-  Config {entry_points} <- Task.getConfig
+findInEntryPoints :: Config -> Dependency -> Task Dependency
+findInEntryPoints config parent = do
+  let Config {entry_points} = config
   tryToFind entry_points (requiredAs parent) parent
 
 findInModules :: Dependency -> [FilePath] -> Task Dependency
@@ -69,9 +70,9 @@ findInModules _parent [] = throwError []
 findInModules parent (x:xs) =
   tryToFind x (requiredAs parent) parent <|> findInModules parent xs
 
-findInSources :: Dependency -> Task Dependency
-findInSources parent = do
-  Config {source_directory} <- Task.getConfig
+findInSources :: Config -> Dependency -> Task Dependency
+findInSources config parent = do
+  let Config {source_directory} = config
   tryToFind source_directory (requiredAs parent) parent
 
 tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency
@@ -142,7 +143,7 @@ updateDepType (Dependency _ r p l) = Dependency newType r p l
 
 updateDepTime :: Dependency -> Task Dependency
 updateDepTime (Dependency t r p _) =
-  toTask $ do
+  lift $ do
     status <- getFileStatus p
     let lastModificationTime =
           posixSecondsToUTCTime $ modificationTimeHiRes status

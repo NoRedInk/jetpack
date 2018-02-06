@@ -2,39 +2,11 @@
 -}
 module Task
   ( Task
-  , ExceptIO
-  , toTask
-  , runTask
-  , getArgs
-  , getConfig
+  , lift
+  , runExceptT
   ) where
 
 import Control.Monad.Except
-import Control.Monad.State
-import Env
 import Error
-import qualified System.Console.AsciiProgress as Progress
 
-type ExceptIO = ExceptT [Error] IO
-
-type Task = StateT Env ExceptIO
-
-toTask :: IO a -> Task a
-toTask = lift . lift
-
-runTask :: Monad m => StateT Env (ExceptT e m) a -> m (Either e a)
-runTask t = runExceptT $ evalStateT t $ Env {progressBar = Nothing}
-
-{-| Get config from state.
--}
-getConfig :: Task Config
-getConfig = do
-  Env {config} <- get
-  return config
-
-{-| Get args from state.
--}
-getArgs :: Task Args
-getArgs = do
-  Env {args} <- get
-  return args
+type Task = ExceptT [Error] IO

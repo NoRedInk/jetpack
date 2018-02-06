@@ -10,7 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
-import qualified ProgressBar
+import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Task
@@ -18,21 +18,21 @@ import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: DependencyTree -> Task FilePath
-wrap dep = do
-  wrapped <- traverse wrapper $ uniqNodes dep
-  out <- writeModule dep $ catMaybes wrapped
-  _ <- ProgressBar.step
+wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
+wrap pg env dep = do
+  wrapped <- traverse (wrapper env) $ uniqNodes dep
+  out <- writeModule env dep $ catMaybes wrapped
+  _ <- lift $ tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper (d@Dependency {filePath}, ds) = do
-  Config {temp_directory} <- Task.getConfig
+wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper config (d@Dependency {filePath}, ds) = do
+  let Config {temp_directory} = config
   if compilesToJs d
-    then toTask $ do
+    then lift $ do
            let name = F.pathToFileName filePath "js"
            content <- readFile $ temp_directory </> name
            let fnName = F.pathToFunctionName filePath "js"
@@ -59,9 +59,8 @@ compilesToJs Dependency {filePath, fileType} =
     Ast.Coffee -> True
     _ -> False
 
-writeModule :: DependencyTree -> [T.Text] -> Task FilePath
-writeModule dependencyTree fns = do
-  config <- Task.getConfig
+writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
+writeModule config dependencyTree fns = do
   let root@Dependency {filePath} = Tree.rootLabel dependencyTree
   if compilesToJs root
     then writeJsModule config filePath fns
@@ -70,14 +69,14 @@ writeModule dependencyTree fns = do
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
 writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
-  toTask $ do
+  lift $ do
     let out =
-          outputPath $
-          Output
-          { outDir = output_js_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+          outputPath
+            Output
+            { outDir = output_js_directory
+            , moduleDir = entry_points
+            , name = rootFilePath
+            }
     let rootName = F.pathToFunctionName rootFilePath "js"
     createDirectoryIfMissing True $ FP.takeDirectory out
     writeFile out $ T.unpack $ addBoilerplate rootName fns
@@ -85,18 +84,18 @@ writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
 
 writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
 writeCssModule Config {output_css_directory, entry_points, temp_directory} rootFilePath deps =
-  toTask $ do
+  lift $ do
     let out =
-          outputPath $
-          Output
-          { outDir = output_css_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+          outputPath
+            Output
+            { outDir = output_css_directory
+            , moduleDir = entry_points
+            , name = rootFilePath
+            }
     createDirectoryIfMissing True $ FP.takeDirectory out
     let cssPaths =
           fmap
-            ((</>) temp_directory . (flip F.pathToFileName "css") . filePath)
+            ((</>) temp_directory . flip F.pathToFileName "css" . filePath)
             deps
     css <- traverse readFile cssPaths
     writeFile out $ T.unpack $ T.unlines $ fmap T.pack css

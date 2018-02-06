@@ -2,29 +2,39 @@ module Lib
   ( run
   ) where
 
+import CliArguments (Args(..), readArguments)
 import qualified CliArguments
 import qualified Compile
+import ConcatModule
+import Config
 import Control.Concurrent (threadDelay)
-import qualified Control.Monad.Free as Free
+import qualified Control.Concurrent.Async.Lifted as Concurrent
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
-import qualified Interpreter.Pipeline as PipelineI
+import qualified DependencyTree
+import qualified EntryPoints
+import qualified Hooks
+import qualified Init
 import qualified Logger
 import qualified Message
-import qualified Pipeline as P
+import ProgressBar (ProgressBar, complete, start, tick)
+import qualified ProgressSpinner
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
+import System.FilePath ((<.>), (</>))
+import Task (Task, lift)
 import qualified Task
+import qualified Version
 
 run :: IO ()
 run = do
-  result <-
-    AsciiProgress.displayConsoleRegions $
-    Task.runTask $ Free.foldFree PipelineI.interpreter program
+  result <- AsciiProgress.displayConsoleRegions $ Task.runExceptT program
   case result of
     Right (Warnings warnings) -> Message.warning warnings
     Right (Info info) -> Message.info info
@@ -38,55 +48,54 @@ data Result
   | Warnings T.Text
   | Info T.Text
 
-program :: P.Pipeline Result
+program :: Task Result
 program
   -- SETUP
  = do
-  args <- P.readCliArgs
+  args <- readArguments
   if CliArguments.version args
-    then versionProgram
+    then return $ Info Version.print
     else compileProgram args
 
-compileProgram :: CliArguments.Args -> P.Pipeline Result
+compileProgram :: CliArguments.Args -> Task Result
 compileProgram args
   -- SETUP
  = do
-  _ <- P.readConfig (CliArguments.configPath args)
-  toolPaths <- P.setup
-  _ <- traverse P.clearLog Logger.allLogs
+  config <- Config.readConfig
+  toolPaths <- Init.setup config
+  traverse (Logger.clearLog config) Logger.allLogs
   -- HOOK
-  maybeRunHook Pre (CliArguments.preHook args)
-  entryPoints <- P.findEntryPoints
+  maybeRunHook config Pre (CliArguments.preHook args)
+  entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
-  _ <-
-    P.startProgress "Finding dependencies for entrypoints" $
-    L.length entryPoints
-  cache <- P.readDependencyCache
-  deps <- P.async $ fmap (P.findDependency cache) entryPoints
-  _ <- P.writeDependencyCache deps
-  _ <- P.endProgress
+  pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
+  let Config {temp_directory} = config
+  cache <- lift $ DependencyTree.readTreeCache temp_directory
+  deps <-
+    Concurrent.mapConcurrently
+      (DependencyTree.build pg config cache)
+      entryPoints
+  lift $ DependencyTree.writeTreeCache temp_directory deps
+  lift $ complete pg
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
-  _ <- P.startProgress "Compiling" $ L.length modules
-  result <- traverse (P.compile toolPaths) modules
-  _ <- traverse (P.appendLog Logger.compileLog . T.pack . show) result
-  _ <-
-    traverse
-      (\Compile.Result {compiledFile, duration} ->
-         P.appendLog Logger.compileTime $
-         (T.pack compiledFile) <> ": " <> (T.pack $ show duration) <> "\n")
-      result
-  _ <- P.endProgress
-  _ <- P.startProgress "Write modules" $ L.length deps
-  modules <- P.async $ fmap P.concatModule deps
-  _ <- P.outputCreatedModules modules
-  _ <- P.endProgress
-  _ <-
-    traverse
-      (\Compile.Result {compiledFile, duration} -> P.time compiledFile duration)
-      result
+  pg <- start (L.length modules) "Compiling"
+  result <- traverse (Compile.compile pg args config toolPaths) modules
+  traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
+  traverse
+    (\Compile.Result {compiledFile, duration} ->
+       Logger.appendLog config Logger.compileTime $
+       T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+    result
+  lift $ complete pg
+  pg <- start (L.length deps) "Write modules"
+  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
+  lift $ do
+    createdModulesJson pg config modules
+    complete pg
+    traverse (Compile.printTime args) result
   -- HOOK
-  _ <- maybeRunHook Post (CliArguments.postHook args)
+  maybeRunHook config Post (CliArguments.postHook args)
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
@@ -94,18 +103,15 @@ compileProgram args
       [] -> Success $ fmap T.pack entryPoints
       xs -> Warnings $ T.unlines xs
 
-versionProgram :: P.Pipeline Result
-versionProgram = do
-  version <- P.version
-  return $ Info version
-
-maybeRunHook :: Hook -> Maybe String -> P.Pipeline ()
-maybeRunHook _ Nothing = return ()
-maybeRunHook type_ (Just hookScript) =
-  P.startSpinner title >> P.hook hookScript >>= P.appendLog (log type_) >>
-  P.endSpinner title
+maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
+maybeRunHook config _ Nothing = return ()
+maybeRunHook config type_ (Just hookScript) = do
+  spinner <- lift $ ProgressSpinner.start title
+  out <- Hooks.run hookScript
+  Logger.appendLog config (log type_) out
+  lift $ ProgressSpinner.end spinner title
   where
-    title = (T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")")
+    title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
     log Pre = Logger.preHookLog
     log Post = Logger.postHookLog
 
@@ -113,3 +119,12 @@ data Hook
   = Pre
   | Post
   deriving (Show)
+
+createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
+createdModulesJson pg config paths = do
+  let encodedPaths = Aeson.encode paths
+  let Config {temp_directory} = config
+  let jsonPath = temp_directory </> "modules" <.> "json"
+  _ <- BL.writeFile jsonPath encodedPaths
+  _ <- tick pg
+  return ()

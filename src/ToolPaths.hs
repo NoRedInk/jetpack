@@ -30,12 +30,12 @@ find Config {elm_make_path, sassc_path, coffee_path} =
   (binExists <=< toAbsPathOrBin "coffee") coffee_path
 
 toAbsPathOrBin :: String -> Maybe FilePath -> Task FilePath
-toAbsPathOrBin _ (Just pathToBin) = toTask $ makeAbsolute pathToBin
+toAbsPathOrBin _ (Just pathToBin) = lift $ makeAbsolute pathToBin
 toAbsPathOrBin defaultBin Nothing = return defaultBin
 
 binExists :: String -> Task String
 binExists bin = do
-  exitCode <- toTask $ system ("which " ++ bin ++ " >/dev/null")
+  exitCode <- lift $ system ("which " ++ bin ++ " >/dev/null")
   case exitCode of
     ExitSuccess -> return bin
     ExitFailure _ -> throwError [BinNotFound bin]

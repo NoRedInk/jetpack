@@ -10,7 +10,8 @@
   ```
 
 
-## Finding modules
+Finding modules
+---------------
 
 We are searching in the following folders.
 
@@ -58,44 +59,38 @@ import Dependencies
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
-import qualified ProgressBar
+import ProgressBar (ProgressBar, pipeAndTick, tick)
 import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
-import Task (Task, getConfig, toTask)
+import Task (Task, lift)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: Dependencies -> FilePath -> Task DependencyTree
-build cache entryPoint = do
-  Config {entry_points} <- Task.getConfig
-  dependency <- toDependency entry_points entryPoint
-  buildTree cache dependency
+build ::
+     ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
+build pg config cache entryPoint =
+  toDependency config entryPoint >>= buildTree config cache >>= pipeAndTick pg
 
-buildTree :: Dependencies -> Dependency -> Task DependencyTree
-buildTree cache dep = do
-  resolved <- Resolver.resolve Nothing dep
-  tree <- Tree.unfoldTreeM (resolveChildren <=< findRequires cache) resolved
-  _ <- ProgressBar.step
-  return tree
+buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
+buildTree config cache =
+  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache) <=<
+  Resolver.resolve config Nothing
 
-readTreeCache :: Task Dependencies
-readTreeCache = do
-  Config {temp_directory} <- Task.getConfig
-  depsJson <- toTask $ BL.readFile $ temp_directory </> "deps" <.> "json"
-  return $ fromMaybe [] $ Aeson.decode depsJson
+readTreeCache :: FilePath -> IO Dependencies
+readTreeCache temp_directory =
+  (fromMaybe [] . Aeson.decode) <$>
+  BL.readFile (temp_directory </> "deps" <.> "json")
 
-writeTreeCache :: Dependencies -> Task ()
-writeTreeCache deps = do
-  Config {temp_directory} <- Task.getConfig
-  toTask $
-    BL.writeFile (temp_directory </> "deps" <.> "json") $ Aeson.encode deps
+writeTreeCache :: FilePath -> Dependencies -> IO ()
+writeTreeCache temp_directory =
+  BL.writeFile (temp_directory </> "deps" <.> "json") . Aeson.encode
 
-toDependency :: FilePath -> FilePath -> Task Dependency
-toDependency entry_points path =
-  toTask $ do
+toDependency :: Config -> FilePath -> Task Dependency
+toDependency Config {entry_points} path =
+  lift $ do
     status <- getFileStatus $ entry_points </> path
     let lastModificationTime =
           posixSecondsToUTCTime $ modificationTimeHiRes status
@@ -103,10 +98,9 @@ toDependency entry_points path =
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
-requireToDep _path (Ast.Import _n) = undefined
 
 findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
-findRequires cache parent = do
+findRequires cache parent =
   case fileType parent of
     Ast.Js -> parseModule cache parent Parser.Require.jsRequires
     Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
@@ -131,12 +125,13 @@ parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do
-      content <- toTask $ readFile filePath
+      content <- lift $ readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
 
-resolveChildren :: (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
-resolveChildren (parent, children) = do
-  resolved <- traverse (Resolver.resolve (Just parent)) children
+resolveChildren ::
+     Config -> (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
+resolveChildren config (parent, children) = do
+  resolved <- traverse (Resolver.resolve config (Just parent)) children
   return (parent, resolved)

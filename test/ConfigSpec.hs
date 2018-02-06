@@ -12,7 +12,7 @@ suite =
   testGroup
     "Config"
     [ testCase "#load success" $ do
-        e <- runTask $ do Config.load "./test/fixtures"
+        e <- runExceptT $ do Config.load "./test/fixtures"
         case e of
           Left _ -> assertFailure $ "Couldn't decode jetpack.json"
           Right config ->

@@ -6,19 +6,19 @@ import Config
 
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath
-import Task (Task, getConfig, toTask)
+import Task (Task, lift)
 import qualified ToolPaths
 
-setup :: Task ToolPaths.ToolPaths
-setup = do
-  config@Config { temp_directory
-                , log_directory
-                , output_js_directory
-                , output_css_directory
-                } <- Task.getConfig
+setup :: Config -> Task ToolPaths.ToolPaths
+setup config = do
+  let Config { temp_directory
+             , log_directory
+             , output_js_directory
+             , output_css_directory
+             } = config
   requiredBins <- ToolPaths.find config
   _ <-
-    toTask $
+    lift $
     traverse
       (createDirectoryIfMissing True)
       [temp_directory, log_directory, output_js_directory, output_css_directory]
@@ -27,7 +27,7 @@ setup = do
 
 createDepsJsonIfMissing :: FilePath -> Task ()
 createDepsJsonIfMissing tempDirectory =
-  toTask $ do
+  lift $ do
     let depsJSONPath = tempDirectory </> "deps" <.> "json"
     exists <- doesFileExist depsJSONPath
     if exists

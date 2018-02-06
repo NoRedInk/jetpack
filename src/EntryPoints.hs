@@ -10,29 +10,27 @@ import Control.Monad.Except (throwError)
 
 import Error
 import qualified System.Directory as Dir
-import System.FilePath ((</>), makeRelative, normalise, takeDirectory)
+import System.FilePath
+       ((</>), makeRelative, normalise, takeDirectory)
 import "Glob" System.FilePath.Glob (glob)
-import Task (Task, getArgs, getConfig, toTask)
+import Task (Task, lift)
 
-find :: Task [FilePath]
-find = do
-  config <- Task.getConfig
-  args <- Task.getArgs
+find :: Args -> Config -> Task [FilePath]
+find args config = do
   let entryPointsGlob = normalisedEntryPointsGlob config args
   paths <- findFilesIn entryPointsGlob
-  cwd <- toTask Dir.getCurrentDirectory
+  cwd <- lift Dir.getCurrentDirectory
   case paths of
     [] -> throwError [NoModulesPresent $ show (takeDirectory entryPointsGlob)]
-    _ -> return $ (makeRelative $ cwd </> entry_points config) <$> paths
+    _ -> return $ makeRelative (cwd </> entry_points config) <$> paths
 
 normalisedEntryPointsGlob :: Config -> Args -> FilePath
 normalisedEntryPointsGlob config args =
-    case entryPointGlob args of
-      Nothing ->
-        entry_points config </> "**" </> "*.*"
-      Just entryPoints ->
+  case entryPointGlob args of
+    Nothing -> entry_points config </> "**" </> "*.*"
+    Just entryPoints
         -- handle arguments with and without a leading "./"
-        "." </> (normalise entryPoints)
+     -> "." </> normalise entryPoints
 
 findFilesIn :: FilePath -> Task [FilePath]
-findFilesIn = toTask . glob
+findFilesIn = lift . glob

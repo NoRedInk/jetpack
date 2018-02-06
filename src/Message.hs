@@ -19,8 +19,7 @@ success entrypoints = do
   _ <- putChunkLn (message width "Compilation Succeeded" & fore green)
   _ <-
     traverse
-      (\entry ->
-         putChunkLn ((chunk $ center width $ "* " <> entry) & fore green))
+      (\entry -> putChunkLn (chunk (center width $ "* " <> entry) & fore green))
       entrypoints
   putChunkLn (separator width "*" & fore green)
 

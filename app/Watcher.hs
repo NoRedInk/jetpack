@@ -17,7 +17,7 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process
-import Task (Task, toTask)
+import Task (Task, lift)
 import qualified Task
 import Twitch
        (DebounceType(..), Dep, LoggerType(..), Options(..), addModify)
@@ -26,7 +26,7 @@ import Twitch (defaultMainWithOptions)
 main :: IO ()
 main = do
   cwd <- Dir.getCurrentDirectory
-  maybeConfig <- Task.runTask $ Config.load cwd
+  maybeConfig <- Task.runExceptT $ Config.load cwd
   case maybeConfig of
     Right (Just config) -> watch config
     _ -> putStrLn "no jetpack config found."

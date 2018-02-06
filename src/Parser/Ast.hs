@@ -9,15 +9,13 @@ import Data.Text as T
 import GHC.Generics (Generic)
 import System.FilePath ()
 
-data Require
-  = Require SourceType
-            FilePath
-  | Import T.Text
+data Require =
+  Require SourceType
+          FilePath
   deriving (Eq)
 
 instance Show Require where
   show (Require t n) = "(Require " ++ show n ++ " " ++ show t ++ ")"
-  show (Import n) = "(Import " ++ show n ++ ")"
 
 data SourceType
   = Coffee

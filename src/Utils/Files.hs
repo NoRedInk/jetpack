@@ -13,15 +13,15 @@ import Data.Text as T
 import Error (Error(..))
 import System.Directory (doesFileExist)
 import System.FilePath ((<.>), splitDirectories)
-import Task (Task, toTask)
+import Task (Task, lift)
 
 {-| Checks if file exists and returns a failing task if it doesn't
 -}
 fileExistsTask :: FilePath -> Task ()
 fileExistsTask path = do
-  exists <- toTask $ doesFileExist path
+  exists <- lift $ doesFileExist path
   case exists of
-    True -> toTask $ return ()
+    True -> lift $ return ()
     False -> throwError $ [FileNotFound (show path)]
 
 {-| Converts a path into a flat filename.
