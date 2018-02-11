@@ -18,7 +18,8 @@ import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
 import ProgressBar (ProgressBar, tick)
-import System.Clock (Clock(Monotonic), TimeSpec, getTime)
+import System.Clock
+       (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
@@ -39,7 +40,11 @@ data Result = Result
 printTime :: Args -> Compile.Result -> IO ()
 printTime Args {time} Compile.Result {compiledFile, duration} =
   when time $
-  putStrLn $ T.unpack $ T.pack compiledFile <> ": " <> T.pack (show duration)
+  putStrLn $
+  T.unpack $ T.pack compiledFile <> ": " <> T.pack (formatDuration duration)
+
+formatDuration :: Duration -> String
+formatDuration (Duration start end) = TL.unpack $ format timeSpecs start end
 
 data Duration = Duration
   { start :: TimeSpec
@@ -47,7 +52,8 @@ data Duration = Duration
   }
 
 instance Show Duration where
-  show (Duration start end) = TL.unpack $ format timeSpecs start end
+  show (Duration start end) =
+    show (fromIntegral (toNanoSecs (diffTimeSpec end start)) / 1000000)
 
 compile ::
      ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> Task Result
