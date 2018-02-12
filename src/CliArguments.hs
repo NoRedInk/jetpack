@@ -7,7 +7,6 @@ module CliArguments
 import Data.Semigroup ((<>))
 import Options.Applicative
 import System.FilePath ()
-import Task
 
 data Args = Args
   { entryPointGlob :: [String]
@@ -18,6 +17,7 @@ data Args = Args
   , postHook :: Maybe String
   , version :: Bool
   , time :: Bool
+  , watch :: Bool
   }
 
 defaultArguments :: Args
@@ -31,11 +31,12 @@ defaultArguments =
   , preHook = Nothing
   , version = False
   , time = False
+  , watch = False
   }
 
-readArguments :: Task Args
+readArguments :: IO Args
 readArguments =
-  lift $ execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
+  execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
 
 parser :: Parser Args
 parser =
@@ -54,7 +55,8 @@ parser =
     (long "post-hook" <> value Nothing <>
      help "Bash commands that will get executed after jetpack runs.") <*>
   switch (long "version" <> short 'v' <> help "display the version of jetpack") <*>
-  switch (long "time" <> short 't' <> help "display compile times.")
+  switch (long "time" <> short 't' <> help "display compile times.") <*>
+  switch (long "watch" <> short 'w' <> help "watch for changes.")
   where
     go :: String -> Maybe (Maybe String)
     go "" = Just Nothing

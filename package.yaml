@@ -42,6 +42,7 @@ dependencies:
 - formatting == 6.2.5
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
+- twitch == 0.1.7.1
 library:
   source-dirs: src
   ghc-options:
@@ -63,16 +64,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - jetpack
-  jetpack-watch:
-    main: Watcher.hs
-    source-dirs: app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - jetpack
-    - twitch == 0.1.7.1
 tests:
   jetpack-test:
     main: Spec.hs

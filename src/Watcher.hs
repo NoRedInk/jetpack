@@ -1,13 +1,14 @@
-module Main where
+module Watcher where
 
-import qualified Config
+import qualified Builder
+import CliArguments (Args(..))
+import Config
 import Control.Concurrent
 import Control.Monad.Except (throwError)
-import Data.Foldable (for_)
+import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
-import qualified Lib
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
@@ -17,26 +18,16 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process
-import Task (Task, lift)
-import qualified Task
 import Twitch
-       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify)
-import Twitch (defaultMainWithOptions)
+       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify,
+        defaultMainWithOptions)
 
-main :: IO ()
-main = do
-  cwd <- Dir.getCurrentDirectory
-  maybeConfig <- Task.runExceptT $ Config.load cwd
-  case maybeConfig of
-    Right (Just config) -> watch config
-    _ -> putStrLn "no jetpack config found."
-
-watch :: Config.Config -> IO ()
-watch config = do
+watch :: Config.Config -> Args -> IO ()
+watch config args = do
   mVar <- newMVar Nothing
-  putStrLn "Watching. Hit ctrl-c to exit."
-  rebuild mVar
-  pid <-
+  putStrLn "Watching. Hit any key to exit."
+  rebuild config args mVar
+  processID <-
     forkProcess $
       -- redirect the process stdout and stderr to /dev/null. This probably won't
       -- work on Windows, but then nothing here does yet so... ok?
@@ -46,10 +37,12 @@ watch config = do
       PIO.dupTo devNull PIO.stdOutput
       PIO.dupTo devNull PIO.stdError
       defaultMainWithOptions (options config) $
-        for_ fileTypesToWatch $ addModify $ const $ rebuild mVar
+        traverse_
+          (addModify (const $ rebuild config args mVar))
+          fileTypesToWatch
   -- TODO: we're swallowing any errors that occur here. We were before too, but
   -- now we *explicitly* are.
-  getProcessStatus True False pid
+  getProcessStatus True False processID
   return ()
 
 fileTypesToWatch :: [Dep]
@@ -57,32 +50,25 @@ fileTypesToWatch =
   ["**/*.elm", "**/*.coffee", "**/*.js", "**/*.sass", "**/*.scss", "**/*.json"]
 
 options :: Config.Config -> Options
-options config =
+options Config {source_directory} =
   Options
     NoLogger -- log
     Nothing -- logFile
-    (Just $ Config.source_directory config) -- root
+    (Just source_directory) -- root
     True -- recurseThroughDirectories
     Twitch.Debounce
     0.5 -- debounce time, in seconds.
     0 -- pollInterval
     False -- usePolling
 
-rebuild :: MVar (Maybe ProcessID) -> IO ()
-rebuild mVar
+rebuild :: Config.Config -> Args -> MVar (Maybe ProcessID) -> IO ()
+rebuild config args mVar
   -- takeMVar blocks if there is nothing inside it.
   -- This prevents a race condition that could happen if multiple files are
   -- written at once.
  = do
   runningProcess <- takeMVar mVar
-  for_ runningProcess (signalProcess softwareTermination)
-  for_ runningProcess (getProcessStatus True False) -- here be dragons, potentially
-  processID <- run
+  traverse_ (signalProcess softwareTermination) runningProcess
+  traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
+  processID <- forkProcess $ Builder.build config args
   putMVar mVar (Just processID)
-
-run :: IO ProcessID
-run = do
-  args <- getArgs
-  let argsAsString = unwords args
-  procId <- forkProcess Lib.run
-  return procId
