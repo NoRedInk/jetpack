@@ -32,10 +32,6 @@ watch config args = do
       -- redirect the process stdout and stderr to /dev/null. This probably won't
       -- work on Windows, but then nothing here does yet so... ok?
      do
-      devNull <-
-        PIO.openFd "/dev/null" PIO.WriteOnly Nothing PIO.defaultFileFlags
-      PIO.dupTo devNull PIO.stdOutput
-      PIO.dupTo devNull PIO.stdError
       defaultMainWithOptions (options config) $
         traverse_
           (addModify (const $ rebuild config args mVar))
@@ -62,13 +58,16 @@ options Config {source_directory} =
     False -- usePolling
 
 rebuild :: Config.Config -> Args -> MVar (Maybe ProcessID) -> IO ()
-rebuild config args mVar
+rebuild config args mVar = do
+  killCurrentProcess mVar
+  processID <- forkProcess $ Builder.build config args
+  putMVar mVar (Just processID)
+
+killCurrentProcess :: MVar (Maybe ProcessID) -> IO ()
+killCurrentProcess mVar
   -- takeMVar blocks if there is nothing inside it.
   -- This prevents a race condition that could happen if multiple files are
   -- written at once.
  = do
   runningProcess <- takeMVar mVar
   traverse_ (signalProcess softwareTermination) runningProcess
-  traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
-  processID <- forkProcess $ Builder.build config args
-  putMVar mVar (Just processID)
