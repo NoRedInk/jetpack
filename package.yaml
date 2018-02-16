@@ -43,6 +43,7 @@ dependencies:
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
 - twitch == 0.1.7.1
+- hs-rs-notify
 library:
   source-dirs: src
   ghc-options:

@@ -4,4 +4,6 @@ packages:
 - '.'
 extra-deps:
 - twitch-0.1.7.1
+- git: git@github.com:NoRedInk/hs-rs-notify
+  commit: fc011138664136d5542da846d69ca3db3422eb02
 resolver: lts-9.8
