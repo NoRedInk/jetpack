@@ -22,7 +22,7 @@ import System.Process
 
 watch :: Config.Config -> Args -> IO ()
 watch config args = do
-  putStrLn "Watching. Hit any key to exit."
+  putStrLn "Watching. Hit `ctrl-c` to exit."
   Notify.watch
     (T.pack $ Config.source_directory config)
     [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
