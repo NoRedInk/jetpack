@@ -16,10 +16,11 @@ import Data.Text as T
 import Foreign.C.String
 import Foreign.ForeignPtr
 import Foreign.Ptr
-import System.FilePath (takeExtension)
-
--- import Protolude
 import System.FilePath
+import System.Posix.Process
+import System.Posix.Signals
+import System.Posix.Types (ProcessID)
+import System.Process
 
 data Event
   = NoticeWrite FilePath
@@ -51,7 +52,7 @@ watch path extensions callback = do
   watchForChanges pathCStr cb
 
 forkCallback ::
-     MVar (Maybe ThreadId)
+     MVar (Maybe ProcessID)
   -> (Event -> IO ())
   -> [T.Text]
   -> CString
@@ -64,10 +65,11 @@ forkCallback mVar cb extensions eventC aC bC = do
   b <- T.pack <$> peekCString bC
   let event = toEvent eventStr a b
   when (relevantEvent event extensions) $ do
-    runningThread <- takeMVar mVar
-    _ <- traverse_ killThread runningThread
-    threadId <- forkIO (cb event)
-    putMVar mVar (Just threadId)
+    runningProcess <- takeMVar mVar
+    traverse_ (signalProcess softwareTermination) runningProcess
+    traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
+    processId <- forkProcess (cb event)
+    putMVar mVar (Just processId)
 
 toEvent :: T.Text -> T.Text -> T.Text -> Event
 toEvent "NoticeWrite" _ b = NoticeWrite (T.unpack b)
