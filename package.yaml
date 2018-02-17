@@ -46,6 +46,7 @@ dependencies:
 library:
   source-dirs:
   - src
+  - notifier
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
