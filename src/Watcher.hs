@@ -19,31 +19,11 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process
-import Twitch
-       (DebounceType(..), Dep, LoggerType(..), Options(..), addModify,
-        defaultMainWithOptions)
 
 watch :: Config.Config -> Args -> IO ()
-watch config args
-  -- mVar <- newMVar Nothing
- = do
+watch config args = do
   putStrLn "Watching. Hit any key to exit."
-  -- rebuild config args mVar
-  -- processID <-
-  --   forkProcess $
-  --     -- redirect the process stdout and stderr to /dev/null. This probably won't
-  --     -- work on Windows, but then nothing here does yet so... ok?
-  --    do
-  --     defaultMainWithOptions (options config) $
-  --       traverse_
-  --         (addModify (const $ rebuild config args mVar))
-  --         fileTypesToWatch
-  -- -- TODO: we're swallowing any errors that occur here. We were before too, but
-  -- -- now we *explicitly* are.
-  -- getProcessStatus True False processID
-  Notify.watch "/Users/stoeffel/nri/noredink" (\_ -> Builder.build config args)
-  return ()
-
-fileTypesToWatch :: [Dep]
-fileTypesToWatch =
-  ["**/*.elm", "**/*.coffee", "**/*.js", "**/*.sass", "**/*.scss", "**/*.json"]
+  Notify.watch
+    (T.pack $ Config.source_directory config)
+    [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
+    (\_ -> Builder.build config args)

@@ -1,0 +1,10 @@
+[package]
+name = "notifier"
+version = "0.1.0"
+authors = ["Stoeffel <schtoeffel@gmail.com>"]
+
+[lib]
+name = "notifier"
+crate-type = ["staticlib", "dylib"]
+[dependencies]
+notify = "4.0.0"
