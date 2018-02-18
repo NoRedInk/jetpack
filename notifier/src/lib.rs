@@ -20,7 +20,7 @@ pub extern "C" fn watch_for_changes(
         loop {
             match rx.recv() {
                 Ok(event) => {
-                    if let Some(e) = event_for(event) {
+                    if let Some(e) = event_for_path(event) {
                         cb(e.as_ptr());
                     }
                 }
@@ -30,18 +30,17 @@ pub extern "C" fn watch_for_changes(
     }
 }
 
-fn event_for(event: DebouncedEvent) -> Option<CString> {
-    let maybe_path = match event {
-        NoticeWrite(path) => path.to_str().map(|p| p.to_string()),
-        NoticeRemove(path) => path.to_str().map(|p| p.to_string()),
-        Create(path) => path.to_str().map(|p| p.to_string()),
-        Write(path) => path.to_str().map(|p| p.to_string()),
-        Chmod(path) => path.to_str().map(|p| p.to_string()),
-        Remove(path) => path.to_str().map(|p| p.to_string()),
-        Rename(_, to) => to.to_str().map(|p| p.to_string()),
+fn event_for_path(event: DebouncedEvent) -> Option<CString> {
+    match event {
+        NoticeWrite(path) => Some(path),
+        NoticeRemove(path) => Some(path),
+        Create(path) => Some(path),
+        Write(path) => Some(path),
+        Chmod(path) => Some(path),
+        Remove(path) => Some(path),
+        Rename(_, to) => Some(to),
         Rescan => None,
-        Error(_, None) => None,
-        Error(_, Some(path)) => path.to_str().map(|p| p.to_string()),
-    };
-    maybe_path.map(|p| CString::new(p).unwrap())
+        Error(_, path) => path,
+    }.map(|p| p.to_string_lossy().into_owned())
+        .map(|p| CString::new(p).unwrap())
 }
