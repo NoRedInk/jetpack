@@ -6,11 +6,10 @@ use notify::DebouncedEvent::*;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 use std::os::raw::c_int;
-use std::path::PathBuf;
 #[no_mangle]
 pub extern "C" fn watch_for_changes(
     path_ptr: *const c_char,
-    cb: extern "C" fn(event: *const c_char, a: *const c_char, b: *const c_char) -> c_int,
+    cb: extern "C" fn(event_for_path: *const c_char) -> c_int,
 ) {
     unsafe {
         let (tx, rx) = channel();
@@ -21,12 +20,9 @@ pub extern "C" fn watch_for_changes(
         loop {
             match rx.recv() {
                 Ok(event) => {
-                    let (event_str, a, b) = event_info_str(event);
-                    cb(
-                        CString::new(event_str).unwrap().as_ptr(),
-                        CString::new(a).unwrap().as_ptr(),
-                        CString::new(b).unwrap().as_ptr(),
-                    );
+                    if let Some(e) = event_for(event) {
+                        cb(e.as_ptr());
+                    }
                 }
                 Err(e) => println!("watch error: {:?}", e),
             };
@@ -34,32 +30,18 @@ pub extern "C" fn watch_for_changes(
     }
 }
 
-fn event_info_str(event: DebouncedEvent) -> (String, String, String) {
-    match event {
-        NoticeWrite(path) => (
-            "NoticeWrite".to_string(),
-            String::new(),
-            path_to_string(path),
-        ),
-        NoticeRemove(path) => (
-            "NoticeRemove".to_string(),
-            String::new(),
-            path_to_string(path),
-        ),
-        Create(path) => ("Create".to_string(), String::new(), path_to_string(path)),
-        Write(path) => ("Write".to_string(), String::new(), path_to_string(path)),
-        Chmod(path) => ("Chmod".to_string(), String::new(), path_to_string(path)),
-        Remove(path) => ("Remove".to_string(), String::new(), path_to_string(path)),
-        Rename(from, to) => (
-            "Rename".to_string(),
-            path_to_string(from),
-            path_to_string(to),
-        ),
-        Rescan => ("Rescan".to_string(), String::new(), String::new()),
-        Error(msg, None) => ("Error".to_string(), msg.to_string(), String::new()),
-        Error(msg, Some(path)) => ("Error".to_string(), msg.to_string(), path_to_string(path)),
-    }
-}
-fn path_to_string(p: PathBuf) -> String {
-    p.to_str().unwrap_or("").to_string()
+fn event_for(event: DebouncedEvent) -> Option<CString> {
+    let maybe_path = match event {
+        NoticeWrite(path) => path.to_str().map(|p| p.to_string()),
+        NoticeRemove(path) => path.to_str().map(|p| p.to_string()),
+        Create(path) => path.to_str().map(|p| p.to_string()),
+        Write(path) => path.to_str().map(|p| p.to_string()),
+        Chmod(path) => path.to_str().map(|p| p.to_string()),
+        Remove(path) => path.to_str().map(|p| p.to_string()),
+        Rename(_, to) => to.to_str().map(|p| p.to_string()),
+        Rescan => None,
+        Error(_, None) => None,
+        Error(_, Some(path)) => path.to_str().map(|p| p.to_string()),
+    };
+    maybe_path.map(|p| CString::new(p).unwrap())
 }

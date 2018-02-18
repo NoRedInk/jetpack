@@ -22,86 +22,28 @@ import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process
 
-data Event
-  = NoticeWrite FilePath
-  | NoticeRemove FilePath
-  | Create FilePath
-  | Write FilePath
-  | Chmod FilePath
-  | Remove FilePath
-  | Rename FilePath
-           FilePath
-  | Rescan
-  | Error T.Text
-          (Maybe FilePath)
-  | Unknown
-  deriving (Show)
-
 foreign import ccall "watch_for_changes" watchForChanges ::
-               CString -> FunPtr (CString -> CString -> CString -> IO ()) -> IO ()
+               CString -> FunPtr (CString -> IO ()) -> IO ()
 
 foreign import ccall "wrapper" mkCallback ::
-               (CString -> CString -> CString -> IO ()) ->
-                 IO (FunPtr (CString -> CString -> CString -> IO ()))
+               (CString -> IO ()) -> IO (FunPtr (CString -> IO ()))
 
-watch :: T.Text -> [T.Text] -> (Event -> IO ()) -> IO ()
+watch :: T.Text -> [T.Text] -> IO () -> IO ()
 watch path extensions callback = do
   mVar <- newMVar Nothing
   cb <- mkCallback $ forkCallback mVar callback extensions
   pathCStr <- newCString $ T.unpack path
   watchForChanges pathCStr cb
 
-forkCallback ::
-     MVar (Maybe ProcessID)
-  -> (Event -> IO ())
-  -> [T.Text]
-  -> CString
-  -> CString
-  -> CString
-  -> IO ()
-forkCallback mVar cb extensions eventC aC bC = do
-  eventStr <- T.pack <$> peekCString eventC
-  a <- T.pack <$> peekCString aC
-  b <- T.pack <$> peekCString bC
-  let event = toEvent eventStr a b
-  when (relevantEvent event extensions) $ do
+forkCallback :: MVar (Maybe ProcessID) -> IO () -> [T.Text] -> CString -> IO ()
+forkCallback mVar cb extensions pathC = do
+  eventForPath <- peekCString pathC
+  when (isRelevant eventForPath extensions) $ do
     runningProcess <- takeMVar mVar
     traverse_ (signalProcess softwareTermination) runningProcess
     traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
-    processId <- forkProcess (cb event)
+    processId <- forkProcess cb
     putMVar mVar (Just processId)
 
-toEvent :: T.Text -> T.Text -> T.Text -> Event
-toEvent "NoticeWrite" _ b = NoticeWrite (T.unpack b)
-toEvent "NoticeRemove" _ b = NoticeRemove (T.unpack b)
-toEvent "Create" _ b = Create (T.unpack b)
-toEvent "Write" _ b = Write (T.unpack b)
-toEvent "Chmod" _ b = Chmod (T.unpack b)
-toEvent "Remove" _ b = Remove (T.unpack b)
-toEvent "Rename" a b = Rename (T.unpack a) (T.unpack b)
-toEvent "Rescan" _ _ = Rescan
-toEvent "Error" msg path =
-  Error
-    msg
-    (case path of
-       "" -> Nothing
-       _ -> Just (T.unpack path))
-toEvent _ _ _ = Unknown
-
-relevantEvent :: Event -> [T.Text] -> Bool
-relevantEvent event extensions =
-  case eventForFile event of
-    Just path -> elem (T.pack (takeExtension path)) extensions
-    Nothing -> False
-
-eventForFile :: Event -> Maybe FilePath
-eventForFile (NoticeWrite path) = Just path
-eventForFile (NoticeRemove path) = Just path
-eventForFile (Create path) = Just path
-eventForFile (Write path) = Just path
-eventForFile (Chmod path) = Just path
-eventForFile (Remove path) = Just path
-eventForFile (Rename _ path) = Just path
-eventForFile Rescan = Nothing
-eventForFile (Error _ maybePath) = maybePath
-eventForFile Unknown = Nothing
+isRelevant :: FilePath -> [T.Text] -> Bool
+isRelevant path = elem (T.pack (takeExtension path))

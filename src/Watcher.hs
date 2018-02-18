@@ -26,4 +26,4 @@ watch config args = do
   Notify.watch
     (T.pack $ Config.source_directory config)
     [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
-    (\_ -> Builder.build config args)
+    (Builder.build config args)
