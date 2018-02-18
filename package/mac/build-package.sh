@@ -13,6 +13,9 @@ stack test
 
 ## Build binaries
 
+pushd ./notifier
+cargo build --release
+popd
 stack build
 
 BUILD="jetpack-${PLATFORM}"
