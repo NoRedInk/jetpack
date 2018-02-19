@@ -9,7 +9,9 @@ import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
+import qualified Message
 import qualified Notify
+import Notify (Config(..))
 import qualified System.Directory as Dir
 import System.Environment
 import System.Exit
@@ -24,6 +26,10 @@ watch :: Config.Config -> Args -> IO ()
 watch config args = do
   putStrLn "Watching. Hit `ctrl-c` to exit."
   Notify.watch
-    (T.pack $ Config.source_directory config)
-    [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
-    (Builder.build config args)
+    Notify.Config
+    { pathToWatch = Config.source_directory config
+    , relevantExtensions = [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
+    , debounceInSecs = 0
+    , onChange = Builder.build config args
+    , onError = \msg -> Message.printError [msg]
+    }
