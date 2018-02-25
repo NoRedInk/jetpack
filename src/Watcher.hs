@@ -43,6 +43,7 @@ listenToCommands state = do
   value <- getChar
   case commandFromStr value of
     Just Rebuild -> do
+      _ <- putStrLn "focing a rebuild..."
       _ <- Notify.force state
       listenToCommands state
     Just Quit -> do
