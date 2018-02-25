@@ -31,11 +31,11 @@ watch config args = do
       { pathToWatch = Config.source_directory config
       , relevantExtensions =
           [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
-      , runAtStartup = True
       , debounceInSecs = 0
       , onChange = Builder.build config args
       , onError = \msg -> Message.printError [msg]
       }
+  Notify.force state
   listenToCommands state
 
 listenToCommands :: Notify.State -> IO ()

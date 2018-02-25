@@ -34,18 +34,23 @@ foreign import ccall "watch_for_changes" watchForChanges ::
 foreign import ccall "wrapper" mkCallback ::
                (CString -> IO ()) -> IO (FunPtr (CString -> IO ()))
 
+{-| Internal state of the watcher.
+We keep track of running processes and the config.
+You might need this if you want to use `end` or `force`.
+-}
 data State = State
   { config :: Config
   , mVar :: MVar (Maybe ProcessID)
   }
 
+{-| Configuration for a watcher.
+-}
 data Config = Config
-  { pathToWatch :: FilePath
-  , relevantExtensions :: [T.Text]
-  , debounceInSecs :: Int
-  , runAtStartup :: Bool
-  , onChange :: IO ()
-  , onError :: T.Text -> IO ()
+  { pathToWatch :: FilePath -- Watch files recursivelly under this path.
+  , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
+  , debounceInSecs :: Int -- Debounce next run by x seconds.
+  , onChange :: IO () -- callback on filesystem changes.
+  , onError :: T.Text -> IO () -- callback for errors.
   }
 
 watch :: Config -> IO State
@@ -65,11 +70,9 @@ start :: MVar (Maybe ProcessID) -> Config -> IO ()
 start mVar Config { pathToWatch
                   , debounceInSecs
                   , relevantExtensions
-                  , runAtStartup
                   , onChange
                   , onError
                   } = do
-  when runAtStartup $ startProcess mVar onChange
   onChangeCb <- mkCallback $ callbackInProcess mVar onChange relevantExtensions
   onErrorCb <- mkCallback $ onErrorCallback onError
   pathCStr <- newCString pathToWatch
