@@ -5,7 +5,10 @@ Description : Filesystem notifications. This is a wrapper around rust's notify c
 -}
 module Notify
   ( Config(..)
+  , State
   , watch
+  , force
+  , end
   ) where
 
 import Control.Concurrent
@@ -31,6 +34,11 @@ foreign import ccall "watch_for_changes" watchForChanges ::
 foreign import ccall "wrapper" mkCallback ::
                (CString -> IO ()) -> IO (FunPtr (CString -> IO ()))
 
+data State = State
+  { config :: Config
+  , mVar :: MVar (Maybe ProcessID)
+  }
+
 data Config = Config
   { pathToWatch :: FilePath
   , relevantExtensions :: [T.Text]
@@ -40,47 +48,18 @@ data Config = Config
   , onError :: T.Text -> IO ()
   }
 
-watch :: Config -> IO ()
+watch :: Config -> IO State
 watch config = do
   mVar <- newMVar Nothing
+  let state = State {config = config, mVar = mVar}
   _ <- forkIO (start mVar config)
-  listenToCommands mVar config
+  pure state
 
-listenToCommands :: MVar (Maybe ProcessID) -> Config -> IO ()
-listenToCommands mVar (config@Config {onChange}) = do
-  value <- getChar
-  case commandFromStr value of
-    Just Rebuild -> do
-      _ <- startProcess mVar onChange
-      listenToCommands mVar config
-    Just Quit -> do
-      stopProcess mVar
-      putStrLn "Thanks for compiling with jetpack today. Have a great day!"
-    Just Help -> do
-      _ <- putStrLn "Help"
-      _ <- putStrLn "===="
-      _ <- putStrLn ""
-      _ <- putStrLn "r: rebuild"
-      _ <- putStrLn "h: help"
-      _ <- putStrLn "?: help"
-      listenToCommands mVar config
-    Just (Unknown str) -> do
-      putStrLn ("Unknown" ++ (str : ""))
-      listenToCommands mVar config
-    Nothing -> listenToCommands mVar config
+force :: State -> IO ()
+force State {mVar, config} = startProcess mVar (onChange config)
 
-data Command
-  = Rebuild
-  | Quit
-  | Help
-  | Unknown Char
-
-commandFromStr :: Char -> Maybe Command
-commandFromStr 'r' = Just Rebuild
-commandFromStr 'q' = Just Quit
-commandFromStr 'h' = Just Help
-commandFromStr '\n' = Nothing
-commandFromStr char = Just (Unknown char)
+end :: State -> IO ()
+end State {mVar} = stopProcess mVar
 
 start :: MVar (Maybe ProcessID) -> Config -> IO ()
 start mVar Config { pathToWatch
