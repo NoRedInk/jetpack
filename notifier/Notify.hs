@@ -38,6 +38,7 @@ data Config = Config
   { pathToWatch :: FilePath
   , relevantExtensions :: [T.Text]
   , debounceInSecs :: Int
+  , runAtStartup :: Bool
   , onChange :: IO ()
   , onError :: T.Text -> IO ()
   }
@@ -46,11 +47,13 @@ watch :: Config -> IO ()
 watch Config { pathToWatch
              , debounceInSecs
              , relevantExtensions
+             , runAtStartup
              , onChange
              , onError
              } = do
   mVar <- newMVar Nothing
-  onChangeCb <- mkCallback $ forkCallback mVar onChange relevantExtensions
+  when runAtStartup $ startProcess mVar onChange
+  onChangeCb <- mkCallback $ callbackInProcess mVar onChange relevantExtensions
   onErrorCb <- mkCallback $ onErrorCallback onError
   pathCStr <- newCString pathToWatch
   watchForChanges pathCStr (mkCInt debounceInSecs) onChangeCb onErrorCb
@@ -63,15 +66,20 @@ onErrorCallback cb msgC = do
   msg <- peekCString msgC
   cb (T.pack msg)
 
-forkCallback :: MVar (Maybe ProcessID) -> IO () -> [T.Text] -> CString -> IO ()
-forkCallback mVar cb relevantExtensions pathC = do
+callbackInProcess ::
+     MVar (Maybe ProcessID) -> IO () -> [T.Text] -> CString -> IO ()
+callbackInProcess mVar cb relevantExtensions pathC = do
   eventForPath <- peekCString pathC
-  when (isRelevant eventForPath relevantExtensions || null relevantExtensions) $ do
-    runningProcess <- takeMVar mVar
-    traverse_ (signalProcess softwareTermination) runningProcess
-    traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
-    processId <- forkProcess cb
-    putMVar mVar (Just processId)
+  when (isRelevant eventForPath relevantExtensions || null relevantExtensions) $
+    startProcess mVar cb
+
+startProcess :: MVar (Maybe ProcessID) -> IO () -> IO ()
+startProcess mVar cb = do
+  runningProcess <- takeMVar mVar
+  traverse_ (signalProcess softwareTermination) runningProcess
+  traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
+  processId <- forkProcess cb
+  putMVar mVar (Just processId)
 
 isRelevant :: FilePath -> [T.Text] -> Bool
 isRelevant path = elem (T.pack (takeExtension path))

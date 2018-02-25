@@ -29,6 +29,7 @@ watch config args = do
     Notify.Config
     { pathToWatch = Config.source_directory config
     , relevantExtensions = [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
+    , runAtStartup = True
     , debounceInSecs = 0
     , onChange = Builder.build config args
     , onError = \msg -> Message.printError [msg]
