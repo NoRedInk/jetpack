@@ -39,7 +39,7 @@ We keep track of running processes and the config.
 You might need this if you want to use `end` or `force`.
 -}
 data State = State
-  { config :: Config
+  { onChange :: IO ()
   , mVar :: MVar (Maybe ProcessID)
   }
 
@@ -49,30 +49,23 @@ data Config = Config
   { pathToWatch :: FilePath -- Watch files recursivelly under this path.
   , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
   , debounceInSecs :: Int -- Debounce next run by x seconds.
-  , onChange :: IO () -- callback on filesystem changes.
-  , onError :: T.Text -> IO () -- callback for errors.
   }
 
-watch :: Config -> IO State
-watch config = do
+watch :: Config -> IO () -> (T.Text -> IO ()) -> IO State
+watch config onChange onError = do
   mVar <- newMVar Nothing
-  let state = State {config = config, mVar = mVar}
-  _ <- forkIO (start mVar config)
+  let state = State {onChange = onChange, mVar = mVar}
+  _ <- forkIO (start mVar config onChange onError)
   pure state
 
 force :: State -> IO ()
-force State {mVar, config} = startProcess mVar (onChange config)
+force State {mVar, onChange} = startProcess mVar onChange
 
 end :: State -> IO ()
 end State {mVar} = stopProcess mVar
 
-start :: MVar (Maybe ProcessID) -> Config -> IO ()
-start mVar Config { pathToWatch
-                  , debounceInSecs
-                  , relevantExtensions
-                  , onChange
-                  , onError
-                  } = do
+start :: MVar (Maybe ProcessID) -> Config -> IO () -> (T.Text -> IO ()) -> IO ()
+start mVar Config {pathToWatch, debounceInSecs, relevantExtensions} onChange onError = do
   onChangeCb <- mkCallback $ callbackInProcess mVar onChange relevantExtensions
   onErrorCb <- mkCallback $ onErrorCallback onError
   pathCStr <- newCString pathToWatch

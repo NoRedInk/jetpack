@@ -32,9 +32,9 @@ watch config args = do
       , relevantExtensions =
           [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
       , debounceInSecs = 0
-      , onChange = Builder.build config args
-      , onError = \msg -> Message.printError [msg]
       }
+      (Builder.build config args)
+      (\msg -> Message.printError [msg])
   Notify.force state
   listenToCommands state
 
