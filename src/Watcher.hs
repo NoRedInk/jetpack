@@ -6,7 +6,9 @@ import Config
 import Control.Concurrent
 import Control.Monad.Except (throwError)
 import Data.Foldable (traverse_)
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Error
 import GHC.IO.Handle
 import qualified Message
@@ -40,25 +42,25 @@ watch config args = do
 
 listenToCommands :: Notify.State -> IO ()
 listenToCommands state = do
-  value <- getChar
+  value <- TIO.getLine
   case commandFromStr value of
     Just Rebuild -> do
-      _ <- putStrLn "focing a rebuild..."
+      _ <- TIO.putStrLn "focing a rebuild..."
       _ <- Notify.force state
       listenToCommands state
     Just Quit -> do
       Notify.end state
       putStrLn "Thanks for compiling with jetpack today. Have a great day!"
     Just Help -> do
-      _ <- putStrLn "Help"
-      _ <- putStrLn "===="
-      _ <- putStrLn ""
-      _ <- putStrLn "r: rebuild"
-      _ <- putStrLn "q: quit"
-      _ <- putStrLn "?: help"
+      _ <- TIO.putStrLn "Help"
+      _ <- TIO.putStrLn "===="
+      _ <- TIO.putStrLn ""
+      _ <- TIO.putStrLn "r: rebuild"
+      _ <- TIO.putStrLn "q: quit"
+      _ <- TIO.putStrLn "?: help"
       listenToCommands state
     Just (Unknown str) -> do
-      putStrLn ("Unknown" ++ (str : ""))
+      TIO.putStrLn ("Unknown command \"" <> str <> "\"")
       listenToCommands state
     Nothing -> listenToCommands state
 
@@ -66,11 +68,11 @@ data Command
   = Rebuild
   | Quit
   | Help
-  | Unknown Char
+  | Unknown T.Text
 
-commandFromStr :: Char -> Maybe Command
-commandFromStr 'r' = Just Rebuild
-commandFromStr 'q' = Just Quit
-commandFromStr '?' = Just Help
-commandFromStr '\n' = Nothing
+commandFromStr :: T.Text -> Maybe Command
+commandFromStr "r" = Just Rebuild
+commandFromStr "q" = Just Quit
+commandFromStr "?" = Just Help
+commandFromStr "" = Nothing
 commandFromStr char = Just (Unknown char)
