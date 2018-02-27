@@ -5,6 +5,6 @@ authors = ["Stoeffel <schtoeffel@gmail.com>"]
 
 [lib]
 name = "notifier"
-crate-type = ["staticlib", "dylib"]
+crate-type = ["cdylib"]
 [dependencies]
 notify = "4.0.0"
