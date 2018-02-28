@@ -2,7 +2,7 @@
 # copied from https://github.com/avh4/elm-format. Thanks <3
 FROM buildpack-deps:latest
 
-ENV STACK_VERSION 1.4.0
+ENV STACK_VERSION 1.6.3
 
 ENV STACK_DOWNLOAD_URL https://github.com/commercialhaskell/stack/releases/download/v$STACK_VERSION/stack-$STACK_VERSION-linux-x86_64.tar.gz
 ENV DEBIAN_FRONTEND noninteractive

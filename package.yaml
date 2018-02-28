@@ -42,7 +42,6 @@ dependencies:
 - formatting == 6.2.5
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
-- twitch == 0.1.7.1
 library:
   source-dirs:
   - src

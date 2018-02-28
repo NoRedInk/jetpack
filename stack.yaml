@@ -2,6 +2,4 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-extra-deps:
-- twitch-0.1.7.1
 resolver: lts-9.8
