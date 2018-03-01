@@ -12,10 +12,13 @@ else
   ./package/linux/build-in-docker.sh
   git add package.yaml
 
-  git add ./binaries
   git commit -m "bump version to $1"
   git push
 
   git tag -a $1 -m "$1"
   git push --tags
+
+  for i in jetpack-{mac-x64.tgz,linux-x64.tgz}; do
+    github-release upload --user NoRedInk --repo jetpack --tag "$1" --file "$i"
+  done
 fi

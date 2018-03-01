@@ -1,0 +1,38 @@
+{
+  "name": "@NoRedInk/jetpack",
+  "version": "1.0.0",
+  "description": "Install jetpack",
+  "preferGlobal": true,
+  "main": "index.js",
+  "scripts": {
+    "install": "binwrap-install",
+    "prepublish": "npm test",
+    "test": "eslint . && binwrap-test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoRedInk/jetpack.git"
+  },
+  "keywords": [
+    "jetpack"
+  ],
+  "author": "Christoph Hermann",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/NoRedInk/jetpack/issues"
+  },
+  "files": [
+    "index.js",
+    "bin"
+  ],
+  "homepage": "https://github.com/NoRedInk/jetpack",
+  "bin": {
+    "jetpack": "bin/jetpack"
+  },
+  "dependencies": {
+    "binwrap": "^0.1.4"
+  },
+  "devDependencies": {
+    "eslint": "^3.18.0"
+  }
+}
