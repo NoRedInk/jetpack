@@ -49,6 +49,7 @@ library:
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
+  - -optl-static -fPIC
   other-modules:
   - Paths_jetpack
   - Utils.Files
