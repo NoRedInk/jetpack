@@ -91,7 +91,6 @@ This is because you might importe something like `require('MyModule.Foo')`
 getFileType :: String -> Ast.SourceType
 getFileType ".coffee" = Coffee
 getFileType ".elm" = Elm
-getFileType ".sass" = Sass
 getFileType ".js" = Js
 getFileType _ = Js
 

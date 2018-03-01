@@ -38,10 +38,6 @@ suite =
       assertRequire
         "require(\"foo.bar.coffee\")"
         [Ast.Require Ast.Coffee $ "foo" <.> "bar.coffee"]
-    , testCase "sass" $
-      assertRequire
-        "require(\"foo.bar.sass\")"
-        [Ast.Require Ast.Sass $ "foo" <.> "bar.sass"]
     , testCase "no ext" $
       assertRequire
         "require(\"foo.bar\")"

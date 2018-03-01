@@ -3,9 +3,7 @@
   "modules_directories" : [],
   "source_directory" : "app/sources",
   "elm_root_directory" : "app/sources",
-  "sass_load_paths" : [],
   "temp_directory" : "app/tmp",
   "log_directory" : "app/logs",
-  "output_js_directory" : "app/js",
-  "output_css_directory" : "app/css"
+  "output_js_directory" : "app/js"
 }

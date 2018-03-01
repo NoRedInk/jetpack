@@ -23,12 +23,9 @@ suite =
                  []
                  ("app" </> "sources")
                  ("app" </> "sources")
-                 []
                  ("app" </> "tmp")
                  ("app" </> "logs")
                  ("app" </> "js")
-                 ("app" </> "css")
-                 Nothing
                  Nothing
                  Nothing)
     ]

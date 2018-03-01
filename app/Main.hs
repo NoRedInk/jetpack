@@ -5,7 +5,7 @@ import Lib (run)
 main :: IO ()
 main = run
   -- 1. read config
-  -- 2. find dependencies of entry points (magic requires (.sass/.elm)?) (how many levels? we should probably find elm deps as wel)
+  -- 2. find dependencies of entry points (magic requires (.elm)?) (how many levels? we should probably find elm deps as wel)
   -- 3. create binary with tree
   -- 3. build cache (not mvp)
   --    a. create binary with file modified date and hash of content

@@ -24,16 +24,10 @@ Configuration
   ],
   "source_directory": "./ui/src", // jetpack will try to resolve modules in source_directory before checking in modules_directories
   "elm_root_directory": "./ui", // where your elm-package.json is
-  "sass_load_paths": [ // this will be passed to sassc
-    "node_modules",
-    "ui/src"
-  ],
   "temp_directory": "./.jetpack/build_artifacts", // jetpack's build_artifacts will be here
   "log_directory": "./.jetpack/logs", // jetpack will log stuff in here
   "output_js_directory": "assets/javascripts", // js will be written to this folder
-  "output_css_directory": "assets/stylesheets", // css will be written to this folder
   "elm_make_path": "./node_modules/.bin/elm-make", // path to elm-make
-  "sassc_path": "./bin/sass", // path to sassc
   "coffee_path": "./node_modules/.bin/coffee" // path to coffee
 }
 ```

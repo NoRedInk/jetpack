@@ -44,29 +44,13 @@ mockDependencyTree :: D.DependencyTree
 mockDependencyTree =
   Tree.Node
     (dependency "index")
-    [ Tree.Node (dependency "main") []
-    , Tree.Node (dependency "index") []
-    , Tree.Node (cssDependency "index") []
-    , Tree.Node cssEntry []
-    ]
+    [Tree.Node (dependency "main") [], Tree.Node (dependency "index") []]
   where
     dependency fileName =
       D.Dependency
         Ast.Js
         (fileName <.> "js")
         ("ui" </> "src" </> fileName <.> "js")
-        Nothing
-    cssEntry =
-      D.Dependency
-        Ast.Js
-        ("foo" <.> "css")
-        ("ui" </> "src" </> "foo" <.> "css")
-        Nothing
-    cssDependency fileName =
-      D.Dependency
-        Ast.Sass
-        (fileName <.> "sass")
-        ("ui" </> "src" </> fileName <.> "sass")
         Nothing
 
 mockConfig :: Config
@@ -76,12 +60,9 @@ mockConfig =
     []
     ("." </> "test" </> "fixtures" </> "concat" </> "sources")
     ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-    []
     ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
     ("." </> "test" </> "fixtures" </> "concat" </> "logs")
     ("." </> "test" </> "fixtures" </> "concat" </> "js")
-    ("." </> "test" </> "fixtures" </> "concat" </> "css")
-    Nothing
     Nothing
     Nothing
 

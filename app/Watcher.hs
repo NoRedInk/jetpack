@@ -53,8 +53,7 @@ watch config = do
   return ()
 
 fileTypesToWatch :: [Dep]
-fileTypesToWatch =
-  ["**/*.elm", "**/*.coffee", "**/*.js", "**/*.sass", "**/*.scss", "**/*.json"]
+fileTypesToWatch = ["**/*.elm", "**/*.coffee", "**/*.js", "**/*.json"]
 
 options :: Config.Config -> Options
 options config =

@@ -17,16 +17,14 @@ import Task
 
 data ToolPaths = ToolPaths
   { elmMake :: FilePath
-  , sassc :: FilePath
   , coffee :: FilePath
   }
 
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
 find :: Config -> Task ToolPaths
-find Config {elm_make_path, sassc_path, coffee_path} =
+find Config {elm_make_path, coffee_path} =
   ToolPaths <$> (binExists <=< toAbsPathOrBin "elm-make") elm_make_path <*>
-  (binExists <=< toAbsPathOrBin "sassc") sassc_path <*>
   (binExists <=< toAbsPathOrBin "coffee") coffee_path
 
 toAbsPathOrBin :: String -> Maybe FilePath -> Task FilePath

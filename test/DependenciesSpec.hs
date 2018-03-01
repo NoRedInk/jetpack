@@ -34,12 +34,9 @@ basicsFixtures =
     [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
     ("." </> "test" </> "fixtures" </> "basics" </> "sources")
     ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-    []
     ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
     ("." </> "test" </> "fixtures" </> "basics" </> "logs")
     ("." </> "test" </> "fixtures" </> "basics" </> "js")
-    ("." </> "test" </> "fixtures" </> "basics" </> "css")
-    Nothing
     Nothing
     Nothing
 
@@ -50,12 +47,9 @@ failingFixtures =
     []
     ("." </> "test" </> "fixtures" </> "failing" </> "sources")
     ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-    []
     ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
     ("." </> "test" </> "fixtures" </> "failing" </> "logs")
     ("." </> "test" </> "fixtures" </> "failing" </> "js")
-    ("." </> "test" </> "fixtures" </> "failing" </> "css")
-    Nothing
     Nothing
     Nothing
 
