@@ -1,7 +1,7 @@
 jetpack
 =======
 
-> **NOTE:** Jetpack is an internal NoRedInk build tool that we decided to open source in hopes that it might be useful to others. It has never been our goal to develop a fully featured front-end build system for other use cases; it currently compiles only Elm, CoffeeScript and Sass because that's all our build needs. We're open to potentially accepting outside contributions to support other use cases, but please understand that this remains an internal tool first, and we can't make any promises that anything will be accepted. Thanks for understanding, and by all means don't feel bad about forking! ❤️
+> **NOTE:** Jetpack is an internal NoRedInk build tool that we decided to open source in hopes that it might be useful to others. It has never been our goal to develop a fully featured front-end build system for other use cases; it currently compiles only Elm and CoffeeScript because that's all our build needs. We're open to potentially accepting outside contributions to support other use cases, but please understand that this remains an internal tool first, and we can't make any promises that anything will be accepted. Thanks for understanding, and by all means don't feel bad about forking! ❤️
 
 Motivation
 ----------

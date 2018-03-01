@@ -1,5 +1,5 @@
 {-| Parser for `require` in js and coffeescript.
-* It returns a list of `Require (Coffee|Js|Elm|Sass) fileName`
+* It returns a list of `Require (Coffee|Js|Elm) fileName`
 * It ignores `require` in commments.
 
 

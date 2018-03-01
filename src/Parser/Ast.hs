@@ -21,7 +21,6 @@ data SourceType
   = Coffee
   | Js
   | Elm
-  | Sass
   deriving (Show, Eq, Generic)
 
 instance FromJSON SourceType
