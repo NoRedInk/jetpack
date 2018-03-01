@@ -3,10 +3,7 @@ var path = require("path");
 
 var binVersion = require(path.join(__dirname, "package.json"));
 
-var root = "https://github.com/NoRedInk/jetpack/releases/download/" +
-  binVersion +
-  "/jetpack" +
-  binVersion;
+var root = "https://github.com/NoRedInk/jetpack/releases/download/" + binVersion.version + "/jetpack";
 
 module.exports = binwrap({
   binaries: ["jetpack"],
