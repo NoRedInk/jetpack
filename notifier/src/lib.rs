@@ -13,25 +13,23 @@ pub extern "C" fn watch_for_changes(
     on_change: extern "C" fn(event_for_path: *const c_char) -> c_int,
     on_error: extern "C" fn(msg: *const c_char) -> c_int,
 ) {
-    unsafe {
-        let (tx, rx) = channel();
-        let mut watcher = watcher(tx, Duration::from_secs(debounce_in_secs)).unwrap();
-        let path = CStr::from_ptr(path_ptr).to_str().expect("Invalid path");
-        watcher.watch(path, RecursiveMode::Recursive).unwrap();
+    let (tx, rx) = channel();
+    let mut watcher = watcher(tx, Duration::from_secs(debounce_in_secs)).unwrap();
+    let path = unsafe { CStr::from_ptr(path_ptr).to_str().expect("Invalid path") };
+    watcher.watch(path, RecursiveMode::Recursive).unwrap();
 
-        loop {
-            match rx.recv()
-                .map_err(|err| err.to_string())
-                .and_then(|e| event_for_path(e).ok_or("unknown event".to_string()))
-            {
-                Ok(event) => on_change(CString::new(event).unwrap().as_ptr()),
-                Err(e) => on_error(
-                    CString::new(format!("watch error: {:?}", e))
-                        .unwrap()
-                        .as_ptr(),
-                ),
-            };
-        }
+    loop {
+        match rx.recv()
+            .map_err(|err| err.to_string())
+            .and_then(|e| event_for_path(e).ok_or("unknown event".to_string()))
+        {
+            Ok(event) => on_change(CString::new(event).unwrap().as_ptr()),
+            Err(e) => on_error(
+                CString::new(format!("watch error: {:?}", e))
+                    .unwrap()
+                    .as_ptr(),
+            ),
+        };
     }
 }
 
