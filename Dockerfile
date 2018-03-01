@@ -20,14 +20,7 @@ RUN mkdir -p /root/.local/bin && \
 
 # Install Rust FFI dependencies and build link target
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-COPY notifier notifier
-RUN cd notifier && env PATH="$HOME/.cargo/bin:$PATH" cargo build --release
 
 # Install jetpack dependencies
 COPY stack.yaml ./
 RUN stack setup
-
-COPY jetpack.cabal ./
-RUN stack build --only-snapshot
-RUN stack build --only-dependencies
-RUN stack build --test --only-dependencies
