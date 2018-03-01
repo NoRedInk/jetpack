@@ -10,9 +10,10 @@ import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Error (Error(..))
 import GHC.Generics (Generic)
+import Message
 import qualified System.Directory as Dir
+import System.Exit
 import System.FilePath ((</>))
-import Task (Task, lift)
 
 data Config = Config
   { entry_points :: FilePath
@@ -30,9 +31,9 @@ instance ToJSON Config
 
 instance FromJSON Config
 
-readConfig :: Task Config
+readConfig :: IO Config
 readConfig = do
-  cwd <- lift Dir.getCurrentDirectory
+  cwd <- Dir.getCurrentDirectory
   maybeLocalConfig <- load cwd
   case maybeLocalConfig of
     Just config -> return config
@@ -54,14 +55,16 @@ defaultConfig =
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
-load :: FilePath -> Task (Maybe Config)
+load :: FilePath -> IO (Maybe Config)
 load root = do
   let path = root </> "jetpack.json"
-  exists <- lift $ Dir.doesFileExist path
+  exists <- Dir.doesFileExist path
   if exists
     then do
-      content <- lift $ BL.readFile path
+      content <- BL.readFile path
       case Aeson.decode content of
         Just config -> return $ Just config
-        Nothing -> throwError [JsonInvalid path]
+        Nothing -> do
+          Message.error [JsonInvalid path]
+          System.Exit.exitFailure
     else return Nothing

@@ -24,11 +24,14 @@ success entrypoints = do
   putChunkLn (separator width "*" & fore green)
 
 error :: [Error.Error] -> IO ()
-error err = do
+error err = printError $ fmap (T.pack . Error.description) err
+
+printError :: [T.Text] -> IO ()
+printError err = do
   width <- termWidth
   _ <- putStrLn ""
   putChunkLn (separator width "~" & fore red)
-  _ <- traverse (putChunkLn . fore brightRed . chunk . Error.description) err
+  _ <- traverse (putChunkLn . fore brightRed . chunk) err
   _ <- putChunkLn (separator width "~" & fore red)
   _ <- traverse putChunkLn (errorMessage width)
   putChunkLn (separator width "~" & fore red)
