@@ -12,23 +12,20 @@ suite =
   testGroup
     "Config"
     [ testCase "#load success" $ do
-        e <- runExceptT $ do Config.load "./test/fixtures"
-        case e of
-          Left _ -> assertFailure $ "Couldn't decode jetpack.json"
-          Right config ->
-            config @=?
-            Just
-              (Config.Config
-                 ("app" </> "modules")
-                 []
-                 ("app" </> "sources")
-                 ("app" </> "sources")
-                 []
-                 ("app" </> "tmp")
-                 ("app" </> "logs")
-                 ("app" </> "js")
-                 ("app" </> "css")
-                 Nothing
-                 Nothing
-                 Nothing)
+        config <- Config.load "./test/fixtures"
+        config @=?
+          Just
+            (Config.Config
+               ("app" </> "modules")
+               []
+               ("app" </> "sources")
+               ("app" </> "sources")
+               []
+               ("app" </> "tmp")
+               ("app" </> "logs")
+               ("app" </> "js")
+               ("app" </> "css")
+               Nothing
+               Nothing
+               Nothing)
     ]
