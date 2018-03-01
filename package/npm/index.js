@@ -1,8 +1,7 @@
 var binwrap = require("binwrap");
 var path = require("path");
 
-var packageInfo = require(path.join(__dirname, "package.json"));
-var binVersion = packageInfo.version.replace(/\.[0-9]*$/, "");
+var binVersion = require(path.join(__dirname, "package.json"));
 
 var root = "https://github.com/NoRedInk/jetpack/releases/download/" +
   binVersion +
