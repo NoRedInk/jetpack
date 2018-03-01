@@ -18,6 +18,7 @@ else
   git tag -a $1 -m "$1"
   git push --tags
 
+  pushd binaries
   for i in jetpack-{mac-x64.tgz,linux-x64.tgz}; do
     github-release upload --user NoRedInk --repo jetpack --tag "$1" --file "$i"
   done
