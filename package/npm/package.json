@@ -1,6 +1,6 @@
 {
   "name": "@noredink/jetpack",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "Install jetpack",
   "preferGlobal": true,
   "main": "index.js",
