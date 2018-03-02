@@ -42,14 +42,13 @@ dependencies:
 - formatting == 6.2.5
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
+- fsnotify == 0.2.1.1
 library:
   source-dirs:
   - src
-  - notifier
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
-  - -optl-static -fPIC
   other-modules:
   - Paths_jetpack
   - Utils.Files
@@ -61,18 +60,12 @@ executables:
     main: Main.hs
     source-dirs:
     - app
-    - ./notifier/target/release
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - jetpack
-    extra-libraries:
-    - notifier
-    - pthread
-    extra-lib-dirs:
-    - ./notifier/target/release
 tests:
   jetpack-test:
     main: Spec.hs

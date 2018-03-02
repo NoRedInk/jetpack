@@ -18,9 +18,6 @@ RUN mkdir -p /root/.local/bin && \
     wget -q -O- $STACK_DOWNLOAD_URL | tar --strip=1 -xvz -C /root/.local/bin/ && \
     chmod +x /root/.local/bin/stack
 
-# Install Rust FFI dependencies and build link target
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-
 # Install jetpack dependencies
 COPY stack.yaml ./
 RUN stack setup
