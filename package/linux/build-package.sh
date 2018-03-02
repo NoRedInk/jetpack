@@ -5,9 +5,6 @@ set -ex
 
 PLATFORM="linux-x64"
 
-pushd notifier
-$HOME/.cargo/bin/cargo build --release
-popd
 ## Run tests
 
 stack clean
