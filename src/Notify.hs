@@ -44,12 +44,18 @@ watch config onChange = do
 
 start :: MVar (Maybe ProcessID) -> Config -> IO () -> IO ()
 start mVar Config {pathToWatch, debounceInSecs, relevantExtensions} onChange = do
-  manager <- startManagerConf (WatchConfig { confDebounce = Debounce 0.2, confUsePolling = False, confPollInterval = 10^(6 :: Int) })
+  manager <-
+    startManagerConf
+      (WatchConfig
+       { confDebounce = Debounce 0.2
+       , confUsePolling = False
+       , confPollInterval = 10 ^ (6 :: Int)
+       })
   watchTree
-      manager
-      pathToWatch
-      (eventIsRelevant relevantExtensions)
-      (actOnEvent mVar onChange)
+    manager
+    pathToWatch
+    (eventIsRelevant relevantExtensions)
+    (actOnEvent mVar onChange)
   pure ()
 
 eventIsRelevant :: [T.Text] -> Event -> Bool
@@ -57,12 +63,10 @@ eventIsRelevant relevantExtensions event =
   getExtensionFromEvent event `elem` relevantExtensions
 
 getExtensionFromEvent :: Event -> T.Text
-getExtensionFromEvent =
-  T.pack . takeExtension . getFilepathFromEvent
+getExtensionFromEvent = T.pack . takeExtension . getFilepathFromEvent
 
 actOnEvent :: MVar (Maybe ProcessID) -> IO () -> Event -> IO ()
-actOnEvent mVar onChange _event =
-  startProcess mVar onChange
+actOnEvent mVar onChange _event = startProcess mVar onChange
 
 startProcess :: MVar (Maybe ProcessID) -> IO () -> IO ()
 startProcess mVar cb = do
@@ -75,7 +79,6 @@ stopProcess mVar = do
   runningProcess <- takeMVar mVar
   traverse_ (signalProcess softwareTermination) runningProcess
   traverse_ (getProcessStatus True False) runningProcess -- here be dragons, potentially
-
 
 buildNow :: State -> IO ()
 buildNow State {mVar, onChange} = startProcess mVar onChange
