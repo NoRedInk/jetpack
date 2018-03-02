@@ -11,17 +11,13 @@ import qualified ToolPaths
 
 setup :: Config -> Task ToolPaths.ToolPaths
 setup config = do
-  let Config { temp_directory
-             , log_directory
-             , output_js_directory
-             , output_css_directory
-             } = config
+  let Config {temp_directory, log_directory, output_js_directory} = config
   requiredBins <- ToolPaths.find config
   _ <-
     lift $
     traverse
       (createDirectoryIfMissing True)
-      [temp_directory, log_directory, output_js_directory, output_css_directory]
+      [temp_directory, log_directory, output_js_directory]
   createDepsJsonIfMissing temp_directory
   return requiredBins
 

@@ -105,7 +105,6 @@ findRequires cache parent =
     Ast.Js -> parseModule cache parent Parser.Require.jsRequires
     Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
     Ast.Elm -> return (parent, [])
-    Ast.Sass -> return (parent, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)

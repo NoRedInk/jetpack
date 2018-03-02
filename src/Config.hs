@@ -20,13 +20,10 @@ data Config = Config
   , modules_directories :: [FilePath]
   , source_directory :: FilePath
   , elm_root_directory :: FilePath
-  , sass_load_paths :: [FilePath]
   , temp_directory :: FilePath
   , log_directory :: FilePath
   , output_js_directory :: FilePath
-  , output_css_directory :: FilePath
   , elm_make_path :: Maybe FilePath
-  , sassc_path :: Maybe FilePath
   , coffee_path :: Maybe FilePath
   } deriving (Show, Eq, Generic)
 
@@ -49,17 +46,12 @@ defaultConfig =
   , modules_directories = ["." </> "node_modules"]
   , source_directory = "." </> "src"
   , elm_root_directory = "."
-  , sass_load_paths = sassLoadPaths
   , temp_directory = "." </> ".jetpack" </> "build_artifacts"
   , log_directory = "." </> ".jetpack" </> "logs"
   , output_js_directory = "." </> "dist" </> "javascripts" </> "jetpack"
-  , output_css_directory = "." </> "dist" </> "stylesheets" </> "jetpack"
   , elm_make_path = Just ("." </> "node_modules" </> ".bin" </> "elm-make")
-  , sassc_path = Just ("." </> "bin" </> "sass")
   , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
   }
-  where
-    sassLoadPaths = ["node_modules", "src"]
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}

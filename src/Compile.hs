@@ -80,12 +80,11 @@ runCompiler ::
   -> ToolPaths
   -> Arguments
   -> Task Result
-runCompiler pg args config fileType ToolPaths {elmMake, sassc, coffee} arguments =
+runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
   case fileType of
     Ast.Elm -> elmCompiler elmMake pg args config arguments
     Ast.Js -> jsCompiler pg arguments
     Ast.Coffee -> coffeeCompiler coffee pg args arguments
-    Ast.Sass -> sassCompiler sassc pg args config arguments
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
 buildArtifactPath Config {temp_directory} fileType inputPath =
@@ -96,7 +95,6 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
         Ast.Elm -> "js"
         Ast.Js -> "js"
         Ast.Coffee -> "js"
-        Ast.Sass -> "css"
 
 ---------------
 -- COMPILERS --
@@ -147,15 +145,6 @@ jsCompiler pg Arguments {input, output} =
       , warnings = Nothing
       , compiledFile = input
       }
-
-sassCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
-sassCompiler sassc pg args Config {sass_load_paths} Arguments {input, output} = do
-  let loadPath = L.intercalate ":" sass_load_paths
-  let cmd =
-        "SASS_PATH=" ++
-        loadPath ++ " " ++ sassc ++ " " ++ input ++ " " ++ output
-  runCmd pg args input cmd Nothing
 
 runCmd ::
      ProgressBar -> Args -> FilePath -> String -> Maybe String -> Task Result

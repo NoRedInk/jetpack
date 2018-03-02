@@ -31,15 +31,13 @@ uniqNodes = LU.uniq . UT.nodesWithChildren
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
 wrapper config (d@Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
-  if compilesToJs d
-    then lift $ do
-           let name = F.pathToFileName filePath "js"
-           content <- readFile $ temp_directory </> name
-           let fnName = F.pathToFunctionName filePath "js"
-           let replacedContent = foldr replaceRequire (T.pack content) ds
-           let wrapped = wrapModule fnName replacedContent
-           return $ Just wrapped
-    else return Nothing
+  lift $ do
+    let name = F.pathToFileName filePath "js"
+    content <- readFile $ temp_directory </> name
+    let fnName = F.pathToFunctionName filePath "js"
+    let replacedContent = foldr replaceRequire (T.pack content) ds
+    let wrapped = wrapModule fnName replacedContent
+    return $ Just wrapped
 
 -- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
@@ -51,21 +49,10 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
 
-compilesToJs :: Dependency -> Bool
-compilesToJs Dependency {filePath, fileType} =
-  case fileType of
-    Ast.Js -> FP.takeExtension filePath /= ".css"
-    Ast.Elm -> True
-    Ast.Coffee -> True
-    _ -> False
-
 writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
 writeModule config dependencyTree fns = do
   let root@Dependency {filePath} = Tree.rootLabel dependencyTree
-  if compilesToJs root
-    then writeJsModule config filePath fns
-    else writeCssModule config filePath $
-         UT.roots $ Tree.subForest dependencyTree
+  writeJsModule config filePath fns
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
 writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
@@ -80,25 +67,6 @@ writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
     let rootName = F.pathToFunctionName rootFilePath "js"
     createDirectoryIfMissing True $ FP.takeDirectory out
     writeFile out $ T.unpack $ addBoilerplate rootName fns
-    return out
-
-writeCssModule :: Config -> FilePath -> [Dependency] -> Task FilePath
-writeCssModule Config {output_css_directory, entry_points, temp_directory} rootFilePath deps =
-  lift $ do
-    let out =
-          outputPath
-            Output
-            { outDir = output_css_directory
-            , moduleDir = entry_points
-            , name = rootFilePath
-            }
-    createDirectoryIfMissing True $ FP.takeDirectory out
-    let cssPaths =
-          fmap
-            ((</>) temp_directory . flip F.pathToFileName "css" . filePath)
-            deps
-    css <- traverse readFile cssPaths
-    writeFile out $ T.unpack $ T.unlines $ fmap T.pack css
     return out
 
 data Output = Output

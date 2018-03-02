@@ -1,5 +1,5 @@
 {-| Parser for `require` in js and coffeescript.
-* It returns a list of `Require (Coffee|Js|Elm|Sass) fileName`
+* It returns a list of `Require (Coffee|Js|Elm) fileName`
 * It ignores `require` in commments.
 
 
@@ -91,7 +91,6 @@ This is because you might importe something like `require('MyModule.Foo')`
 getFileType :: String -> Ast.SourceType
 getFileType ".coffee" = Coffee
 getFileType ".elm" = Elm
-getFileType ".sass" = Sass
 getFileType ".js" = Js
 getFileType _ = Js
 

@@ -31,8 +31,7 @@ watch config args = do
     Notify.watch
       Notify.Config
       { pathToWatch = Config.source_directory config
-      , relevantExtensions =
-          [".elm", ".coffee", ".js", ".sass", ".scss", ".json"]
+      , relevantExtensions = [".elm", ".coffee", ".js", ".json"]
       , debounceInSecs = 0
       }
       (Builder.build config args)
