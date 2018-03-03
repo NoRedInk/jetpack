@@ -1,5 +1,5 @@
 name: jetpack
-version: 1.0.0
+version: 2.0.8
 category: Web
 author: Author name here
 maintainer: example@example.com
@@ -42,10 +42,10 @@ dependencies:
 - formatting == 6.2.5
 - transformers == 0.5.2.0
 - unix == 2.7.2.1
+- fsnotify == 0.2.1.1
 library:
   source-dirs:
   - src
-  - notifier
   ghc-options:
   - -Wall
   - -fno-warn-name-shadowing
@@ -60,18 +60,12 @@ executables:
     main: Main.hs
     source-dirs:
     - app
-    - ./notifier/target/release
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - jetpack
-    extra-libraries:
-    - notifier
-    - pthread
-    extra-lib-dirs:
-    - ./notifier/target/release
 tests:
   jetpack-test:
     main: Spec.hs

@@ -35,8 +35,7 @@ watch config args = do
       , debounceInSecs = 0
       }
       (Builder.build config args)
-      (\msg -> Message.printError [msg])
-  Notify.force state
+  Notify.buildNow state
   listenToCommands state
 
 listenToCommands :: Notify.State -> IO ()
@@ -45,7 +44,7 @@ listenToCommands state = do
   case commandFromStr value of
     Just Rebuild -> do
       _ <- TIO.putStrLn "focing a rebuild..."
-      _ <- Notify.force state
+      _ <- Notify.buildNow state
       listenToCommands state
     Just Quit -> do
       Notify.end state
