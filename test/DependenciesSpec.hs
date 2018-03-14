@@ -42,7 +42,11 @@ basicsFixtures =
   , output_js_directory = ("." </> "test" </> "fixtures" </> "basics" </> "js")
   , elm_make_path = Nothing
   , coffee_path = Nothing
-  , no_parse = []
+  , no_parse =
+      [ "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
+        "clipboard" </>
+        "index.js"
+      ]
   }
 
 failingFixtures :: Config
@@ -66,7 +70,7 @@ suite :: TestTree
 suite =
   testGroup
     "Dependencies"
-    [ testCase "#find success" $ do
+    [ testCase "#build success" $ do
         e <-
           runExceptT $ do
             pg <- lift mockProgressBar
@@ -111,7 +115,32 @@ suite =
                 "node_modules" </>
                 "debug.js")
             ]
-    , testCase "#find failing" $ do
+    , testCase "#build no_parse" $ do
+        e <-
+          runExceptT $ do
+            pg <- lift mockProgressBar
+            DependencyTree.build pg basicsFixtures [] ("test_no_parse" <.> "js")
+        case e of
+          Left msg -> do
+            _ <- traverse print msg
+            assertFailure $ "This shouldn't fail"
+          Right dep ->
+            (fmap dropLastMod $ Tree.flatten dep) @?=
+            [ ( Ast.Js
+              , "" </> "test_no_parse.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "modules" </>
+                "test_no_parse.js")
+            , ( Ast.Js
+              , "" </> "no_parse_index"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </>
+                "no_parse_index.js")
+            , ( Ast.Js
+              , "clipboard"
+              , "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
+                "clipboard" </>
+                "index.js")
+            ]
+    , testCase "#build failing" $ do
         e <-
           runExceptT $ do
             pg <- lift mockProgressBar

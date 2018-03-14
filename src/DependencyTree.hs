@@ -76,7 +76,7 @@ build pg config cache entryPoint =
 
 buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
 buildTree config cache =
-  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache) <=<
+  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
   Resolver.resolve config Nothing
 
 readTreeCache :: FilePath -> IO Dependencies
@@ -99,12 +99,15 @@ toDependency Config {entry_points} path =
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
-findRequires :: Dependencies -> Dependency -> Task (Dependency, [Dependency])
-findRequires cache parent =
-  case fileType parent of
-    Ast.Js -> parseModule cache parent Parser.Require.jsRequires
-    Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
-    Ast.Elm -> return (parent, [])
+findRequires ::
+     Dependencies -> Config -> Dependency -> Task (Dependency, [Dependency])
+findRequires cache Config {no_parse} parent@Dependency {filePath, fileType} =
+  if filePath `elem` no_parse
+    then return (parent, [])
+    else case fileType of
+           Ast.Js -> parseModule cache parent Parser.Require.jsRequires
+           Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
+           Ast.Elm -> return (parent, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
