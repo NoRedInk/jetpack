@@ -28,7 +28,8 @@ Configuration
   "log_directory": "./.jetpack/logs", // jetpack will log stuff in here
   "output_js_directory": "assets/javascripts", // js will be written to this folder
   "elm_make_path": "./node_modules/.bin/elm-make", // path to elm-make
-  "coffee_path": "./node_modules/.bin/coffee" // path to coffee
+  "coffee_path": "./node_modules/.bin/coffee", // path to coffee
+  "no_parse": ["./node_modules/clipboard/dist/clipboard.js"] // files that shouldn't be parsed
 }
 ```
 
