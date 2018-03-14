@@ -36,7 +36,14 @@ defaultArguments =
 
 readArguments :: IO Args
 readArguments =
-  execParser $ info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦"
+  defaultsIfWatch <$>
+  execParser (info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦")
+
+defaultsIfWatch :: Args -> Args
+defaultsIfWatch orig@Args {watch} =
+  if watch
+    then orig {debug = True, warn = True}
+    else orig
 
 parser :: Parser Args
 parser =
