@@ -63,9 +63,9 @@ load root = do
   if exists
     then do
       content <- BL.readFile path
-      case Aeson.decode content of
-        Just config -> return $ Just config
-        Nothing -> do
-          Message.error [JsonInvalid path]
+      case Aeson.eitherDecode content of
+        Right config -> return $ Just config
+        Left err -> do
+          Message.error [ConfigInvalid path err]
           System.Exit.exitFailure
     else return Nothing
