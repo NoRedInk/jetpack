@@ -56,15 +56,19 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-    ("." </> "test" </> "fixtures" </> "concat" </> "modules")
-    []
-    ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-    ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-    ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-    ("." </> "test" </> "fixtures" </> "concat" </> "logs")
-    ("." </> "test" </> "fixtures" </> "concat" </> "js")
-    Nothing
-    Nothing
+  { entry_points = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+  , modules_directories = []
+  , source_directory =
+      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , elm_root_directory =
+      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , temp_directory = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+  , log_directory = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+  , output_js_directory = ("." </> "test" </> "fixtures" </> "concat" </> "js")
+  , elm_make_path = Nothing
+  , coffee_path = Nothing
+  , no_parse = []
+  }
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
 mockDependency f p = D.Dependency Ast.Js f p Nothing
