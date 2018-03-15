@@ -9,15 +9,6 @@ cache:
   - "${HOME}/.local/bin"
   - "${HOME}/.stack"
   - ".stack-work"
-deploy:
-- provider: releases
-  api_key:
-    secure: L9iIQj5zeUuaAvudTRV0N9EbzMJ6L+gUbGOgQzmv1rP7lzQJ6VGE3Kx+dgEQAY6BLIWQdcMycoKr1YtXBQjMzKPFjrsCSkvYTLZBoiXk8eVmzDWwgpZ00zwzH79mX6j9jUvGxhmemBAvQxcdKS5fQxd1lmM6Q5N1oDwGKJw4Lgbzs0jwNT1L5+Cmm7elfoDip+eCLIfiR1lYGDP5NIXe1wfswi4pgEO/t7Ke743DVZCUkvfURD1aBSf+C0EmDzIfzypbxgdfdOY3g5ZYB2ym0IWhlROlFAHYEyfQT2FDgXc+y9BNvBM9Ix7qRWQ7+Rao4SxOOKzfX7mH//jhR3Dmjk18VAWwElxDssNdu5jn9x5RxueV8PJfA1IbjxbCb8TaN1gaMplNeqEqMS/FuKL/mNd0A4NkACFE9tbbQR4bJBokPHqzcgC6xDICPQMqZFFRoZxNLoHG1UnUItvPBBrI8m1RrezqjdgdmicqdMBaBSO5FtNdxcsDnFUBvCRTibmxx9rY26Z3NwlxhWy5uQ3HTK3+xCBIxHxPSUBATHfQuyatZsKaFfW0IwwWSpLdhNZwHnCc0kBdA7VVLylkb02Iec6fQz1TsMjYpLIrd146sfQRvJONvaPdkjnTUz/XDFztYnHX394rqImVHKzCQb3A47gI8yzD/iZJyFbY+lcJ5sY=
-  file: "${BUILD}"
-  on:
-    repo: NoRedInk/jetpack
-    tags: true
-  skip_cleanup: true
 env:
   global:
   - CASHER_TIME_OUT=1000
@@ -32,3 +23,10 @@ script:
 - stack test
 - stack build --ghc-options -O2
 - tar zcvf "${BUILD}" -C "$(stack path --local-install-root)/bin" jetpack
+deploy:
+  provider: releases
+  api_key:
+    secure: Uuk1YmJNwJ3DPMzT3pAjEHx6Gn5cR8bR09hKQmt/FihlasHpIfiNHEn72LMQsntOQoNNjN+VYaKpIsfZ2w8TNKVn648SHfb0zSEZ+XjhPWX6EQtN1DZd4LyChgSyHllZuNERmbaL7+NWuM9w1ItKzWVZ6ZU7Mj3jKIGkhWrCkroPKG9Z3zXNgdtT+LGbHVSBdVyQhEQTFYxeHSAONQXB/UqZYMJxzzdr8cjtfJkBN7O8lP/8AhSj0ofcJEINTiM/T9UcpxGtLe8CV2ZJdc8DNN/wejcqAj9FqHwSR6By3SwrRLBJIFtKkz1zQTTOc8jUGU2PiINiHnaYtCN4ciXwH+QZyGIGJJ1vORv3vUo1HWqENmFaurlgQOVNOc+MQleTTnxr4VmrUkMyAjb8siKlhPfkbtcDFq/fd/0rheuEY6pfCy8+yyIdRet9p4nvPyZ6LS+rGasiCCVrf5d493G0DR+8/FzGANrwWYJztizzUvhjU4mqhyY+BEsGzTiHjhxlnmRQZKrHO2+fQQZNJ+eyBZXW+w6fx6Q50yi8xhm7LHVMkUrhf3/LHeIcEECsvPBNB6uGdvfPKIq+8iVaEvy/I/VQC+npq7JPOdeBDlCy6yf7AMu04K9ok1VWY4SokZDzqTQtXXwQzxsT9Z/M7wEHgZS8ZSf42KZmb5eKj3evNVU=
+  file: "${BUILD}"
+  on:
+    repo: NoRedInk/jetpack
