@@ -28,6 +28,7 @@ deploy:
   api_key:
     secure: Uuk1YmJNwJ3DPMzT3pAjEHx6Gn5cR8bR09hKQmt/FihlasHpIfiNHEn72LMQsntOQoNNjN+VYaKpIsfZ2w8TNKVn648SHfb0zSEZ+XjhPWX6EQtN1DZd4LyChgSyHllZuNERmbaL7+NWuM9w1ItKzWVZ6ZU7Mj3jKIGkhWrCkroPKG9Z3zXNgdtT+LGbHVSBdVyQhEQTFYxeHSAONQXB/UqZYMJxzzdr8cjtfJkBN7O8lP/8AhSj0ofcJEINTiM/T9UcpxGtLe8CV2ZJdc8DNN/wejcqAj9FqHwSR6By3SwrRLBJIFtKkz1zQTTOc8jUGU2PiINiHnaYtCN4ciXwH+QZyGIGJJ1vORv3vUo1HWqENmFaurlgQOVNOc+MQleTTnxr4VmrUkMyAjb8siKlhPfkbtcDFq/fd/0rheuEY6pfCy8+yyIdRet9p4nvPyZ6LS+rGasiCCVrf5d493G0DR+8/FzGANrwWYJztizzUvhjU4mqhyY+BEsGzTiHjhxlnmRQZKrHO2+fQQZNJ+eyBZXW+w6fx6Q50yi8xhm7LHVMkUrhf3/LHeIcEECsvPBNB6uGdvfPKIq+8iVaEvy/I/VQC+npq7JPOdeBDlCy6yf7AMu04K9ok1VWY4SokZDzqTQtXXwQzxsT9Z/M7wEHgZS8ZSf42KZmb5eKj3evNVU=
   file: "${BUILD}"
+  skip_cleanup: true
   on:
     repo: NoRedInk/jetpack
     tags: true
