@@ -8,7 +8,7 @@ var root = "https://github.com/NoRedInk/jetpack/releases/download/" + binVersion
 module.exports = binwrap({
   binaries: ["jetpack"],
   urls: {
-    "darwin-x64": root + "-mac-x64.tgz",
-    "linux-x64": root + "-linux-x64.tgz"
+    "darwin-x64": root + "-osx.tar.gz",
+    "linux-x64": root + "-linux.tar.gz"
   }
 });
