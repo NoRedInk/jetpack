@@ -1,15 +1,20 @@
 module Main where
 
-import Lib (run)
+import qualified Builder
+import CliArguments (Args(..), readArguments)
+import qualified Config
+import qualified Message
+import qualified Version
+import qualified Watcher
 
 main :: IO ()
-main = run
-  -- 1. read config
-  -- 2. find dependencies of entry points (magic requires (.elm)?) (how many levels? we should probably find elm deps as wel)
-  -- 3. create binary with tree
-  -- 3. build cache (not mvp)
-  --    a. create binary with file modified date and hash of content
-  -- 4. compile
-  --    a. check cache if we need to build this. first date and the hash
-  -- 5. recurisvely replace requires
-  -- 6. compress (if prod)
+main
+  -- SETUP
+ = do
+  config <- Config.readConfig
+  args@Args {version, watch} <- readArguments
+  if version
+    then Message.info Version.print
+    else if watch
+           then Watcher.watch config args
+           else Builder.build config args
