@@ -1,11 +1,11 @@
 name: jetpack
-version: 2.0.10
+version: 2.0.11
 category: Web
-author: Author name here
+author: NoRedink
 maintainer: example@example.com
-copyright: 2017 Author name here
+copyright: 2017 NoRedink
 license: BSD3
-github: githubuser/jetpack
+github: noredink/jetpack
 extra-source-files:
 - README.md
 default-extensions:
