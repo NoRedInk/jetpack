@@ -20,9 +20,15 @@ check JetpackVersion.Version {version} =
     Left _ ->
       Just
         "The version defined in your jetpack.json seems to be incorrect. Check your package.json to find the correct version."
-    Right expected ->
-      if expected == version
+    Right actual ->
+      if version == actual
         then Nothing
-        else Just
-               ("Running jetpack@" <> print <> " the config expects " <>
-                SemVer.toText version)
+        else if version > actual
+               then Just
+                      ("Running jetpack@" <> print <>
+                       " the config expects a newer version " <>
+                       SemVer.toText version)
+               else Just
+                      ("Running jetpack@" <> print <>
+                       " the config expects an older version" <>
+                       SemVer.toText version)
