@@ -7,9 +7,7 @@ module Notify
   ) where
 
 import Control.Concurrent
-import Control.Monad (when)
-import Data.Foldable (null, traverse_)
-import Data.Int
+import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import System.FSNotify
 import System.FilePath
@@ -32,7 +30,6 @@ data State = State
 data Config = Config
   { pathToWatch :: FilePath -- Watch files recursivelly under this path.
   , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
-  , debounceInSecs :: Int -- Debounce next run by x seconds.
   }
 
 watch :: Config -> IO () -> IO State
@@ -43,7 +40,7 @@ watch config onChange = do
   pure state
 
 start :: MVar (Maybe ProcessID) -> Config -> IO () -> IO ()
-start mVar Config {pathToWatch, debounceInSecs, relevantExtensions} onChange = do
+start mVar Config {pathToWatch, relevantExtensions} onChange = do
   manager <-
     startManagerConf
       (WatchConfig
@@ -51,11 +48,12 @@ start mVar Config {pathToWatch, debounceInSecs, relevantExtensions} onChange = d
        , confUsePolling = False
        , confPollInterval = 10 ^ (6 :: Int)
        })
-  watchTree
-    manager
-    pathToWatch
-    (eventIsRelevant relevantExtensions)
-    (actOnEvent mVar onChange)
+  _ <-
+    watchTree
+      manager
+      pathToWatch
+      (eventIsRelevant relevantExtensions)
+      (actOnEvent mVar onChange)
   pure ()
 
 eventIsRelevant :: [T.Text] -> Event -> Bool

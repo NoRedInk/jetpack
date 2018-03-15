@@ -4,7 +4,7 @@ module Error
   ) where
 
 import qualified Data.List as L
-import System.FilePath ((</>))
+import System.FilePath ()
 
 data Error
   = FileNotFound String

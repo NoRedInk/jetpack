@@ -3,22 +3,24 @@ module ProgressSpinner
   , end
   ) where
 
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Data.Time.Clock
+import qualified Data.Text.IO as TIO
+import qualified Data.Text.Lazy as TL
+import Formatting (format)
+import Formatting.Clock (timeSpecs)
+import System.Clock (Clock(Monotonic), TimeSpec, getTime)
 import System.Console.Questioner.ProgressIndicators as Spinner
 
-start :: T.Text -> IO (ProgressIndicator, UTCTime)
+start :: T.Text -> IO (ProgressIndicator, TimeSpec)
 start prompt = do
   p <- Spinner.spinner Spinner.dots1SpinnerTheme (1000 * 200) $ T.unpack prompt
-  currentTime <- getCurrentTime
-  return (p, currentTime)
+  start <- getTime Monotonic
+  return (p, start)
 
-end :: (ProgressIndicator, UTCTime) -> T.Text -> IO ()
-end (pg, startTime) prompt = do
-  currentTime <- getCurrentTime
-  let diffTime = diffUTCTime currentTime startTime :: NominalDiffTime
+end :: (ProgressIndicator, TimeSpec) -> T.Text -> IO ()
+end (pg, start) prompt = do
+  end <- getTime Monotonic
   _ <- Spinner.stopIndicator pg
-  let diff = (fromInteger (floor $ diffTime * 100) / 100) :: NominalDiffTime
-  let diffShow = show $ realToFrac $ toRational diff
-  putStrLn $
-    "Finished " ++ T.unpack prompt ++ " after   " ++ diffShow ++ " seconds"
+  let diffShow = T.pack $ TL.unpack $ format timeSpecs start end
+  TIO.putStrLn $ "Finished " <> prompt <> " after   " <> diffShow

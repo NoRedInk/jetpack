@@ -2,12 +2,10 @@ module Builder
   ( build
   ) where
 
-import CliArguments (Args(..), readArguments)
-import qualified CliArguments
+import CliArguments (Args(..))
 import qualified Compile
 import ConcatModule
 import Config
-import Control.Concurrent (threadDelay)
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -30,9 +28,8 @@ import qualified System.Exit
 import System.FilePath ((<.>), (</>))
 import Task (Task, lift)
 import qualified Task
-import qualified Version
 
-build :: Config.Config -> CliArguments.Args -> IO ()
+build :: Config.Config -> Args -> IO ()
 build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $
@@ -50,12 +47,12 @@ data Result
   | Warnings T.Text
   | Info T.Text
 
-buildHelp :: Config.Config -> CliArguments.Args -> Task Result
-buildHelp config args = do
+buildHelp :: Config.Config -> Args -> Task Result
+buildHelp config args@Args {preHook, postHook} = do
   toolPaths <- Init.setup config
-  traverse (Logger.clearLog config) Logger.allLogs
+  _ <- traverse (Logger.clearLog config) Logger.allLogs
   -- HOOK
-  maybeRunHook config Pre (CliArguments.preHook args)
+  maybeRunHook config Pre preHook
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
@@ -71,21 +68,24 @@ buildHelp config args = do
   let modules = LU.uniq $ concatMap Tree.flatten deps
   pg <- start (L.length modules) "Compiling"
   result <- traverse (Compile.compile pg args config toolPaths) modules
-  traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
-  traverse
-    (\Compile.Result {compiledFile, duration} ->
-       Logger.appendLog config Logger.compileTime $
-       T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-    result
+  _ <-
+    traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
+  _ <-
+    traverse
+      (\Compile.Result {compiledFile, duration} ->
+         Logger.appendLog config Logger.compileTime $
+         T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+      result
   lift $ complete pg
   pg <- start (L.length deps) "Write modules"
   modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
-  lift $ do
-    createdModulesJson pg config modules
-    complete pg
-    traverse (Compile.printTime args) result
+  _ <-
+    lift $ do
+      createdModulesJson pg config modules
+      complete pg
+      traverse (Compile.printTime args) result
   -- HOOK
-  maybeRunHook config Post (CliArguments.postHook args)
+  maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   return $
@@ -94,7 +94,7 @@ buildHelp config args = do
       xs -> Warnings $ T.unlines xs
 
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
-maybeRunHook config _ Nothing = return ()
+maybeRunHook _ _ Nothing = return ()
 maybeRunHook config type_ (Just hookScript) = do
   spinner <- lift $ ProgressSpinner.start title
   out <- Hooks.run hookScript

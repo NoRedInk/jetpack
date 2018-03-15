@@ -5,7 +5,6 @@ module Config
   , defaultConfig
   ) where
 
-import Control.Monad.Except
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Error (Error(..))

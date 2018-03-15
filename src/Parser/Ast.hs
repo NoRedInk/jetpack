@@ -5,7 +5,6 @@ module Parser.Ast
   ) where
 
 import Data.Aeson as Aeson
-import Data.Text as T
 import GHC.Generics (Generic)
 import System.FilePath ()
 

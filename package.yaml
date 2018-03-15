@@ -48,6 +48,7 @@ library:
   - src
   ghc-options:
   - -Wall
+  - -Werror
   - -fno-warn-name-shadowing
   other-modules:
   - Paths_jetpack

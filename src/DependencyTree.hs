@@ -59,7 +59,7 @@ import Dependencies
 import qualified Parser.Ast as Ast
 import Parser.PackageJson ()
 import qualified Parser.Require
-import ProgressBar (ProgressBar, pipeAndTick, tick)
+import ProgressBar (ProgressBar, pipeAndTick)
 import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)

@@ -9,7 +9,6 @@ import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
-import qualified Parser.Ast as Ast
 import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
@@ -29,7 +28,7 @@ uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
-wrapper config (d@Dependency {filePath}, ds) = do
+wrapper config (Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   lift $ do
     let name = F.pathToFileName filePath "js"
@@ -51,7 +50,7 @@ replaceRequire Dependency {requiredAs, filePath} body =
 
 writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
 writeModule config dependencyTree fns = do
-  let root@Dependency {filePath} = Tree.rootLabel dependencyTree
+  let Dependency {filePath} = Tree.rootLabel dependencyTree
   writeJsModule config filePath fns
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath

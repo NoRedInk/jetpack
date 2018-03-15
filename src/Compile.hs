@@ -6,7 +6,6 @@ import CliArguments (Args(..))
 import Config (Config(..))
 import Control.Monad (when)
 import Control.Monad.Except (throwError)
-import Data.List as L
 import Data.Semigroup ((<>))
 import Data.Text as T
 import Data.Text.Lazy as TL
@@ -53,7 +52,7 @@ data Duration = Duration
 
 instance Show Duration where
   show (Duration start end) =
-    show (fromIntegral (toNanoSecs (diffTimeSpec end start)) / 1000000)
+    show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
 compile ::
      ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> Task Result
