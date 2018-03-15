@@ -30,3 +30,6 @@ deploy:
   file: "${BUILD}"
   on:
     repo: NoRedInk/jetpack
+    branches:
+      only:
+        - master
