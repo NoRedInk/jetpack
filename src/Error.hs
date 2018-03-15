@@ -27,17 +27,7 @@ description (FileNotFound file) = "Couldn't find file: " ++ file
 description (JsonInvalid file err) =
   L.unlines ["Invalid json file: " ++ file, "", "    " ++ err, ""]
 description (ConfigInvalid file err) =
-  if "key \"version\" not present" `L.isInfixOf` err
-    then L.unlines
-           [ "Invalid jetpack.json: " ++ file
-           , ""
-           , "    " ++ err
-           , ""
-           , "    `version` was added in jetpack@2.0.15. It's recommended to upgrade to the latest version."
-           , "    `version` should point to the jetpack version you expect to build your app."
-           , "    This will inform users when they need to upgrade/downgrade jetpack in order to create a correct build."
-           ]
-    else L.unlines ["Invalid jetpack.json: " ++ file, "", "    " ++ err, ""]
+  L.unlines ["Invalid jetpack.json: " ++ file, "", "    " ++ err, ""]
 description (NoModulesPresent path) =
   L.unlines
     [ "It seems to me that you either provided a wrong `entry_points` or you don't have any modules."
