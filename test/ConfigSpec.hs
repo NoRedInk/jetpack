@@ -16,8 +16,7 @@ suite =
         config @=?
           Just
             (Config.Config
-             { version = "2.0.14"
-             , entry_points = "app" </> "modules"
+             { entry_points = "app" </> "modules"
              , modules_directories = []
              , source_directory = "app" </> "sources"
              , elm_root_directory = "app" </> "sources"

@@ -3,17 +3,25 @@ module Version
   , check
   ) where
 
+import qualified Data.SemVer as SemVer
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Version (showVersion)
+import qualified Parser.JetpackVersion as JetpackVersion
 import Paths_jetpack (version)
 import Prelude hiding (print)
 
 print :: T.Text
 print = T.pack $ showVersion version
 
-check :: T.Text -> Either T.Text ()
-check version =
-  if print == version
-    then Right ()
-    else Left ("Expected jetpack@" <> print <> " actual version is " <> version)
+check :: JetpackVersion.Version -> Maybe T.Text
+check JetpackVersion.Version {version} =
+  case SemVer.fromText version of
+    Left _ ->
+      Just
+        "The version defined in your jetpack.json seems to be incorrect. Check your package.json to find the correct version."
+    Right _ ->
+      if print == version
+        then Nothing
+        else Just
+               ("Running jetpack@" <> print <> " the config expects " <> version)

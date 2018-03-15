@@ -120,8 +120,8 @@ tryCoffeeWithExt basePath fileName require =
 tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryMainFromPackageJson basePath fileName require = do
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
-  PackageJson maybeMain maybeBrowser <- PackageJson.load packageJsonPath
-  case maybeBrowser <|> maybeMain of
+  PackageJson {main, browser} <- PackageJson.load packageJsonPath
+  case browser <|> main of
     Just entryPoint ->
       moduleExists basePath (fileName </> T.unpack entryPoint) require
     Nothing -> throwError []

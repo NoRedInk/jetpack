@@ -5,6 +5,8 @@ import CliArguments (Args(..), readArguments)
 import Config (Config(..))
 import qualified Config
 import qualified Message
+import qualified Parser.JetpackVersion as JetpackVersion
+import qualified Task
 import qualified Version
 import qualified Watcher
 
@@ -12,15 +14,22 @@ main :: IO ()
 main
   -- SETUP
  = do
-  config@Config {version} <- Config.readConfig
-  case Version.check version of
-    Left err -> do
-      print err
-      run config
-    Right _ -> run config
+  maybeVersion <- Task.runExceptT JetpackVersion.load
+  case maybeVersion of
+    Left err -> print err
+    Right version -> runAndCheckVersion version
 
-run :: Config -> IO ()
-run config = do
+runAndCheckVersion :: JetpackVersion.Version -> IO ()
+runAndCheckVersion version =
+  case Version.check version of
+    Just err -> do
+      print err
+      run
+    Nothing -> run
+
+run :: IO ()
+run = do
+  config <- Config.readConfig
   args@Args {version, watch} <- readArguments
   if version
     then Message.info Version.print

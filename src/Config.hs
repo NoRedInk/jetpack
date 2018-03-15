@@ -7,18 +7,15 @@ module Config
 
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text as T
 import Error (Error(..))
 import GHC.Generics (Generic)
 import Message
 import qualified System.Directory as Dir
 import System.Exit
 import System.FilePath ((</>))
-import qualified Version
 
 data Config = Config
-  { version :: T.Text
-  , entry_points :: FilePath
+  { entry_points :: FilePath
   , modules_directories :: [FilePath]
   , source_directory :: FilePath
   , elm_root_directory :: FilePath
@@ -45,8 +42,7 @@ readConfig = do
 defaultConfig :: Config
 defaultConfig =
   Config
-  { version = Version.print
-  , entry_points = "." </> "modules"
+  { entry_points = "." </> "modules"
   , modules_directories = ["." </> "node_modules"]
   , source_directory = "." </> "src"
   , elm_root_directory = "."

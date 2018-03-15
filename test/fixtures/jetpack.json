@@ -1,5 +1,4 @@
 {
-  "version": "2.0.14",
   "entry_points" : "app/modules",
   "modules_directories" : [],
   "source_directory" : "app/sources",
