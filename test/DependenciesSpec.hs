@@ -30,34 +30,47 @@ mockProgressBar =
 basicsFixtures :: Config
 basicsFixtures =
   Config
-    ("." </> "test" </> "fixtures" </> "basics" </> "modules")
-    [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
-    ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-    ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-    ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
-    ("." </> "test" </> "fixtures" </> "basics" </> "logs")
-    ("." </> "test" </> "fixtures" </> "basics" </> "js")
-    Nothing
-    Nothing
+  { entry_points = ("." </> "test" </> "fixtures" </> "basics" </> "modules")
+  , modules_directories =
+      [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
+  , source_directory =
+      ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , elm_root_directory =
+      ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , temp_directory = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
+  , log_directory = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
+  , output_js_directory = ("." </> "test" </> "fixtures" </> "basics" </> "js")
+  , elm_make_path = Nothing
+  , coffee_path = Nothing
+  , no_parse =
+      [ "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
+        "clipboard" </>
+        "index.js"
+      ]
+  }
 
 failingFixtures :: Config
 failingFixtures =
   Config
-    ("." </> "test" </> "fixtures" </> "failing" </> "modules")
-    []
-    ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-    ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-    ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
-    ("." </> "test" </> "fixtures" </> "failing" </> "logs")
-    ("." </> "test" </> "fixtures" </> "failing" </> "js")
-    Nothing
-    Nothing
+  { entry_points = ("." </> "test" </> "fixtures" </> "failing" </> "modules")
+  , modules_directories = []
+  , source_directory =
+      ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , elm_root_directory =
+      ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , temp_directory = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
+  , log_directory = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
+  , output_js_directory = ("." </> "test" </> "fixtures" </> "failing" </> "js")
+  , elm_make_path = Nothing
+  , coffee_path = Nothing
+  , no_parse = []
+  }
 
 suite :: TestTree
 suite =
   testGroup
     "Dependencies"
-    [ testCase "#find success" $ do
+    [ testCase "#build success" $ do
         e <-
           runExceptT $ do
             pg <- lift mockProgressBar
@@ -102,7 +115,32 @@ suite =
                 "node_modules" </>
                 "debug.js")
             ]
-    , testCase "#find failing" $ do
+    , testCase "#build no_parse" $ do
+        e <-
+          runExceptT $ do
+            pg <- lift mockProgressBar
+            DependencyTree.build pg basicsFixtures [] ("test_no_parse" <.> "js")
+        case e of
+          Left msg -> do
+            _ <- traverse print msg
+            assertFailure $ "This shouldn't fail"
+          Right dep ->
+            (fmap dropLastMod $ Tree.flatten dep) @?=
+            [ ( Ast.Js
+              , "" </> "test_no_parse.js"
+              , "." </> "test" </> "fixtures" </> "basics" </> "modules" </>
+                "test_no_parse.js")
+            , ( Ast.Js
+              , "" </> "no_parse_index"
+              , "." </> "test" </> "fixtures" </> "basics" </> "sources" </>
+                "no_parse_index.js")
+            , ( Ast.Js
+              , "clipboard"
+              , "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
+                "clipboard" </>
+                "index.js")
+            ]
+    , testCase "#build failing" $ do
         e <-
           runExceptT $ do
             pg <- lift mockProgressBar

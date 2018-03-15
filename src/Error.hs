@@ -9,6 +9,7 @@ import System.FilePath ()
 data Error
   = FileNotFound String
   | JsonInvalid String
+                String
   | NoModulesPresent String
   | ModuleNotFound (Maybe FilePath)
                    String
@@ -17,12 +18,16 @@ data Error
                  String
   | HookFailed String
                String
+  | ConfigInvalid String
+                  String
   deriving (Eq, Show)
 
--- TODO this should be Show
 description :: Error -> String
 description (FileNotFound file) = "Couldn't find file: " ++ file
-description (JsonInvalid file) = "Invalid json file: " ++ file
+description (JsonInvalid file err) =
+  L.unlines ["Invalid json file: " ++ file, "", "    " ++ err, ""]
+description (ConfigInvalid file err) =
+  L.unlines ["Invalid jetpack.json: " ++ file, "", "    " ++ err, ""]
 description (NoModulesPresent path) =
   L.unlines
     [ "It seems to me that you either provided a wrong `entry_points` or you don't have any modules."

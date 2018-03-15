@@ -5,5 +5,8 @@
   "elm_root_directory" : "app/sources",
   "temp_directory" : "app/tmp",
   "log_directory" : "app/logs",
-  "output_js_directory" : "app/js"
+  "output_js_directory" : "app/js",
+  "no_parse": [
+    "./node_modules/clipboard/clipboard.js"
+  ]
 }
