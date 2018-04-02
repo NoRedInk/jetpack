@@ -1,7 +1,7 @@
 module Main where
 
 import qualified Builder
-import CliArguments (Args(..), readArguments)
+import CliArguments (Args(..), RunMode(..), readArguments)
 import Config (Config(..))
 import qualified Config
 import qualified Message
@@ -23,9 +23,8 @@ main
           Just err -> Message.warningHeader err
           Nothing -> return ()
       config <- Config.readConfig
-      args@Args {version, watch} <- readArguments
-      if version
-        then Message.info Version.print
-        else if watch
-               then Watcher.watch config args
-               else Builder.build config args
+      args@Args {runMode} <- readArguments
+      case runMode of
+        Version -> Message.info Version.print
+        Watch -> Watcher.watch config args
+        RunOnce -> Builder.build config args
