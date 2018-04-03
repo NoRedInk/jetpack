@@ -38,12 +38,14 @@ printError err = do
 
 warning :: T.Text -> IO ()
 warning warnings = do
-  width <- termWidth
   _ <- putChunkLn (chunk warnings & fore brightYellow)
+  warningHeader "Compilation Succeeded with Warnings"
+
+warningHeader :: T.Text -> IO ()
+warningHeader warnings = do
+  width <- termWidth
   _ <- putChunkLn (separator width "*" & fore yellow)
-  _ <-
-    putChunkLn
-      (message width "Compilation Succeeded with Warnings" & fore yellow)
+  _ <- putChunkLn (message width warnings & fore yellow)
   putChunkLn (separator width "*" & fore yellow)
 
 info :: T.Text -> IO ()
