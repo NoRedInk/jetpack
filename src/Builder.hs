@@ -36,20 +36,20 @@ build config args = do
     Task.runExceptT (buildHelp config args)
   _ <-
     case result of
-      Right (Warnings warnings) -> Message.warning warnings
-      Right (Info info) -> Message.info info
-      Right (Success entrypoints) -> Message.success entrypoints
+      Right (_, Warnings warnings) -> Message.warning warnings
+      Right (_, Info info) -> Message.info info
+      Right (entryPoints, Success) -> Message.success $ T.pack <$> entryPoints
       Left err -> Message.error err
   case result of
     Right _ -> return ()
     Left _ -> System.Exit.exitFailure
 
 data Result
-  = Success [T.Text]
+  = Success
   | Warnings T.Text
   | Info T.Text
 
-buildHelp :: Config.Config -> Args -> Task Result
+buildHelp :: Config.Config -> Args -> Task ([FilePath], Result)
 buildHelp config args@Args {preHook, postHook} = do
   toolPaths <- Init.setup config
   _ <- traverse (Logger.clearLog config) Logger.allLogs
@@ -90,10 +90,11 @@ buildHelp config args@Args {preHook, postHook} = do
   maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
-  return $
-    case warnings of
-      [] -> Success $ fmap T.pack entryPoints
-      xs -> Warnings $ T.unlines xs
+  return
+    ( entryPoints
+    , case warnings of
+        [] -> Success
+        xs -> Warnings $ T.unlines xs)
 
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook _ _ Nothing = return ()
