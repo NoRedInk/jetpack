@@ -11,31 +11,30 @@ import Dependencies
 import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
-import Task
 import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
+wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
 wrap pg env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
   out <- writeModule env dep wrapped
-  _ <- lift $ tick pg
+  _ <- tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Config -> (Dependency, [Dependency]) -> Task T.Text
+wrapper :: Config -> (Dependency, [Dependency]) -> IO T.Text
 wrapper config (Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
-  lift $ do
-    let name = F.pathToFileName filePath "js"
-    content <- readFile $ temp_directory </> name
-    let fnName = F.pathToFunctionName filePath "js"
-    let replacedContent = foldr replaceRequire (T.pack content) ds
-    let wrapped = wrapModule fnName replacedContent
-    return wrapped
+  let name = F.pathToFileName filePath "js"
+  content <- readFile $ temp_directory </> name
+  -- TODO maybe warn if content is empty
+  let fnName = F.pathToFunctionName filePath "js"
+  let replacedContent = foldr replaceRequire (T.pack content) ds
+  let wrapped = wrapModule fnName replacedContent
+  return wrapped
 
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
@@ -46,25 +45,24 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
 
-writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
+writeModule :: Config -> DependencyTree -> [T.Text] -> IO FilePath
 writeModule config dependencyTree fns = do
   let Dependency {filePath} = Tree.rootLabel dependencyTree
   writeJsModule config filePath fns
 
-writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
-writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
-  lift $ do
-    let out =
-          outputPath
-            Output
-            { outDir = output_js_directory
-            , moduleDir = entry_points
-            , name = rootFilePath
-            }
-    let rootName = F.pathToFunctionName rootFilePath "js"
-    createDirectoryIfMissing True $ FP.takeDirectory out
-    writeFile out $ T.unpack $ addBoilerplate rootName fns
-    return out
+writeJsModule :: Config -> FilePath -> [T.Text] -> IO FilePath
+writeJsModule Config {output_js_directory, entry_points} rootFilePath fns = do
+  let out =
+        outputPath
+          Output
+          { outDir = output_js_directory
+          , moduleDir = entry_points
+          , name = rootFilePath
+          }
+  let rootName = F.pathToFunctionName rootFilePath "js"
+  createDirectoryIfMissing True $ FP.takeDirectory out
+  writeFile out $ T.unpack $ addBoilerplate rootName fns
+  return out
 
 data Output = Output
   { outDir :: FilePath
@@ -106,7 +104,6 @@ addBoilerplate root fns =
     "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);\n} /* END: foo */\n"
 -}
 wrapModule :: T.Text -> T.Text -> T.Text
-wrapModule _ "" = ""
 wrapModule fnName body =
   T.concat
     [ "/* START: "

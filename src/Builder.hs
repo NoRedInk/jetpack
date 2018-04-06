@@ -90,7 +90,8 @@ buildHelp config args@Args {preHook, postHook} = do
       result
   lift $ complete pg
   pg <- start (L.length deps) "Write modules"
-  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
+  modules <-
+    Concurrent.mapConcurrently (lift . ConcatModule.wrap pg config) deps
   _ <-
     lift $ do
       createdModulesJson pg config modules
