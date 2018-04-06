@@ -40,9 +40,9 @@ printError err = do
   _ <- traverse putChunkLn (errorMessage width)
   putChunkLn (separator width "~" & fore red)
 
-warning :: T.Text -> IO ()
+warning :: [T.Text] -> IO ()
 warning warnings = do
-  _ <- putChunkLn (chunk warnings & fore brightYellow)
+  _ <- traverse (putChunkLn . fore brightYellow . chunk) warnings
   warningHeader "Compilation Succeeded with Warnings"
 
 warningHeader :: T.Text -> IO ()

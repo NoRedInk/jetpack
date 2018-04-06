@@ -48,7 +48,7 @@ build config args = do
 data Result
   = Success [FilePath]
   | Warnings [FilePath]
-             T.Text
+             [T.Text]
 
 buildHelp :: Config.Config -> Args -> Task Result
 buildHelp config args@Args {preHook, postHook} = do
@@ -93,7 +93,7 @@ buildHelp config args@Args {preHook, postHook} = do
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   case warnings of
     [] -> return $ Success entryPoints
-    xs -> return $ Warnings entryPoints $ T.unlines xs
+    xs -> return $ Warnings entryPoints xs
 
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook _ _ Nothing = return ()
