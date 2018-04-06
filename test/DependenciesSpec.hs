@@ -151,7 +151,7 @@ suite =
             L.last errors @?=
             ModuleNotFound
               (Just "./test/fixtures/failing/modules/test.js")
-              "\"index\""
+              "index"
     ]
 
 dropLastMod :: Dependency -> (Ast.SourceType, FilePath, FilePath)
