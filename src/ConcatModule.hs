@@ -5,6 +5,7 @@ module ConcatModule where
 import Config
 
 import qualified Data.List.Utils as LU
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
@@ -111,7 +112,9 @@ wrapModule fnName body =
     , " */"
     , "\n"
     , T.concat ["function ", fnName, "(module, exports) {\n"]
-    , body
+    , if body == ""
+        then "  console.warn(\"" <> fnName <> ": is an empty module!\");"
+        else body
     , "\n} /* END: "
     , fnName
     , " */"

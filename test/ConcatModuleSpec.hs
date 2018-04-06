@@ -130,7 +130,7 @@ suite =
     "ConcatModule"
     [ testCase "#wrapModule" $ do
         wrapModule "" "" @?=
-          "/* START:  */\nfunction (module, exports) {\n\n} /* END:  */\n"
+          "/* START:  */\nfunction (module, exports) {\n  console.warn(\": is an empty module!\");\n} /* END:  */\n"
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase
