@@ -48,7 +48,6 @@ printResult :: Either [Error] Result -> IO ()
 printResult result =
   case result of
     Right (Warnings entryPoints warnings) -> do
-      Message.warning "Warnings..."
       _ <- traverse (TIO.putStrLn) warnings
       _ <- Message.list $ T.pack <$> entryPoints
       Message.warning "Succeeded with Warnings!"
@@ -56,7 +55,6 @@ printResult result =
       _ <- Message.list $ T.pack <$> entryPoints
       Message.success $ T.pack "Succeeded"
     Left err -> do
-      _ <- Message.error $ T.pack "Errors..."
       _ <- traverse (TIO.putStrLn . Error.description) err
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
