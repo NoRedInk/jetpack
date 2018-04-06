@@ -96,7 +96,7 @@ wrapModule fnName body =
     [ "/* START: "
     , fnName
     , " */"
-    , if body == ""
+    , if body == "" --TODO check if blank
         then "  console.warn(\"" <> fnName <> ": is an empty module!\");"
         else ""
     , "\n"
