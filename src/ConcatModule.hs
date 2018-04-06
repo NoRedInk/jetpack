@@ -2,6 +2,8 @@
 -}
 module ConcatModule
   ( wrap
+  , replaceRequire
+  , wrapModule
   ) where
 
 import Config
@@ -94,11 +96,12 @@ wrapModule fnName body =
     [ "/* START: "
     , fnName
     , " */"
-    , "\n"
-    , T.concat ["function ", fnName, "(module, exports) {\n"]
     , if body == ""
         then "  console.warn(\"" <> fnName <> ": is an empty module!\");"
-        else body
+        else ""
+    , "\n"
+    , T.concat ["function ", fnName, "(module, exports) {\n"]
+    , body
     , "\n} /* END: "
     , fnName
     , " */"
