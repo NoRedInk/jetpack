@@ -3,53 +3,57 @@ module Error
   , description
   ) where
 
-import qualified Data.List as L
+import Data.Semigroup ((<>))
+import qualified Data.Text as T
 import System.FilePath ()
 
 data Error
-  = FileNotFound String
-  | JsonInvalid String
-                String
-  | NoModulesPresent String
+  = FileNotFound T.Text
+  | JsonInvalid FilePath
+                T.Text
+  | NoModulesPresent [FilePath]
   | ModuleNotFound (Maybe FilePath)
-                   String
-  | BinNotFound String
-  | CompileError String
-                 String
-  | HookFailed String
-               String
-  | ConfigInvalid String
-                  String
+                   FilePath
+  | BinNotFound T.Text
+  | CompileError T.Text
+                 T.Text
+  | HookFailed T.Text
+               T.Text
+  | ConfigInvalid FilePath
+                  T.Text
   deriving (Eq, Show)
 
-description :: Error -> String
-description (FileNotFound file) = "Couldn't find file: " ++ file
+description :: Error -> T.Text
+description (FileNotFound file) = "Couldn't find file: " <> file
 description (JsonInvalid file err) =
-  L.unlines ["Invalid json file: " ++ file, "", "    " ++ err, ""]
+  T.unlines ["Invalid json file: " <> T.pack file, "", "    " <> err, ""]
 description (ConfigInvalid file err) =
-  L.unlines ["Invalid jetpack.json: " ++ file, "", "    " ++ err, ""]
-description (NoModulesPresent path) =
-  L.unlines
+  T.unlines ["Invalid jetpack.json: " <> T.pack file, "", "    " <> err, ""]
+description (NoModulesPresent paths) =
+  T.unlines
     [ "It seems to me that you either provided a wrong `entry_points` or you don't have any modules."
     , ""
-    , "I didn't find anything in " ++ path
+    , "I didn't find anything in " <> T.pack (show paths)
     , ""
     ]
 description (ModuleNotFound (Just requiredIn) file) =
-  L.unlines
+  T.unlines
     [ ""
     , ""
-    , "I had troubles finding " ++ file ++ " required in " ++ requiredIn ++ "."
+    , "I had troubles finding " <> T.pack file <> " required in " <>
+      T.pack requiredIn <>
+      "."
     ]
 description (ModuleNotFound Nothing file) =
-  L.unlines ["", "", "I had troubles finding the entry point " ++ file ++ "."]
+  T.unlines
+    ["", "", "I had troubles finding the entry point " <> T.pack file <> "."]
 description (BinNotFound bin) =
-  L.unlines
-    [ "I had troubles finding the " ++ bin ++ " command."
+  T.unlines
+    [ "I had troubles finding the " <> bin <> " command."
     , ""
     , "You might want to install it."
     ]
 description (CompileError cmd msg) =
-  L.unlines ["Command:", "", "    $ " ++ cmd, "", msg]
+  T.unlines ["Command:", "", "    $ " <> cmd, "", msg]
 description (HookFailed msg hookScript) =
-  L.unlines ["Hook:", "", "    $ " ++ show hookScript, "", msg]
+  T.unlines ["Hook:", "", "    $ " <> hookScript, "", msg]

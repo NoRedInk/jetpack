@@ -21,8 +21,7 @@ find args config = do
   paths <- findFilesIn entryPointsGlob
   cwd <- lift Dir.getCurrentDirectory
   case paths of
-    [] ->
-      throwError [NoModulesPresent $ show (takeDirectory <$> entryPointsGlob)]
+    [] -> throwError [NoModulesPresent (takeDirectory <$> entryPointsGlob)]
     _ -> return $ makeRelative (cwd </> entry_points config) <$> paths
 
 normalisedEntryPointsGlob :: Config -> Args -> [FilePath]

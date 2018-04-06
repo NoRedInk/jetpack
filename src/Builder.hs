@@ -14,9 +14,12 @@ import qualified Data.List.Utils as LU
 import qualified Data.Maybe
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import qualified DependencyTree
 import qualified EntryPoints
+import qualified Error
+import Error (Error)
 import qualified Hooks
 import qualified Init
 import qualified Logger
@@ -34,21 +37,29 @@ build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $
     Task.runExceptT (buildHelp config args)
-  case result of
-    Right (Warnings entryPoints warnings) -> do
-      _ <- Message.warning warnings
-      Message.list entryPoints
-    Right (Success entryPoints) -> do
-      _ <- Message.success
-      Message.list entryPoints
-    Left err -> do
-      _ <- Message.error err
-      System.Exit.exitFailure
+  printResult result
 
 data Result
   = Success [FilePath]
   | Warnings [FilePath]
              [T.Text]
+
+printResult :: Either [Error] Result -> IO ()
+printResult result =
+  case result of
+    Right (Warnings entryPoints warnings) -> do
+      Message.warning "Warnings..."
+      _ <- traverse (TIO.putStrLn) warnings
+      _ <- Message.list $ T.pack <$> entryPoints
+      Message.warning "Succeeded with Warnings!"
+    Right (Success entryPoints) -> do
+      _ <- Message.list $ T.pack <$> entryPoints
+      Message.success $ T.pack "Succeeded"
+    Left err -> do
+      _ <- Message.error $ T.pack "Errors..."
+      _ <- traverse (TIO.putStrLn . Error.description) err
+      _ <- Message.error $ T.pack "Failed!"
+      System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> Task Result
 buildHelp config args@Args {preHook, postHook} = do
