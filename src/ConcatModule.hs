@@ -8,6 +8,8 @@ module ConcatModule
 
 import Config
 
+import Data.Char (isSpace)
+import Data.Foldable (all)
 import qualified Data.List.Utils as LU
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
@@ -40,9 +42,7 @@ withContent Config {temp_directory} (Dependency {filePath}, ds) = do
 
 wrapDependency :: (FilePath, [Dependency], T.Text) -> T.Text
 wrapDependency (filePath, ds, content) =
-  wrapModule
-    (F.pathToFunctionName filePath "js")
-    (foldr replaceRequire (content) ds)
+  wrapModule filePath (foldr replaceRequire content ds)
 
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
@@ -88,16 +88,17 @@ addBoilerplate root fns =
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> wrapModule "foo" "console.log(42);"
-    "/* START: foo */\nfunction foo(module, exports) {\nconsole.log(42);\n} /* END: foo */\n"
+    "/* START: foo_js */\nfunction foo_js(module, exports) {\nconsole.log(42);\n} /* END: foo_js */\n"
 -}
-wrapModule :: T.Text -> T.Text -> T.Text
-wrapModule fnName body =
+wrapModule :: FilePath -> T.Text -> T.Text
+wrapModule filePath body =
   T.concat
     [ "/* START: "
     , fnName
     , " */"
-    , if body == "" --TODO check if blank
-        then "  console.warn(\"" <> fnName <> ": is an empty module!\");"
+    , if all isSpace $ T.unpack body
+        then "  console.warn(\"" <> T.pack filePath <>
+             ": is an empty module!\");"
         else ""
     , "\n"
     , T.concat ["function ", fnName, "(module, exports) {\n"]
@@ -107,3 +108,5 @@ wrapModule fnName body =
     , " */"
     , "\n"
     ]
+  where
+    fnName = F.pathToFunctionName filePath "js"

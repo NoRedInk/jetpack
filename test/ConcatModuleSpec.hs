@@ -31,12 +31,12 @@ mockModule = T.unlines ["var foo = require('foo.js');", "", "foo(42)"]
 wrappedModule :: T.Text
 wrappedModule =
   T.unlines
-    [ "/* START: testFunction */"
-    , "function testFunction(module, exports) {"
+    [ "/* START: testFunction_js */"
+    , "function testFunction_js(module, exports) {"
     , "var foo = require('foo.js');"
     , ""
     , "foo(42)"
-    , "\n} /* END: testFunction */"
+    , "\n} /* END: testFunction_js */"
     ]
 
 mockDependencyTree :: D.DependencyTree
@@ -129,8 +129,8 @@ suite =
   testGroup
     "ConcatModule"
     [ testCase "#wrapModule" $ do
-        wrapModule "" "" @?=
-          "/* START:  */  console.warn(\": is an empty module!\");\nfunction (module, exports) {\n\n} /* END:  */\n"
+        wrapModule "a/b.elm" "" @?=
+          "/* START: a___b_elm_js */  console.warn(\"a/b.elm: is an empty module!\");\nfunction a___b_elm_js(module, exports) {\n\n} /* END: a___b_elm_js */\n"
     , testCase "#wrapModule wraps a module in a function" $ do
         wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase
