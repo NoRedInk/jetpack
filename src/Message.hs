@@ -1,14 +1,29 @@
-module Message where
+module Message
+  ( warning
+  , warningHeader
+  , info
+  , success
+  , error
+  , list
+  ) where
 
 import qualified Data.Maybe as M
-import Data.Semigroup ((<>))
+import Data.Semigroup (Semigroup, (<>))
+import Data.String (IsString)
 import qualified Data.Text as T
 import qualified Error
+import Prelude hiding (error)
 import Rainbow
        (Chunk, (&), brightRed, brightYellow, chunk, cyan, fore, green,
         putChunkLn, red, yellow)
+import Rainbow.Translate (Renderable)
 import qualified System.Console.Terminal.Size as TermSize
-import System.FilePath (FilePath)
+
+list :: (Semigroup a, Renderable a, IsString a) => [a] -> IO ()
+list entryPoints = do
+  _ <- traverse (putChunkLn . fore cyan . chunk . (<>) ("- ")) entryPoints
+  _ <- putStrLn ""
+  putStrLn ""
 
 termWidth :: IO Int
 termWidth = max 20 <$> M.maybe 20 TermSize.width <$> TermSize.size
@@ -19,13 +34,6 @@ success = do
   _ <- putChunkLn (separator width "*" & fore green)
   _ <- putChunkLn (message width "Compilation Succeeded" & fore green)
   putChunkLn (separator width "*" & fore green)
-
-whichEntryPoints :: [FilePath] -> IO ()
-whichEntryPoints entryPoints = do
-  _ <-
-    traverse (putChunkLn . fore cyan . chunk . (<>) ("- ") . T.pack) entryPoints
-  _ <- putStrLn ""
-  putStrLn ""
 
 error :: [Error.Error] -> IO ()
 error err = printError $ fmap (T.pack . Error.description) err

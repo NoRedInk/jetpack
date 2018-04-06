@@ -37,10 +37,10 @@ build config args = do
   case result of
     Right (Warnings entryPoints warnings) -> do
       _ <- Message.warning warnings
-      Message.whichEntryPoints entryPoints
+      Message.list entryPoints
     Right (Success entryPoints) -> do
       _ <- Message.success
-      Message.whichEntryPoints entryPoints
+      Message.list entryPoints
     Left err -> do
       _ <- Message.error err
       System.Exit.exitFailure
