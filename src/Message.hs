@@ -6,22 +6,22 @@ module Message
   ) where
 
 import Data.Foldable (traverse_)
-import Data.Semigroup ((<>))
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Prelude hiding (error)
 import Rainbow
-       (Chunk, Radiant, back, black, chunk, cyan, fore, green, putChunkLn,
-        red, white)
+       (Chunk, Radiant, back, black, brightGreen, brightRed, brightWhite,
+        chunk, cyan, fore, green, only256, putChunkLn, red, white)
 
 success :: T.Text -> IO ()
-success = block Theme {bg = green, fg = black}
+success = block Theme {bg = green <> only256 brightGreen, fg = black}
 
 warning :: T.Text -> IO ()
-warning = block Theme {bg = white, fg = black}
+warning = block Theme {bg = white <> only256 brightWhite, fg = black}
 
 error :: T.Text -> IO ()
-error = block Theme {bg = red, fg = black}
+error = block Theme {bg = red <> only256 brightRed, fg = black}
 
 list :: [T.Text] -> IO ()
 list = traverse_ (putChunkLn . fore cyan . chunk . (<>) ("- "))
