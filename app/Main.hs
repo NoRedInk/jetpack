@@ -1,9 +1,11 @@
 module Main where
 
 import qualified Builder
-import CliArguments (Args(..), readArguments)
+import qualified Cleaner
+import CliArguments (Args(..), RunMode(..), readArguments)
 import Config (Config(..))
 import qualified Config
+import Control.Monad (when)
 import qualified Message
 import qualified Parser.JetpackVersion as JetpackVersion
 import qualified Task
@@ -23,9 +25,9 @@ main
           Just err -> Message.warningHeader err
           Nothing -> return ()
       config <- Config.readConfig
-      args@Args {version, watch} <- readArguments
-      if version
-        then Message.info Version.print
-        else if watch
-               then Watcher.watch config args
-               else Builder.build config args
+      args@Args {clean, runMode} <- readArguments
+      when clean (Cleaner.clean config)
+      case runMode of
+        Version -> Message.info Version.print
+        Watch -> Watcher.watch config args
+        RunOnce -> Builder.build config args

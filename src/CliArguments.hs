@@ -1,6 +1,8 @@
+{-# LANGUAGE ApplicativeDo #-}
+
 module CliArguments
   ( Args(..)
-  , defaultArguments
+  , RunMode(..)
   , readArguments
   ) where
 
@@ -15,55 +17,72 @@ data Args = Args
   , warn :: Bool
   , preHook :: Maybe String
   , postHook :: Maybe String
-  , version :: Bool
   , time :: Bool
-  , watch :: Bool
+  , clean :: Bool
+  , runMode :: RunMode
   }
 
-defaultArguments :: Args
-defaultArguments =
-  Args
-  { entryPointGlob = []
-  , configPath = Nothing
-  , debug = False
-  , warn = False
-  , postHook = Nothing
-  , preHook = Nothing
-  , version = False
-  , time = False
-  , watch = False
-  }
+data RunMode
+  = RunOnce
+  | Watch
+  | Version
 
 readArguments :: IO Args
 readArguments =
-  defaultsIfWatch <$>
   execParser (info (parser <**> helper) $ fullDesc <> progDesc "🚀 📦")
 
-defaultsIfWatch :: Args -> Args
-defaultsIfWatch orig@Args {watch} =
-  if watch
-    then orig {debug = True, warn = True}
-    else orig
-
 parser :: Parser Args
-parser =
-  Args <$> many (strArgument (help "Entry points to compile.")) <*>
-  option
-    auto
-    (long "config" <> short 'c' <> value Nothing <> help "Path to config file.") <*>
-  switch (long "debug" <> short 'd' <> help "Run jetpack in debug mode.") <*>
-  switch (long "warn" <> short 'w' <> help "Output elm make warnings.") <*>
-  option
-    (maybeReader go)
-    (long "pre-hook" <> value Nothing <>
-     help "Bash commands that will get executed before jetpack runs.") <*>
-  option
-    (maybeReader go)
-    (long "post-hook" <> value Nothing <>
-     help "Bash commands that will get executed after jetpack runs.") <*>
-  switch (long "version" <> short 'v' <> help "display the version of jetpack") <*>
-  switch (long "time" <> short 't' <> help "display compile times.") <*>
-  switch (long "watch" <> short 'w' <> help "watch for changes.")
+parser = do
+  entryPointGlob <- many (strArgument (help "Entry points to compile."))
+  configPath <-
+    option
+      auto
+      (long "config" <> short 'c' <> value Nothing <>
+       help "Path to config file.")
+  debug <-
+    switch (long "debug" <> short 'd' <> help "Run jetpack in debug mode.")
+  warn <- switch (long "warn" <> short 'w' <> help "Output elm make warnings.")
+  preHook <-
+    option
+      (maybeReader go)
+      (long "pre-hook" <> value Nothing <>
+       help "Bash commands that will get executed before jetpack runs.")
+  postHook <-
+    option
+      (maybeReader go)
+      (long "post-hook" <> value Nothing <>
+       help "Bash commands that will get executed after jetpack runs.")
+  version <-
+    switch
+      (long "version" <> short 'v' <> help "display the version of jetpack")
+  time <- switch (long "time" <> short 't' <> help "display compile times.")
+  watch <- switch (long "watch" <> short 'w' <> help "watch for changes.")
+  clean <-
+    switch
+      (long "clean" <> short 'c' <> help "Cleans elm-stuff and removes .jetpack")
+  return
+    Args
+    { entryPointGlob = entryPointGlob
+    , configPath = configPath
+    , debug =
+        if watch
+          then True
+          else debug
+    , warn =
+        if watch
+          then True
+          else warn
+    , postHook = postHook
+    , preHook = preHook
+    , time = time
+    , clean = clean
+    , runMode =
+        if version
+          then Version
+          else if watch
+                 then Watch
+                 else RunOnce
+    }
   where
     go :: String -> Maybe (Maybe String)
     go "" = Just Nothing
