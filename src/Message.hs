@@ -11,8 +11,8 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Prelude hiding (error)
 import Rainbow
-       (Radiant, back, black, chunk, cyan, fore, green, putChunkLn, red,
-        white)
+       (Chunk, Radiant, back, black, chunk, cyan, fore, green, putChunkLn,
+        red, white)
 
 success :: T.Text -> IO ()
 success = block Theme {bg = green, fg = black}
@@ -32,13 +32,12 @@ data Theme = Theme
   }
 
 block :: Theme -> T.Text -> IO ()
-block Theme {bg, fg} =
-  surroundedByNL . putChunkLn . back bg . fore fg . chunk . spaced
+block Theme {bg, fg} = surroundedByNL . back bg . fore fg . chunk . spaced
 
-surroundedByNL :: IO () -> IO ()
-surroundedByNL printMsg = do
+surroundedByNL :: Chunk T.Text -> IO ()
+surroundedByNL msg = do
   _ <- TIO.putStrLn ""
-  _ <- printMsg
+  _ <- putChunkLn msg
   TIO.putStrLn ""
 
 spaced :: T.Text -> T.Text
