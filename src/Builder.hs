@@ -38,8 +38,12 @@ build config args = do
     case result of
       Right (_, Warnings warnings) -> Message.warning warnings
       Right (_, Info info) -> Message.info info
-      Right (entryPoints, Success) -> Message.success $ T.pack <$> entryPoints
+      Right (_, Success) -> Message.success
       Left err -> Message.error err
+  _ <-
+    case result of
+      Right (entryPoints, _) -> Message.whichEntryPoints entryPoints
+      Left _ -> return ()
   case result of
     Right _ -> return ()
     Left _ -> System.Exit.exitFailure

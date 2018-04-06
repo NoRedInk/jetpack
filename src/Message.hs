@@ -5,23 +5,27 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Error
 import Rainbow
-       (Chunk, (&), brightRed, brightYellow, chunk, fore, green,
+       (Chunk, (&), brightRed, brightYellow, chunk, cyan, fore, green,
         putChunkLn, red, yellow)
 import qualified System.Console.Terminal.Size as TermSize
+import System.FilePath (FilePath)
 
 termWidth :: IO Int
 termWidth = max 20 <$> M.maybe 20 TermSize.width <$> TermSize.size
 
-success :: [T.Text] -> IO ()
-success entrypoints = do
+success :: IO ()
+success = do
   width <- termWidth
   _ <- putChunkLn (separator width "*" & fore green)
   _ <- putChunkLn (message width "Compilation Succeeded" & fore green)
-  _ <-
-    traverse
-      (\entry -> putChunkLn (chunk (center width $ "* " <> entry) & fore green))
-      entrypoints
   putChunkLn (separator width "*" & fore green)
+
+whichEntryPoints :: [FilePath] -> IO ()
+whichEntryPoints entryPoints = do
+  _ <-
+    traverse (putChunkLn . fore cyan . chunk . (<>) ("- ") . T.pack) entryPoints
+  _ <- putStrLn ""
+  putStrLn ""
 
 error :: [Error.Error] -> IO ()
 error err = printError $ fmap (T.pack . Error.description) err
