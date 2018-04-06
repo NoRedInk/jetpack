@@ -31,7 +31,6 @@ wrapper config (Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   let name = F.pathToFileName filePath "js"
   content <- readFile $ temp_directory </> name
-  -- TODO maybe warn if content is empty
   let fnName = F.pathToFunctionName filePath "js"
   let replacedContent = foldr replaceRequire (T.pack content) ds
   let wrapped = wrapModule fnName replacedContent
