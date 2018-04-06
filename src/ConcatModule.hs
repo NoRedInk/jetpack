@@ -43,8 +43,8 @@ replaceRequire Dependency {requiredAs, filePath} body =
   where
     fnName = T.unpack $ F.pathToFunctionName filePath "js"
     requireRegex =
-      mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
-    jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
+      mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
+    jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
 writeModule :: Config -> DependencyTree -> [T.Text] -> IO FilePath
 writeModule config dependencyTree fns = do
