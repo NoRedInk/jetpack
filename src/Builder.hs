@@ -34,13 +34,15 @@ build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $
     Task.runExceptT (buildHelp config args)
+  _ <-
+    case result of
+      Right (Warnings warnings) -> Message.warning warnings
+      Right (Info info) -> Message.info info
+      Right (Success entrypoints) -> Message.success entrypoints
+      Left err -> Message.error err
   case result of
-    Right (Warnings warnings) -> Message.warning warnings
-    Right (Info info) -> Message.info info
-    Right (Success entrypoints) -> Message.success entrypoints
-    Left err -> do
-      _ <- Message.error err
-      System.Exit.exitFailure
+    Right _ -> return ()
+    Left _ -> System.Exit.exitFailure
 
 data Result
   = Success [T.Text]
