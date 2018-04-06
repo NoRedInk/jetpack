@@ -5,7 +5,6 @@ module ConcatModule where
 import Config
 
 import qualified Data.List.Utils as LU
-import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies
@@ -20,14 +19,14 @@ import qualified Utils.Tree as UT
 wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
 wrap pg env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
-  out <- writeModule env dep $ catMaybes wrapped
+  out <- writeModule env dep wrapped
   _ <- lift $ tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper :: Config -> (Dependency, [Dependency]) -> Task T.Text
 wrapper config (Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   lift $ do
@@ -36,9 +35,8 @@ wrapper config (Dependency {filePath}, ds) = do
     let fnName = F.pathToFunctionName filePath "js"
     let replacedContent = foldr replaceRequire (T.pack content) ds
     let wrapped = wrapModule fnName replacedContent
-    return $ Just wrapped
+    return wrapped
 
--- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
   T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
