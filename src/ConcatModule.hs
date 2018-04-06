@@ -1,6 +1,8 @@
 {-| Concat all modules required in an entrypoint into one file.
 -}
-module ConcatModule where
+module ConcatModule
+  ( wrap
+  ) where
 
 import Config
 
@@ -8,7 +10,7 @@ import qualified Data.List.Utils as LU
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
-import Dependencies
+import Dependencies (Dependency(..), DependencyTree)
 import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
@@ -17,24 +19,28 @@ import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
 wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
-wrap pg env dep = do
-  wrapped <- traverse (wrapper env) $ uniqNodes dep
-  out <- writeModule env dep wrapped
+wrap pg config dep = do
+  depsWithContent <- traverse (withContent config) $ uniqNodes dep
+  let wrapped = fmap wrapDependency depsWithContent
+  out <- writeJsModule config wrapped $ filePath $ Tree.rootLabel dep
   _ <- tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Config -> (Dependency, [Dependency]) -> IO T.Text
-wrapper config (Dependency {filePath}, ds) = do
-  let Config {temp_directory} = config
+withContent ::
+     Config -> (Dependency, [Dependency]) -> IO (FilePath, [Dependency], T.Text)
+withContent Config {temp_directory} (Dependency {filePath}, ds) = do
   let name = F.pathToFileName filePath "js"
   content <- readFile $ temp_directory </> name
-  let fnName = F.pathToFunctionName filePath "js"
-  let replacedContent = foldr replaceRequire (T.pack content) ds
-  let wrapped = wrapModule fnName replacedContent
-  return wrapped
+  return (filePath, ds, T.pack content)
+
+wrapDependency :: (FilePath, [Dependency], T.Text) -> T.Text
+wrapDependency (filePath, ds, content) =
+  wrapModule
+    (F.pathToFunctionName filePath "js")
+    (foldr replaceRequire (content) ds)
 
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
@@ -45,34 +51,13 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
-writeModule :: Config -> DependencyTree -> [T.Text] -> IO FilePath
-writeModule config dependencyTree fns = do
-  let Dependency {filePath} = Tree.rootLabel dependencyTree
-  writeJsModule config filePath fns
-
-writeJsModule :: Config -> FilePath -> [T.Text] -> IO FilePath
-writeJsModule Config {output_js_directory, entry_points} rootFilePath fns = do
-  let out =
-        outputPath
-          Output
-          { outDir = output_js_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+writeJsModule :: Config -> [T.Text] -> FilePath -> IO FilePath
+writeJsModule Config {output_js_directory, entry_points} fns rootFilePath = do
+  let out = output_js_directory </> FP.makeRelative entry_points rootFilePath
   let rootName = F.pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   writeFile out $ T.unpack $ addBoilerplate rootName fns
   return out
-
-data Output = Output
-  { outDir :: FilePath
-  , moduleDir :: FilePath
-  , name :: FilePath
-  }
-
-outputPath :: Output -> FilePath
-outputPath Output {outDir, moduleDir, name} =
-  outDir </> FP.makeRelative moduleDir name
 
 addBoilerplate :: T.Text -> [T.Text] -> T.Text
 addBoilerplate root fns =
