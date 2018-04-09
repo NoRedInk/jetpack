@@ -12,7 +12,7 @@
 
 ## Publishing
 
-1. Check [release page](https://github.com/NoRedInk/jetpack/releases) on github if binaries are there
+1. Check [release page](https://github.com/NoRedInk/jetpack/releases) on github if both OSX and Linux binaries are there.
 1. Write the release notes on github.
 1. Publish new npm version
 ```
