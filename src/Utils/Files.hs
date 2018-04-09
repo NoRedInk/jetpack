@@ -22,7 +22,7 @@ fileExistsTask path = do
   exists <- lift $ doesFileExist path
   case exists of
     True -> lift $ return ()
-    False -> throwError $ [FileNotFound (show path)]
+    False -> throwError $ [FileNotFound (T.pack path)]
 
 {-| Converts a path into a flat filename.
     >>> import System.FilePath ((</>), (<.>))
@@ -44,4 +44,5 @@ pathToFileName filePath extension = newFileName <.> extension
 
 pathToFunctionName :: FilePath -> String -> T.Text
 pathToFunctionName filePath extension =
-  T.replace "@" "_" $ T.replace "." "_" $ T.pack $ pathToFileName filePath extension
+  T.replace "@" "_" $
+  T.replace "." "_" $ T.pack $ pathToFileName filePath extension

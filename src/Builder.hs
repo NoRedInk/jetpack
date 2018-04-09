@@ -14,9 +14,12 @@ import qualified Data.List.Utils as LU
 import qualified Data.Maybe
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import qualified DependencyTree
 import qualified EntryPoints
+import qualified Error
+import Error (Error)
 import qualified Hooks
 import qualified Init
 import qualified Logger
@@ -34,18 +37,27 @@ build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $
     Task.runExceptT (buildHelp config args)
-  case result of
-    Right (Warnings warnings) -> Message.warning warnings
-    Right (Info info) -> Message.info info
-    Right (Success entrypoints) -> Message.success entrypoints
-    Left err -> do
-      _ <- Message.error err
-      System.Exit.exitFailure
+  printResult result
 
 data Result
-  = Success [T.Text]
-  | Warnings T.Text
-  | Info T.Text
+  = Success [FilePath]
+  | Warnings [FilePath]
+             [T.Text]
+
+printResult :: Either [Error] Result -> IO ()
+printResult result =
+  case result of
+    Right (Warnings entryPoints warnings) -> do
+      _ <- traverse (TIO.putStrLn) warnings
+      _ <- Message.list $ T.pack <$> entryPoints
+      Message.warning "Succeeded with Warnings!"
+    Right (Success entryPoints) -> do
+      _ <- Message.list $ T.pack <$> entryPoints
+      Message.success $ T.pack "Succeeded"
+    Left err -> do
+      _ <- traverse (TIO.putStrLn . Error.description) err
+      _ <- Message.error $ T.pack "Failed!"
+      System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> Task Result
 buildHelp config args@Args {preHook, postHook} = do
@@ -88,10 +100,9 @@ buildHelp config args@Args {preHook, postHook} = do
   maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
-  return $
-    case warnings of
-      [] -> Success $ fmap T.pack entryPoints
-      xs -> Warnings $ T.unlines xs
+  case warnings of
+    [] -> return $ Success entryPoints
+    xs -> return $ Warnings entryPoints xs
 
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook _ _ Nothing = return ()

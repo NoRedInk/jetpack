@@ -168,7 +168,8 @@ runCmd pg Args {warn} input cmd maybeCwd = do
               else Nothing
         , compiledFile = input
         }
-    ExitFailure _ -> throwError [CompileError cmd (content ++ errContent)]
+    ExitFailure _ ->
+      throwError [CompileError (T.pack cmd) (T.pack (content <> errContent))]
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do

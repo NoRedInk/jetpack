@@ -8,6 +8,7 @@ module ToolPaths
 import Config (Config(..))
 import Control.Monad ((<=<))
 import Control.Monad.Except (throwError)
+import qualified Data.Text as T
 import Error (Error(BinNotFound))
 import System.Directory (makeAbsolute)
 import System.Exit
@@ -36,4 +37,4 @@ binExists bin = do
   exitCode <- lift $ system ("which " ++ bin ++ " >/dev/null")
   case exitCode of
     ExitSuccess -> return bin
-    ExitFailure _ -> throwError [BinNotFound bin]
+    ExitFailure _ -> throwError [BinNotFound $ T.pack bin]

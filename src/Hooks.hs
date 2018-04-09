@@ -3,6 +3,7 @@ module Hooks
   ) where
 
 import Control.Monad.Except (throwError)
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
@@ -11,6 +12,7 @@ import System.FilePath ()
 import System.Process
 import Task (Task, lift)
 
+-- TODO change to text
 run :: String -> Task T.Text
 run hookScript = do
   (_, Just out, Just err, ph) <-
@@ -26,4 +28,5 @@ run hookScript = do
     ExitFailure _ -> do
       content <- lift $ hGetContents out
       errContent <- lift $ hGetContents err
-      throwError [HookFailed (content ++ errContent) hookScript]
+      throwError
+        [HookFailed (T.pack content <> T.pack errContent) (T.pack hookScript)]

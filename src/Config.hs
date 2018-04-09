@@ -7,7 +7,9 @@ module Config
 
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
 import Error (Error(..))
+import qualified Error
 import GHC.Generics (Generic)
 import Message
 import qualified System.Directory as Dir
@@ -66,6 +68,7 @@ load root = do
       case Aeson.eitherDecode content of
         Right config -> return $ Just config
         Left err -> do
-          Message.error [ConfigInvalid path err]
+          _ <-
+            Message.error $ Error.description $ ConfigInvalid path $ T.pack err
           System.Exit.exitFailure
     else return Nothing

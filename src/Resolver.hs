@@ -128,7 +128,7 @@ tryMainFromPackageJson basePath fileName require = do
 
 moduleNotFound :: Maybe Dependency -> FilePath -> Task Dependency
 moduleNotFound requiredIn fileName =
-  throwError [ModuleNotFound (filePath <$> requiredIn) $ show fileName]
+  throwError [ModuleNotFound (filePath <$> requiredIn) $ fileName]
 
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
 moduleExists basePath path require =
