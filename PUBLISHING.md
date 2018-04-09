@@ -3,8 +3,8 @@
 
 ## Preparation
 
-1. Bump version in package.yml
-2. Bump version in package/npm/package.json
+1. Bump version in package.yaml
+2. Bump version in package/npm/package.json & run `npm install`
 3. Commit the changes "Bump version to *new version*"
 4. Create a tag for the new version. `git tag -s <version> -m <version>`
 5. Push the tag. `git push --tags`
