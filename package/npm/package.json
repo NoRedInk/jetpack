@@ -5,7 +5,8 @@
   "preferGlobal": true,
   "main": "index.js",
   "scripts": {
-    "install": "binwrap-install"
+    "install": "binwrap-install",
+    "prepublishOnly": "binwrap-test"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,5 @@
   "dependencies": {
     "binwrap": "^0.1.4"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }
