@@ -5,7 +5,7 @@
   "preferGlobal": true,
   "main": "index.js",
   "scripts": {
-    "prepublishOnly": "npx binwrap-test"
+    "prepublishOnly": "npx binwrap-test && npx binwrap-install"
   },
   "repository": {
     "type": "git",
