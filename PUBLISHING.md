@@ -18,5 +18,5 @@
 ```
 cd package/npm
 # update package.json
-npm publish
+npm publish --access=public
 ```
