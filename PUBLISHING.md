@@ -7,7 +7,7 @@
 2. Bump version in package/npm/package.json & run `npm install`
 3. Commit the changes "Bump version to *new version*"
 4. Create a tag for the new version. `git tag -s <version> -m <version>`
-5. Push the tag. `git push --tags`
+5. Push the tag. `git push && git push --tags`
 6. Wait for [CI to successfully build the tag](https://travis-ci.org/NoRedInk/jetpack/builds), this will create a new github release.
 
 
