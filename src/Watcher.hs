@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Notify
 import System.FilePath ()
+import Text.Regex (mkRegex)
 
 watch :: Config -> Args -> IO ()
 watch config@Config { source_directory, watch_file_extensions } args = do
@@ -17,6 +18,7 @@ watch config@Config { source_directory, watch_file_extensions } args = do
       Notify.Config
       { pathToWatch = source_directory
       , relevantExtensions = watch_file_extensions
+      , ignorePatterns = [ mkRegex ".*/[.]#" ] -- XXX: Temporary!
       }
       (Builder.build config args)
   Notify.buildNow state
