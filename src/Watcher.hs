@@ -1,23 +1,24 @@
-module Watcher where
+module Watcher (watch) where
 
 import qualified Builder
 import CliArguments (Args(..))
-import Config
+import Config (Config(..))
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Notify
-import Notify (Config(..))
 import System.FilePath ()
+import Text.Regex (mkRegex)
 
-watch :: Config.Config -> Args -> IO ()
-watch config args = do
+watch :: Config -> Args -> IO ()
+watch config@Config {source_directory, watch_file_extensions, watch_file_ignore_patterns } args = do
   putStrLn "Watching. Enter '?' to see the help."
   state <-
     Notify.watch
       Notify.Config
-      { pathToWatch = Config.source_directory config
-      , relevantExtensions = [".elm", ".coffee", ".js", ".json"]
+      { pathToWatch = source_directory
+      , relevantExtensions = watch_file_extensions
+      , ignorePatterns = map mkRegex $ map T.unpack watch_file_ignore_patterns
       }
       (Builder.build config args)
   Notify.buildNow state

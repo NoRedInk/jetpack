@@ -68,6 +68,8 @@ mockConfig =
   , elm_make_path = Nothing
   , coffee_path = Nothing
   , no_parse = []
+  , watch_file_extensions = []
+  , watch_file_ignore_patterns = []
   }
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
