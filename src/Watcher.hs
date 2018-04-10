@@ -18,7 +18,7 @@ watch config@Config { source_directory, watch_file_extensions } args = do
       Notify.Config
       { pathToWatch = source_directory
       , relevantExtensions = watch_file_extensions
-      , ignorePatterns = [ mkRegex ".*/[.]#" ] -- XXX: Temporary!
+      , ignorePatterns = [ mkRegex "/[.]#" ] -- XXX: Temporary!
       }
       (Builder.build config args)
   Notify.buildNow state

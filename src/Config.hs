@@ -28,6 +28,7 @@ data Config = Config
   , coffee_path :: Maybe FilePath
   , no_parse :: [FilePath]
   , watch_file_extensions :: [T.Text]
+  , watch_file_ignore_patterns :: [T.Text]
   } deriving (Show, Eq, Generic)
 
 instance ToJSON Config
@@ -56,6 +57,10 @@ defaultConfig =
   , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
   , no_parse = []
   , watch_file_extensions = [".elm", ".coffee", ".js", ".json"]
+  -- Ignore files like Emacs' backup files (`.#filename`) and other backup files
+  -- (`~filename`). Files like these are often created when editing begins, as a
+  -- recovery file for example, and do not imply that a build should be done.
+  , watch_file_ignore_patterns = ["/[.]#[^/]*$", "/~[^/]*$"]
   }
 
 {-| Loads configuration for jetpack from `jetpack.json`.

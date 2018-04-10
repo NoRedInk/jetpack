@@ -28,5 +28,6 @@ suite =
              , no_parse =
                  ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]
              , watch_file_extensions = [".elm", ".coffee", ".js", ".json"]
+             , watch_file_ignore_patterns = ["/[.]#[^/]*$", "/~[^/]*$"]
              })
     ]
