@@ -11,14 +11,14 @@ import System.FilePath ()
 import Text.Regex (mkRegex)
 
 watch :: Config -> Args -> IO ()
-watch config@Config { source_directory, watch_file_extensions } args = do
+watch config@Config {source_directory, watch_file_extensions, watch_file_ignore_patterns } args = do
   putStrLn "Watching. Enter '?' to see the help."
   state <-
     Notify.watch
       Notify.Config
       { pathToWatch = source_directory
       , relevantExtensions = watch_file_extensions
-      , ignorePatterns = [ mkRegex "/[.]#" ] -- XXX: Temporary!
+      , ignorePatterns = map mkRegex $ map T.unpack watch_file_ignore_patterns
       }
       (Builder.build config args)
   Notify.buildNow state
