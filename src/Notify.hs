@@ -8,6 +8,7 @@ module Notify
 
 import Control.Concurrent
 import Data.Foldable (traverse_)
+import Data.Maybe (isJust)
 import qualified Data.Text as T
 import System.FSNotify
 import System.FilePath
@@ -94,10 +95,4 @@ getFilepathFromEvent (Modified filepath _) = filepath
 getFilepathFromEvent (Removed filepath _) = filepath
 
 matchesNone :: FilePath -> [Regex] -> Bool
-matchesNone filepath =
-  not . any (matches filepath)
-  where
-    matches filepath regex =
-      case matchRegex regex filepath of
-        Just _ -> True
-        Nothing -> False
+matchesNone filepath = not . any (isJust . flip matchRegex filepath)
