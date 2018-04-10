@@ -27,6 +27,7 @@ data Config = Config
   , elm_make_path :: Maybe FilePath
   , coffee_path :: Maybe FilePath
   , no_parse :: [FilePath]
+  , watch_file_extensions :: [T.Text]
   } deriving (Show, Eq, Generic)
 
 instance ToJSON Config
@@ -54,6 +55,7 @@ defaultConfig =
   , elm_make_path = Just ("." </> "node_modules" </> ".bin" </> "elm-make")
   , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
   , no_parse = []
+  , watch_file_extensions = [".elm", ".coffee", ".js", ".json"]
   }
 
 {-| Loads configuration for jetpack from `jetpack.json`.

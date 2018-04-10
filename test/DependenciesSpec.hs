@@ -47,6 +47,7 @@ basicsFixtures =
         "clipboard" </>
         "index.js"
       ]
+  , watch_file_extensions = []
   }
 
 failingFixtures :: Config
@@ -64,6 +65,7 @@ failingFixtures =
   , elm_make_path = Nothing
   , coffee_path = Nothing
   , no_parse = []
+  , watch_file_extensions = []
   }
 
 suite :: TestTree
