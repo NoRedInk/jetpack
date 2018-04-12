@@ -31,8 +31,6 @@ data Config = Config
   , watch_file_ignore_patterns :: [T.Text]
   } deriving (Show, Eq, Generic)
 
-instance ToJSON Config
-
 instance FromJSON Config
 
 readConfig :: IO Config
