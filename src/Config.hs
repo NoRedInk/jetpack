@@ -5,7 +5,7 @@ module Config
   , defaultConfig
   ) where
 
-import Data.Aeson as Aeson
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import Error (Error(..))
@@ -31,7 +31,7 @@ data Config = Config
   , watch_file_ignore_patterns :: [T.Text]
   } deriving (Show, Eq, Generic)
 
-instance FromJSON Config
+instance Aeson.FromJSON Config
 
 readConfig :: IO Config
 readConfig = do
