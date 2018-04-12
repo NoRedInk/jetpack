@@ -27,10 +27,10 @@ allLogs = [compileTime, compileLog, preHookLog, postHookLog]
 
 appendLog :: Config -> T.Text -> T.Text -> Task ()
 appendLog config fileName msg = do
-  let Config {log_directory} = config
-  lift $ appendFile (log_directory </> T.unpack fileName) $ T.unpack msg
+  let Config {logDir} = config
+  lift $ appendFile (logDir </> T.unpack fileName) $ T.unpack msg
 
 clearLog :: Config -> T.Text -> Task ()
 clearLog config fileName = do
-  let Config {log_directory} = config
-  lift $ writeFile (log_directory </> T.unpack fileName) ""
+  let Config {logDir} = config
+  lift $ writeFile (logDir </> T.unpack fileName) ""

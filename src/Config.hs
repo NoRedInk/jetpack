@@ -17,18 +17,18 @@ import System.Exit
 import System.FilePath ((</>))
 
 data Config = Config
-  { entry_points :: FilePath
-  , modules_directories :: [FilePath]
-  , source_directory :: FilePath
-  , elm_root_directory :: FilePath
-  , temp_directory :: FilePath
-  , log_directory :: FilePath
-  , output_js_directory :: FilePath
-  , elm_make_path :: Maybe FilePath
-  , coffee_path :: Maybe FilePath
-  , no_parse :: [FilePath]
-  , watch_file_extensions :: [T.Text]
-  , watch_file_ignore_patterns :: [T.Text]
+  { entryPoints :: FilePath
+  , modulesDirs :: [FilePath]
+  , sourceDir :: FilePath
+  , elmRoot :: FilePath
+  , tempDir :: FilePath
+  , logDir :: FilePath
+  , outputDir :: FilePath
+  , elmMakePath :: Maybe FilePath
+  , coffeePath :: Maybe FilePath
+  , noParse :: [FilePath]
+  , watchFileExt :: [T.Text]
+  , watchIgnorePatterns :: [T.Text]
   } deriving (Show, Eq)
 
 instance Aeson.FromJSON Config where

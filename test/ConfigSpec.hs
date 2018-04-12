@@ -15,18 +15,18 @@ suite =
         config <- Config.load "./test/fixtures"
         config @=?
           (Config.Config
-           { entry_points = "app" </> "modules"
-           , modules_directories = []
-           , source_directory = "app" </> "sources"
-           , elm_root_directory = "app" </> "sources"
-           , temp_directory = "app" </> "tmp"
-           , log_directory = "app" </> "logs"
-           , output_js_directory = "app" </> "js"
-           , elm_make_path = Nothing
-           , coffee_path = Nothing
-           , no_parse =
+           { entryPoints = "app" </> "modules"
+           , modulesDirs = []
+           , sourceDir = "app" </> "sources"
+           , elmRoot = "app" </> "sources"
+           , tempDir = "app" </> "tmp"
+           , logDir = "app" </> "logs"
+           , outputDir = "app" </> "js"
+           , elmMakePath = Nothing
+           , coffeePath = Nothing
+           , noParse =
                ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]
-           , watch_file_extensions = [".elm", ".coffee", ".js", ".json"]
-           , watch_file_ignore_patterns = ["/[.]#[^/]*$", "/~[^/]*$"]
+           , watchFileExt = [".elm", ".coffee", ".js", ".json"]
+           , watchIgnorePatterns = ["/[.]#[^/]*$", "/~[^/]*$"]
            })
     ]

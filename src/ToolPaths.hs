@@ -24,9 +24,9 @@ data ToolPaths = ToolPaths
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
 find :: Config -> Task ToolPaths
-find Config {elm_make_path, coffee_path} =
-  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm-make") elm_make_path <*>
-  (binExists <=< toAbsPathOrBin "coffee") coffee_path
+find Config {elmMakePath, coffeePath} =
+  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm-make") elmMakePath <*>
+  (binExists <=< toAbsPathOrBin "coffee") coffeePath
 
 toAbsPathOrBin :: String -> Maybe FilePath -> Task FilePath
 toAbsPathOrBin _ (Just pathToBin) = lift $ makeAbsolute pathToBin

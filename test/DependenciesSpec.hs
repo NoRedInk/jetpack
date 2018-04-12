@@ -30,44 +30,44 @@ mockProgressBar =
 basicsFixtures :: Config
 basicsFixtures =
   Config
-  { entry_points = ("." </> "test" </> "fixtures" </> "basics" </> "modules")
-  , modules_directories =
+  { entryPoints = ("." </> "test" </> "fixtures" </> "basics" </> "modules")
+  , modulesDirs =
       [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
-  , source_directory =
+  , sourceDir =
       ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-  , elm_root_directory =
+  , elmRoot =
       ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-  , temp_directory = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
-  , log_directory = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
-  , output_js_directory = ("." </> "test" </> "fixtures" </> "basics" </> "js")
-  , elm_make_path = Nothing
-  , coffee_path = Nothing
-  , no_parse =
+  , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
+  , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
+  , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
+  , elmMakePath = Nothing
+  , coffeePath = Nothing
+  , noParse =
       [ "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
         "clipboard" </>
         "index.js"
       ]
-  , watch_file_extensions = []
-  , watch_file_ignore_patterns = []
+  , watchFileExt = []
+  , watchIgnorePatterns = []
   }
 
 failingFixtures :: Config
 failingFixtures =
   Config
-  { entry_points = ("." </> "test" </> "fixtures" </> "failing" </> "modules")
-  , modules_directories = []
-  , source_directory =
+  { entryPoints = ("." </> "test" </> "fixtures" </> "failing" </> "modules")
+  , modulesDirs = []
+  , sourceDir =
       ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-  , elm_root_directory =
+  , elmRoot =
       ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-  , temp_directory = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
-  , log_directory = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
-  , output_js_directory = ("." </> "test" </> "fixtures" </> "failing" </> "js")
-  , elm_make_path = Nothing
-  , coffee_path = Nothing
-  , no_parse = []
-  , watch_file_extensions = []
-  , watch_file_ignore_patterns = []
+  , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
+  , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
+  , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")
+  , elmMakePath = Nothing
+  , coffeePath = Nothing
+  , noParse = []
+  , watchFileExt = []
+  , watchIgnorePatterns = []
   }
 
 suite :: TestTree

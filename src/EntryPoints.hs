@@ -22,12 +22,12 @@ find args config = do
   cwd <- lift Dir.getCurrentDirectory
   case paths of
     [] -> throwError [NoModulesPresent (takeDirectory <$> entryPointsGlob)]
-    _ -> return $ makeRelative (cwd </> entry_points config) <$> paths
+    _ -> return $ makeRelative (cwd </> entryPoints config) <$> paths
 
 normalisedEntryPointsGlob :: Config -> Args -> [FilePath]
 normalisedEntryPointsGlob config args =
   case entryPointGlob args of
-    [] -> [entry_points config </> "**" </> "*.*"]
+    [] -> [entryPoints config </> "**" </> "*.*"]
     entryPoints
         -- handle arguments with and without a leading "./"
      -> (\entry -> "." </> normalise entry) <$> entryPoints

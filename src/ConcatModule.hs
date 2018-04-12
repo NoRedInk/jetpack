@@ -29,10 +29,10 @@ uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
 wrapper config (Dependency {filePath}, ds) = do
-  let Config {temp_directory} = config
+  let Config {tempDir} = config
   lift $ do
     let name = F.pathToFileName filePath "js"
-    content <- readFile $ temp_directory </> name
+    content <- readFile $ tempDir </> name
     let fnName = F.pathToFunctionName filePath "js"
     let replacedContent = foldr replaceRequire (T.pack content) ds
     let wrapped = wrapModule fnName replacedContent
@@ -54,13 +54,13 @@ writeModule config dependencyTree fns = do
   writeJsModule config filePath fns
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
-writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
+writeJsModule Config {outputDir, entryPoints} rootFilePath fns =
   lift $ do
     let out =
           outputPath
             Output
-            { outDir = output_js_directory
-            , moduleDir = entry_points
+            { outDir = outputDir
+            , moduleDir = entryPoints
             , name = rootFilePath
             }
     let rootName = F.pathToFunctionName rootFilePath "js"

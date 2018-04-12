@@ -44,12 +44,12 @@ import Utils.Files (fileExistsTask)
 
 resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
 resolve config requiredIn dep = do
-  let Config {modules_directories} = config
+  let Config {modulesDirs} = config
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
     findInEntryPoints config dep <|>
     findInSources config dep <|>
-    findInModules dep modules_directories <|>
+    findInModules dep modulesDirs <|>
     moduleNotFound requiredIn (requiredAs dep)
   updateDepTime $ updateDepType resolved
 
@@ -62,8 +62,8 @@ findRelativeNodeModules parent =
 
 findInEntryPoints :: Config -> Dependency -> Task Dependency
 findInEntryPoints config parent = do
-  let Config {entry_points} = config
-  tryToFind entry_points (requiredAs parent) parent
+  let Config {entryPoints} = config
+  tryToFind entryPoints (requiredAs parent) parent
 
 findInModules :: Dependency -> [FilePath] -> Task Dependency
 findInModules _parent [] = throwError []
@@ -72,8 +72,8 @@ findInModules parent (x:xs) =
 
 findInSources :: Config -> Dependency -> Task Dependency
 findInSources config parent = do
-  let Config {source_directory} = config
-  tryToFind source_directory (requiredAs parent) parent
+  let Config {sourceDir} = config
+  tryToFind sourceDir (requiredAs parent) parent
 
 tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryToFind basePath fileName require = do
