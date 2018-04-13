@@ -57,24 +57,24 @@ import Data.Time.Clock.POSIX
 import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
-import Parser.PackageJson ()
 import qualified Parser.Require
-import ProgressBar (ProgressBar, pipeAndTick)
+import ProgressBar (ProgressBar, tick)
 import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
-import Task (Task, lift)
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build ::
-     ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
-build pg config cache entryPoint =
-  toDependency entryPoint >>= buildTree config cache >>= pipeAndTick pg
+build :: ProgressBar -> Config -> Dependencies -> FilePath -> IO DependencyTree
+build pg config cache entryPoint = do
+  dep <- toDependency entryPoint
+  tree <- buildTree config cache dep
+  _ <- tick pg
+  return tree
 
-buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
+buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree
 buildTree config cache =
   Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
   Resolver.resolve config Nothing
@@ -88,19 +88,18 @@ writeTreeCache :: FilePath -> Dependencies -> IO ()
 writeTreeCache temp_directory =
   BL.writeFile (temp_directory </> "deps" <.> "json") . Aeson.encode
 
-toDependency :: FilePath -> Task Dependency
-toDependency path =
-  lift $ do
-    status <- getFileStatus path
-    let lastModificationTime =
-          posixSecondsToUTCTime $ modificationTimeHiRes status
-    return $ Dependency Ast.Js path path $ Just lastModificationTime
+toDependency :: FilePath -> IO Dependency
+toDependency path = do
+  status <- getFileStatus path
+  let lastModificationTime =
+        posixSecondsToUTCTime $ modificationTimeHiRes status
+  return $ Dependency Ast.Js path path $ Just lastModificationTime
 
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 findRequires ::
-     Dependencies -> Config -> Dependency -> Task (Dependency, [Dependency])
+     Dependencies -> Config -> Dependency -> IO (Dependency, [Dependency])
 findRequires cache Config {no_parse} parent@Dependency {filePath, fileType} =
   if filePath `elem` no_parse
     then return (parent, [])
@@ -122,18 +121,18 @@ parseModule ::
      Dependencies
   -> Dependency
   -> (T.Text -> [Ast.Require])
-  -> Task (Dependency, [Dependency])
+  -> IO (Dependency, [Dependency])
 parseModule cache dep@Dependency {filePath} parser =
   case findInCache dep cache of
     Just cached -> return cached
     Nothing -> do
-      content <- lift $ readFile filePath
+      content <- readFile filePath
       let requires = parser $ T.pack content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
 
 resolveChildren ::
-     Config -> (Dependency, [Dependency]) -> Task (Dependency, [Dependency])
+     Config -> (Dependency, [Dependency]) -> IO (Dependency, [Dependency])
 resolveChildren config (parent, children) = do
   resolved <- traverse (Resolver.resolve config (Just parent)) children
   return (parent, resolved)

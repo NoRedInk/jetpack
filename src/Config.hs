@@ -7,9 +7,8 @@ module Config
 
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Error (Error(..))
-import qualified Error
 import GHC.Generics (Generic)
 import Message
 import qualified System.Directory as Dir
@@ -76,6 +75,12 @@ load root = do
         Right config -> return $ Just config
         Left err -> do
           _ <-
-            Message.error $ Error.description $ ConfigInvalid path $ T.pack err
+            Message.error $
+            T.unlines
+              [ "Invalid jetpack.json: " <> T.pack path
+              , ""
+              , "    " <> T.pack err
+              , ""
+              ]
           System.Exit.exitFailure
     else return Nothing

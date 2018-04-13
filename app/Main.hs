@@ -12,7 +12,6 @@ import qualified Data.Text.IO as TIO
 import qualified Error
 import qualified Message
 import qualified Parser.JetpackVersion as JetpackVersion
-import qualified Task
 import qualified Version
 import qualified Watcher
 
@@ -20,18 +19,14 @@ main :: IO ()
 main
   -- SETUP
  = do
-  maybeVersion <- Task.runExceptT JetpackVersion.load
-  case maybeVersion of
-    Left err -> traverse_ (Message.error . Error.description) err
-    Right jetpackVersion -> do
-      _ <-
-        case Version.check jetpackVersion of
-          Just err -> Message.warning err
-          Nothing -> return ()
-      config <- Config.readConfig
-      args@Args {clean, runMode} <- readArguments
-      when clean (Cleaner.clean config)
-      case runMode of
-        Version -> TIO.putStrLn Version.print
-        Watch -> Watcher.watch config args
-        RunOnce -> Builder.build config args
+  maybeVersion <- JetpackVersion.load
+  case Version.check maybeVersion of
+    Just err -> Message.warning err
+    Nothing -> return ()
+  config <- Config.readConfig
+  args@Args {clean, runMode} <- readArguments
+  when clean (Cleaner.clean config)
+  case runMode of
+    Version -> TIO.putStrLn Version.print
+    Watch -> Watcher.watch config args
+    RunOnce -> Builder.build config args

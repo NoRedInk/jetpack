@@ -29,8 +29,8 @@ run hookScript = do
     ExitFailure _ -> do
       content <- hGetContents out
       errContent <- hGetContents err
-      ES.throwM
-        [HookFailed (T.pack content <> T.pack errContent) (T.pack hookScript)]
+      ES.throwM $
+        HookFailed (T.pack content <> T.pack errContent) (T.pack hookScript)
 
 data Error =
   HookFailed T.Text
@@ -39,4 +39,4 @@ data Error =
 
 instance Show Error where
   show (HookFailed msg hookScript) =
-    T.unlines ["Hook:", "", "    $ " <> hookScript, "", msg]
+    T.unpack $ T.unlines ["Hook failed!", "", "    $ " <> hookScript, "", msg]
