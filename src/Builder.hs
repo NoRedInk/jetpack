@@ -26,7 +26,7 @@ import qualified Logger
 import qualified Message
 import ProgressBar (ProgressBar, complete, start, tick)
 import qualified ProgressSpinner
-import qualified System.Console.AsciiProgress as AsciiProgress
+import qualified System.Console.Regions as CR
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
 import Task (Task, lift)
@@ -34,9 +34,7 @@ import qualified Task
 
 build :: Config.Config -> Args -> IO ()
 build config args = do
-  result <-
-    AsciiProgress.displayConsoleRegions $
-    Task.runExceptT (buildHelp config args)
+  result <- CR.displayConsoleRegions $ Task.runExceptT (buildHelp config args)
   printResult result
 
 data Result
