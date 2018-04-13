@@ -13,7 +13,6 @@ import qualified Control.Exception.Safe as ES
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Typeable (Typeable)
-import qualified System.Directory as Dir
 import System.FilePath
        ((</>), makeRelative, normalise, takeDirectory)
 import "Glob" System.FilePath.Glob (glob)
@@ -22,10 +21,9 @@ find :: Args -> Config -> IO [FilePath]
 find args config = do
   let entryPointsGlob = normalisedEntryPointsGlob config args
   paths <- findFilesIn entryPointsGlob
-  cwd <- Dir.getCurrentDirectory
   case paths of
     [] -> ES.throwM $ NoModulesPresent (takeDirectory <$> entryPointsGlob)
-    _ -> return $ makeRelative (cwd </> entry_points config) <$> paths
+    _ -> return $ makeRelative (entry_points config) <$> paths
 
 normalisedEntryPointsGlob :: Config -> Args -> [FilePath]
 normalisedEntryPointsGlob config args =
