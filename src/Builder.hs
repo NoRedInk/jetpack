@@ -25,7 +25,6 @@ import qualified Init
 import qualified Logger
 import qualified Message
 import ProgressBar (ProgressBar, complete, start, tick)
-import qualified ProgressSpinner
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
@@ -107,12 +106,10 @@ buildHelp config args@Args {preHook, postHook} = do
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook _ _ Nothing = return ()
 maybeRunHook config type_ (Just hookScript) = do
-  spinner <- lift $ ProgressSpinner.start title
   out <- Hooks.run hookScript
   Logger.appendLog config (log type_) out
-  lift $ ProgressSpinner.end spinner title
+    -- TODO title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
   where
-    title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
     log Pre = Logger.preHookLog
     log Post = Logger.postHookLog
 
