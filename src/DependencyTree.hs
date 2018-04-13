@@ -72,7 +72,7 @@ import Utils.Tree (searchNode)
 build ::
      ProgressBar -> Config -> Dependencies -> FilePath -> Task DependencyTree
 build pg config cache entryPoint =
-  toDependency config entryPoint >>= buildTree config cache >>= pipeAndTick pg
+  toDependency entryPoint >>= buildTree config cache >>= pipeAndTick pg
 
 buildTree :: Config -> Dependencies -> Dependency -> Task DependencyTree
 buildTree config cache =
@@ -88,10 +88,10 @@ writeTreeCache :: FilePath -> Dependencies -> IO ()
 writeTreeCache temp_directory =
   BL.writeFile (temp_directory </> "deps" <.> "json") . Aeson.encode
 
-toDependency :: Config -> FilePath -> Task Dependency
-toDependency Config {entry_points} path =
+toDependency :: FilePath -> Task Dependency
+toDependency path =
   lift $ do
-    status <- getFileStatus $ entry_points </> path
+    status <- getFileStatus path
     let lastModificationTime =
           posixSecondsToUTCTime $ modificationTimeHiRes status
     return $ Dependency Ast.Js path path $ Just lastModificationTime
