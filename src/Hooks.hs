@@ -1,32 +1,42 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Hooks
   ( run
   ) where
 
-import Control.Monad.Except (throwError)
+import Control.Exception.Safe (Exception)
+import qualified Control.Exception.Safe as ES
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Error
+import Data.Typeable (Typeable)
 import GHC.IO.Handle
 import System.Exit
 import System.FilePath ()
 import System.Process
-import Task (Task, lift)
 
 -- TODO change to text
-run :: String -> Task T.Text
+run :: String -> IO T.Text
 run hookScript = do
   (_, Just out, Just err, ph) <-
-    lift $
     createProcess
       (proc "bash" ["-c", hookScript])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = Nothing}
-  ec <- lift $ waitForProcess ph
+  ec <- waitForProcess ph
   case ec of
     ExitSuccess -> do
-      content <- lift $ hGetContents out
+      content <- hGetContents out
       return (T.pack content)
     ExitFailure _ -> do
-      content <- lift $ hGetContents out
-      errContent <- lift $ hGetContents err
-      throwError
+      content <- hGetContents out
+      errContent <- hGetContents err
+      ES.throwM
         [HookFailed (T.pack content <> T.pack errContent) (T.pack hookScript)]
+
+data Error =
+  HookFailed T.Text
+             T.Text
+  deriving (Typeable, Exception)
+
+instance Show Error where
+  show (HookFailed msg hookScript) =
+    T.unlines ["Hook:", "", "    $ " <> hookScript, "", msg]

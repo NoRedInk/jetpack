@@ -36,6 +36,7 @@ dependencies:
 - rainbow == 0.28.0.4
 - regex-compat == 0.95.1
 - safe == 0.3.17
+- safe-exceptions == 0.1.7.0
 - semver == 0.3.3.1
 - terminal-size == 0.3.2.1
 - text == 1.2.3.0

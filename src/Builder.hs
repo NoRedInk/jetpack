@@ -106,7 +106,7 @@ buildHelp config args@Args {preHook, postHook} = do
 maybeRunHook :: Config -> Hook -> Maybe String -> Task ()
 maybeRunHook _ _ Nothing = return ()
 maybeRunHook config type_ (Just hookScript) = do
-  out <- Hooks.run hookScript
+  out <- lift $ Hooks.run hookScript
   Logger.appendLog config (log type_) out
     -- TODO title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
   where
