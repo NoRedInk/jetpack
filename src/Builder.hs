@@ -77,7 +77,9 @@ buildHelp config args@Args {preHook, postHook} = do
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   pg <- start (L.length modules) "Compiling"
-  result <- traverse (Compile.compile pg args config toolPaths) modules
+  result <-
+    CR.withConsoleRegion CR.Linear $ \region ->
+      traverse (Compile.compile region args config toolPaths) modules
   _ <-
     traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
   _ <-

@@ -7,6 +7,7 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Error
 import GHC.IO.Handle
+import qualified System.Console.Concurrent as CC
 import System.Exit
 import System.FilePath ()
 import System.Process
@@ -17,10 +18,10 @@ run :: String -> Task T.Text
 run hookScript = do
   (_, Just out, Just err, ph) <-
     lift $
-    createProcess
+    CC.createProcessConcurrent
       (proc "bash" ["-c", hookScript])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = Nothing}
-  ec <- lift $ waitForProcess ph
+  ec <- lift $ CC.waitForProcessConcurrent ph
   case ec of
     ExitSuccess -> do
       content <- lift $ hGetContents out

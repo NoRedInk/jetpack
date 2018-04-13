@@ -16,9 +16,10 @@ import Formatting (format)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
-import ProgressBar (ProgressBar, tick)
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
+import qualified System.Console.Concurrent as CC
+import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
@@ -55,10 +56,15 @@ instance Show Duration where
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
 compile ::
-     ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> Task Result
-compile pg args config toolPaths Dependency {fileType, filePath} =
+     CR.ConsoleRegion
+  -> Args
+  -> Config
+  -> ToolPaths
+  -> Dependency
+  -> Task Result
+compile region args config toolPaths Dependency {fileType, filePath} =
   runCompiler
-    pg
+    region
     args
     config
     fileType
@@ -72,18 +78,18 @@ data Arguments = Arguments
   }
 
 runCompiler ::
-     ProgressBar
+     CR.ConsoleRegion
   -> Args
   -> Config
   -> Ast.SourceType
   -> ToolPaths
   -> Arguments
   -> Task Result
-runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
+runCompiler region args config fileType ToolPaths {elmMake, coffee} arguments =
   case fileType of
-    Ast.Elm -> elmCompiler elmMake pg args config arguments
-    Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg args arguments
+    Ast.Elm -> elmCompiler elmMake region args config arguments
+    Ast.Js -> jsCompiler region arguments
+    Ast.Coffee -> coffeeCompiler coffee region args arguments
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
 buildArtifactPath Config {temp_directory} fileType inputPath =
@@ -99,10 +105,10 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
-elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
-                                                                  , output
-                                                                  } = do
+     FilePath -> CR.ConsoleRegion -> Args -> Config -> Arguments -> Task Result
+elmCompiler elmMake region args Config {elm_root_directory} Arguments { input
+                                                                      , output
+                                                                      } = do
   let Args {debug, warn} = args
   let debugFlag =
         if debug
@@ -118,21 +124,22 @@ elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
         "../" ++
         input ++
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-  runCmd pg args input cmd $ Just elm_root_directory
+  runCmd region args input cmd $ Just elm_root_directory
 
-coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> Task Result
-coffeeCompiler coffee pg args Arguments {input, output} = do
+coffeeCompiler ::
+     FilePath -> CR.ConsoleRegion -> Args -> Arguments -> Task Result
+coffeeCompiler coffee region args Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg args input cmd Nothing
+  runCmd region args input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: ProgressBar -> Arguments -> Task Result
-jsCompiler pg Arguments {input, output} =
+jsCompiler :: CR.ConsoleRegion -> Arguments -> Task Result
+jsCompiler region Arguments {input, output} =
   lift $ do
     start <- getTime Monotonic
     _ <- copyFile input output
-    _ <- tick pg
+    _ <- CR.appendConsoleRegion region (T.unpack ".")
     currentTime <- getCurrentTime
     end <- getTime Monotonic
     return
@@ -146,14 +153,19 @@ jsCompiler pg Arguments {input, output} =
       }
 
 runCmd ::
-     ProgressBar -> Args -> FilePath -> String -> Maybe String -> Task Result
-runCmd pg Args {warn} input cmd maybeCwd = do
+     CR.ConsoleRegion
+  -> Args
+  -> FilePath
+  -> String
+  -> Maybe String
+  -> Task Result
+runCmd region Args {warn} input cmd maybeCwd = do
   start <- lift $ getTime Monotonic
   (ec, errContent, content) <- lift $ runAndWaitForProcess cmd maybeCwd
   end <- lift $ getTime Monotonic
   case ec of
     ExitSuccess -> do
-      _ <- lift $ tick pg
+      _ <- lift $ CR.appendConsoleRegion region (T.unpack ".")
       currentTime <- lift getCurrentTime
       return
         Result
@@ -174,10 +186,10 @@ runCmd pg Args {warn} input cmd maybeCwd = do
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
   (_, Just out, Just err, ph) <-
-    createProcess
+    CC.createProcessConcurrent
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
-  ec <- waitForProcess ph
+  ec <- CC.waitForProcessConcurrent ph
   content <- hGetContents out
   errContent <- hGetContents err
   pure (ec, errContent, content)
