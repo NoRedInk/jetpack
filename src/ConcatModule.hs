@@ -2,6 +2,8 @@
 -}
 module ConcatModule
   ( wrap
+  , wrapModule
+  , replaceRequire
   ) where
 
 import Config

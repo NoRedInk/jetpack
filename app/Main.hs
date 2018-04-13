@@ -9,7 +9,6 @@ import Control.Monad (when)
 import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import qualified Error
 import qualified Message
 import qualified Parser.JetpackVersion as JetpackVersion
 import qualified Version
