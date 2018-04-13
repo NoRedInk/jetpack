@@ -40,9 +40,12 @@ description (ModuleNotFound (Just requiredIn) file) =
   T.unlines
     [ ""
     , ""
-    , "I had troubles finding " <> T.pack file <> " required in " <>
+    , "I had troubles finding '" <> T.pack file <> "' required in '" <>
       T.pack requiredIn <>
-      "."
+      "'."
+    , ""
+    , "Make sure that you spelled the name of the module correctly."
+    , "You might also want to make sure that all dependencies are updated."
     ]
 description (ModuleNotFound Nothing file) =
   T.unlines

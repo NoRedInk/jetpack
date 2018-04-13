@@ -29,7 +29,7 @@ module Resolver
 
 import Config (Config(..))
 import Control.Applicative ((<|>))
-import Control.Monad.Except (throwError)
+import Control.Monad.Except (throwError, withExceptT)
 
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
@@ -37,43 +37,45 @@ import Dependencies (Dependency(..))
 import Error (Error(ModuleNotFound))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
+import System.Directory (doesFileExist)
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
 import Task (Task, lift)
-import Utils.Files (fileExistsTask)
 
 resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
-resolve config requiredIn dep = do
-  let Config {modules_directories} = config
+resolve config requiredIn dep =
+  const [ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep] `withExceptT`
+  resolveHelp config dep
+
+resolveHelp :: Config -> Dependency -> Task Dependency
+resolveHelp Config {modules_directories, entry_points, source_directory} dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
-    findInEntryPoints config dep <|>
-    findInSources config dep <|>
-    findInModules dep modules_directories <|>
-    moduleNotFound requiredIn (requiredAs dep)
+    findInEntryPoints entry_points dep <|>
+    findInSources source_directory dep <|>
+    findInModules modules_directories dep
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> Task Dependency
-findRelative parent = tryToFind (filePath parent) (requiredAs parent) parent
+findRelative dep@Dependency {filePath, requiredAs} =
+  tryToFind filePath requiredAs dep
 
 findRelativeNodeModules :: Dependency -> Task Dependency
-findRelativeNodeModules parent =
-  tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
+findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
+  tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints :: Config -> Dependency -> Task Dependency
-findInEntryPoints config parent = do
-  let Config {entry_points} = config
-  tryToFind entry_points (requiredAs parent) parent
+findInEntryPoints :: FilePath -> Dependency -> Task Dependency
+findInEntryPoints entry_points dep@Dependency {requiredAs} = do
+  tryToFind entry_points requiredAs dep
 
-findInModules :: Dependency -> [FilePath] -> Task Dependency
-findInModules _parent [] = throwError []
-findInModules parent (x:xs) =
-  tryToFind x (requiredAs parent) parent <|> findInModules parent xs
+findInModules :: [FilePath] -> Dependency -> Task Dependency
+findInModules [] _parent = throwError []
+findInModules (x:xs) dep@Dependency {requiredAs} =
+  tryToFind x requiredAs dep <|> findInModules xs dep
 
-findInSources :: Config -> Dependency -> Task Dependency
-findInSources config parent = do
-  let Config {source_directory} = config
-  tryToFind source_directory (requiredAs parent) parent
+findInSources :: FilePath -> Dependency -> Task Dependency
+findInSources source_directory dep@Dependency {requiredAs} = do
+  tryToFind source_directory requiredAs dep
 
 tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency
 tryToFind basePath fileName require = do
@@ -126,15 +128,13 @@ tryMainFromPackageJson basePath fileName require = do
       moduleExists basePath (fileName </> T.unpack entryPoint) require
     Nothing -> throwError []
 
-moduleNotFound :: Maybe Dependency -> FilePath -> Task Dependency
-moduleNotFound requiredIn fileName =
-  throwError [ModuleNotFound (filePath <$> requiredIn) $ fileName]
-
 moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
-moduleExists basePath path require =
-  fileExistsTask searchPath >> return (require {filePath = searchPath})
-  where
-    searchPath = basePath </> path
+moduleExists basePath path require = do
+  let searchPath = basePath </> path
+  exists <- lift $ doesFileExist searchPath
+  if exists
+    then return (require {filePath = searchPath})
+    else throwError []
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
