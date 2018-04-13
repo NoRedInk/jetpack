@@ -7,10 +7,11 @@ module ConcatModule
   ) where
 
 import Config
-
 import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import Dependencies
 import ProgressBar (ProgressBar, tick)
@@ -35,7 +36,7 @@ wrapper config (Dependency {filePath}, ds) = do
   let Config {temp_directory} = config
   let name = F.pathToFileName filePath "js"
   content <- readFile $ temp_directory </> name
-  let fnName = F.pathToFunctionName filePath "js"
+  let fnName = pathToFunctionName filePath "js"
   let replacedContent = foldr replaceRequire (T.pack content) ds
   let wrapped = wrapModule fnName replacedContent
   return $ Just wrapped
@@ -43,12 +44,12 @@ wrapper config (Dependency {filePath}, ds) = do
 -- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
-  T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
+  T.pack $ subRegex requireRegex (T.unpack body) (T.unpack jetpackRequire)
   where
-    fnName = T.unpack $ F.pathToFunctionName filePath "js"
+    fnName = pathToFunctionName filePath "js"
     requireRegex =
-      mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
-    jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
+      mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
+    jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
 writeModule :: Config -> DependencyTree -> [T.Text] -> IO FilePath
 writeModule config dependencyTree fns = do
@@ -64,9 +65,9 @@ writeJsModule Config {output_js_directory, entry_points} rootFilePath fns = do
           , moduleDir = entry_points
           , name = rootFilePath
           }
-  let rootName = F.pathToFunctionName rootFilePath "js"
+  let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
-  writeFile out $ T.unpack $ addBoilerplate rootName fns
+  TIO.writeFile out $ addBoilerplate rootName fns
   return out
 
 data Output = Output
@@ -123,3 +124,7 @@ wrapModule fnName body =
     , " */"
     , "\n"
     ]
+
+pathToFunctionName :: FilePath -> String -> T.Text
+pathToFunctionName filePath =
+  T.replace "@" "_" . T.replace "." "_" . T.pack . F.pathToFileName filePath
