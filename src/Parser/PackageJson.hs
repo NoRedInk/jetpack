@@ -16,8 +16,8 @@ import GHC.Generics (Generic)
 import System.FilePath (FilePath, dropFileName)
 
 data PackageJson = PackageJson
-  { main :: Maybe T.Text
-  , browser :: Maybe T.Text
+  { main :: Maybe FilePath
+  , browser :: Maybe FilePath
   } deriving (Show, Eq, Generic)
 
 instance FromJSON PackageJson

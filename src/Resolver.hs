@@ -137,8 +137,8 @@ tryMainFromPackageJson basePath fileName require = do
     then do
       PackageJson {main, browser} <- lift (PackageJson.load packageJsonPath)
       case browser <|> main of
-        Just entryPoint ->
-          moduleExists basePath (fileName </> T.unpack entryPoint) require
+        Just packageIndex ->
+          moduleExists basePath (fileName </> packageIndex) require
         Nothing -> throwError ()
     else throwError ()
 
