@@ -24,14 +24,13 @@ import qualified Init
 import qualified Logger
 import qualified Message
 import ProgressBar (ProgressBar, complete, start, tick)
-import qualified System.Console.AsciiProgress as AsciiProgress
+import qualified System.Console.Regions as CR
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
 
 build :: Config.Config -> Args -> IO ()
 build config args = do
-  result <-
-    AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
+  result <- CR.displayConsoleRegions $ ES.tryAny $ buildHelp config args
   printResult result
 
 data Result
