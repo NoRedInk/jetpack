@@ -2,22 +2,21 @@
 -}
 module ProgressBar
   ( start
-  , AP.complete
-  , AP.ProgressBar
-  , AP.tick
+  , complete
+  , ProgressBar
+  , tick
   ) where
 
 import qualified Data.Text as T
-import System.Console.AsciiProgress as AP
 
-start :: Int -> T.Text -> IO AP.ProgressBar
-start total title =
-  AP.newProgressBar
-    def
-    { pgTotal = toInteger total
-    , pgOnCompletion =
-        Just (T.unpack title ++ " finished after :elapsed seconds")
-    , pgCompletedChar = '█'
-    , pgPendingChar = '░'
-    , pgFormat = T.unpack title ++ " ╢:bar╟ :current/:total"
-    }
+newtype ProgressBar =
+  ProgressBar ()
+
+start :: Int -> T.Text -> IO ProgressBar
+start _ _ = return (ProgressBar ())
+
+complete :: ProgressBar -> IO ()
+complete _ = return ()
+
+tick :: ProgressBar -> IO ()
+tick _ = return ()
