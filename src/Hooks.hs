@@ -10,6 +10,7 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Typeable (Typeable)
 import GHC.IO.Handle
+import qualified System.Console.Concurrent as CC
 import System.Exit
 import System.FilePath ()
 import System.Process
@@ -18,7 +19,7 @@ import System.Process
 run :: String -> IO T.Text
 run hookScript = do
   (_, Just out, Just err, ph) <-
-    createProcess
+    CC.createProcessConcurrent
       (proc "bash" ["-c", hookScript])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = Nothing}
   ec <- waitForProcess ph

@@ -22,6 +22,7 @@ import Parser.Ast as Ast
 import ProgressBar (ProgressBar, tick)
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
+import qualified System.Console.Concurrent as CC
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
@@ -172,7 +173,7 @@ runCmd pg Args {warn} input cmd maybeCwd = do
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
   (_, Just out, Just err, ph) <-
-    createProcess
+    CC.createProcessConcurrent
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
   ec <- waitForProcess ph
