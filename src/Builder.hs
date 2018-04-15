@@ -6,7 +6,6 @@ import CliArguments (Args(..))
 import qualified Compile
 import ConcatModule
 import Config
-import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -23,6 +22,7 @@ import qualified Hooks
 import qualified Init
 import qualified Logger
 import qualified Message
+import qualified Progress.Counter
 import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.Regions as CR
 import qualified System.Exit
@@ -61,15 +61,24 @@ buildHelp config args@Args {preHook, postHook} = do
   maybeRunHook config Pre preHook
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
-  pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
   let Config {temp_directory} = config
-  cache <- DependencyTree.readTreeCache temp_directory
   deps <-
-    Concurrent.mapConcurrently
-      (DependencyTree.build pg config cache)
-      entryPoints
-  DependencyTree.writeTreeCache temp_directory deps
-  complete pg
+    CR.withConsoleRegion
+      CR.Linear
+      (\region -> do
+         let basemsg = "Building dependency tree for entrypoints: " :: T.Text
+         CR.setConsoleRegion region basemsg
+         CR.appendConsoleRegion region ("..." :: T.Text)
+         cache <- DependencyTree.readTreeCache temp_directory
+         deps <-
+           Progress.Counter.mapConcurrently
+             region
+             basemsg
+             (DependencyTree.build config cache)
+             entryPoints
+         DependencyTree.writeTreeCache temp_directory deps
+         CR.finishConsoleRegion region (basemsg <> " done!")
+         return deps)
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
   pg <- start (L.length modules) "Compiling"
@@ -83,12 +92,24 @@ buildHelp config args@Args {preHook, postHook} = do
          T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
       result
   complete pg
-  pg <- start (L.length deps) "Write modules"
-  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
-  _ <-
-    do createdModulesJson pg config modules
-       complete pg
-       traverse (Compile.printTime args) result
+  modules <-
+    CR.withConsoleRegion
+      CR.Linear
+      (\region -> do
+         let basemsg = "Write modules: " :: T.Text
+         CR.setConsoleRegion region basemsg
+         CR.appendConsoleRegion region ("..." :: T.Text)
+         pg <- start (L.length deps) "Write modules"
+         modules <-
+           Progress.Counter.mapConcurrently
+             region
+             basemsg
+             (ConcatModule.wrap pg config)
+             deps
+         CR.finishConsoleRegion region (basemsg <> " done!")
+         return modules)
+  _ <- createdModulesJson pg config modules
+  _ <- traverse (Compile.printTime args) result
   -- HOOK
   maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY

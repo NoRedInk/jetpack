@@ -17,7 +17,8 @@ import Data.Typeable (Typeable)
 import Dependencies (Dependency(..))
 import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
-import GHC.IO.Handle
+
+-- import GHC.IO.Handle
 import Parser.Ast as Ast
 import ProgressBar (ProgressBar, tick)
 import System.Clock
@@ -172,14 +173,12 @@ runCmd pg Args {warn} input cmd maybeCwd = do
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
-  (_, Just out, Just err, ph) <-
-    CC.createProcessConcurrent
-      (proc "bash" ["-c", cmd])
-      {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
+  (_, _, _, ph) <-
+    CC.createProcessConcurrent (proc "bash" ["-c", cmd]) {cwd = maybeCwd}
   ec <- waitForProcess ph
-  content <- hGetContents out
-  errContent <- hGetContents err
-  pure (ec, errContent, content)
+  -- content <- hGetContents out
+  -- errContent <- hGetContents err
+  pure (ec, "", "")
 
 data Error =
   CompileError T.Text

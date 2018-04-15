@@ -51,6 +51,7 @@ import Control.Monad ((<=<))
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe as M
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Time.Clock ()
 import Data.Time.Clock.POSIX
@@ -58,25 +59,35 @@ import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
 import qualified Parser.Require
-import ProgressBar (ProgressBar, tick)
 import qualified Resolver
 import Safe
+import qualified System.Console.Regions as CR
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
 import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: ProgressBar -> Config -> Dependencies -> FilePath -> IO DependencyTree
-build pg config cache entryPoint = do
-  dep <- toDependency config entryPoint
-  tree <- buildTree config cache dep
-  _ <- tick pg
-  return tree
+build :: Config -> Dependencies -> FilePath -> IO DependencyTree
+build config cache entryPoint = do
+  CR.withConsoleRegion
+    CR.Linear
+    (\region -> do
+       let basemsg = ("  " <> T.pack entryPoint <> ": ") :: T.Text
+       CR.setConsoleRegion region basemsg
+       dep <- toDependency config entryPoint
+       tree <- buildTree region config cache dep
+       CR.closeConsoleRegion region
+       return tree)
 
-buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree
-buildTree config cache =
-  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
+buildTree ::
+     CR.ConsoleRegion
+  -> Config
+  -> Dependencies
+  -> Dependency
+  -> IO DependencyTree
+buildTree region config cache =
+  Tree.unfoldTreeM (resolveChildren region config <=< findRequires cache config) <=<
   Resolver.resolve config Nothing
 
 readTreeCache :: FilePath -> IO Dependencies
@@ -132,7 +143,11 @@ parseModule cache dep@Dependency {filePath} parser =
       return (dep, dependencies)
 
 resolveChildren ::
-     Config -> (Dependency, [Dependency]) -> IO (Dependency, [Dependency])
-resolveChildren config (parent, children) = do
+     CR.ConsoleRegion
+  -> Config
+  -> (Dependency, [Dependency])
+  -> IO (Dependency, [Dependency])
+resolveChildren region config (parent, children) = do
   resolved <- traverse (Resolver.resolve config (Just parent)) children
+  _ <- CR.appendConsoleRegion region ("." :: T.Text)
   return (parent, resolved)
