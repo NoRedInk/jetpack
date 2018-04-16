@@ -21,12 +21,12 @@ import qualified GHC.IO.Handle as IOH
 import Parser.Ast as Ast
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
+import qualified System.Console.Concurrent as CC
 import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import qualified System.Process as P
-import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -194,10 +194,10 @@ runCmd _region _basemsg Args {warn} input cmd maybeCwd = do
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
   (_, Just out, Just err, ph) <-
-    P.createProcess
-      (proc "bash" ["-c", cmd])
-      {cwd = maybeCwd, std_out = CreatePipe, std_err = CreatePipe}
-  ec <- waitForProcess ph
+    CC.createProcessConcurrent
+      (P.proc "bash" ["-c", cmd])
+      {P.cwd = maybeCwd, P.std_out = P.CreatePipe, P.std_err = P.CreatePipe}
+  ec <- CC.waitForProcessConcurrent ph
   content <- IOH.hGetContents out
   errContent <- IOH.hGetContents err
   pure (ec, errContent, content)
