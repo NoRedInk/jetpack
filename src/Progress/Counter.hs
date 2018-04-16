@@ -16,17 +16,13 @@ import qualified System.Console.Regions as CR
 mapConcurrently :: CR.ConsoleRegion -> (a -> IO b) -> [a] -> IO [b]
 mapConcurrently region go items = do
   withLoader region $ \r -> do
-    let max = T.pack $ show $ L.length items
     mVar <- C.newMVar (0 :: Integer)
     Concurrent.mapConcurrently
       (\item -> do
          result <- go item
          count <- C.takeMVar mVar
-         C.putMVar mVar (count + 1)
-         _ <-
-           CR.setConsoleRegion
-             r
-             ("(" <> T.pack (show (count + 1)) <> "/" <> max <> ")")
+         _ <- C.putMVar mVar (count + 1)
+         _ <- CR.setConsoleRegion r (nOutOf count items)
          return result)
       items
 
@@ -34,7 +30,6 @@ mapGroupConcurrently ::
      Ord b => CR.ConsoleRegion -> (a -> b) -> (a -> IO c) -> [a] -> IO [c]
 mapGroupConcurrently region groupper go items =
   withLoader region $ \r -> do
-    let max = T.pack $ show $ L.length items
     let groupped = groupWith groupper items
     mVar <- C.newMVar (0 :: Integer)
     result <-
@@ -42,14 +37,20 @@ mapGroupConcurrently region groupper go items =
         (T.traverse $ \item -> do
            result <- go item
            count <- C.takeMVar mVar
-           C.putMVar mVar (count + 1)
-           _ <-
-             CR.setConsoleRegion
-               r
-               ("(" <> T.pack (show (count + 1)) <> "/" <> max <> ")")
+           _ <- C.putMVar mVar (count + 1)
+           _ <- CR.setConsoleRegion r (nOutOf count items)
            return result)
         groupped
     return (mconcat result)
+
+nOutOf :: Integer -> [a] -> T.Text
+nOutOf count items = "[" <> prefix <> n <> "/" <> max <> "]"
+  where
+    max = T.pack $ show $ L.length items
+    n = T.pack (show $ count + 1)
+    maxCharLen = T.length max
+    nCharLen = T.length n
+    prefix = T.pack $ take (maxCharLen - nCharLen) $ cycle " "
 
 withLoader :: CR.ConsoleRegion -> (CR.ConsoleRegion -> IO a) -> IO a
 withLoader region go =
