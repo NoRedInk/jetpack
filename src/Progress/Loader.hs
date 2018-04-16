@@ -12,7 +12,7 @@ newtype Loader =
 
 start :: CR.ConsoleRegion -> IO Loader
 start region = do
-  id <- C.forkIO (loader region (cycle loaderParts))
+  id <- C.forkIO (loader' region (cycle loaderParts))
   return (Loader id)
 
 stop :: Loader -> IO ()
@@ -20,10 +20,6 @@ stop (Loader id) = C.killThread id
 
 loaderParts :: [T.Text]
 loaderParts = [".  ", " . ", "  .", " . "]
-
-loader :: CR.ConsoleRegion -> [T.Text] -> IO ()
-loader region parts =
-  CR.withConsoleRegion (CR.InLine region) (\r -> loader' r parts)
 
 loader' :: CR.ConsoleRegion -> [T.Text] -> IO ()
 loader' _ [] = return ()

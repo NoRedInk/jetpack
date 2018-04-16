@@ -19,7 +19,6 @@ import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
 import qualified GHC.IO.Handle as IOH
 import Parser.Ast as Ast
-import qualified Progress.Loader
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
 import qualified System.Console.Regions as CR
@@ -78,22 +77,13 @@ runCompiler args config fileType ToolPaths {elmMake, coffee} arguments@Arguments
   CR.withConsoleRegion
     CR.Linear
     (\region -> do
-       loader <- Progress.Loader.start region
-       result <-
-         CR.withConsoleRegion
-           (CR.InLine region)
-           (\region -> do
-              let basemsg =
-                    ("  " <> fileTypeTitle fileType <> ": " <> T.pack input) :: T.Text
-              CR.setConsoleRegion region basemsg
-              case fileType of
-                Ast.Elm ->
-                  elmCompiler elmMake region basemsg args config arguments
-                Ast.Js -> jsCompiler region basemsg arguments
-                Ast.Coffee ->
-                  coffeeCompiler coffee region basemsg args arguments)
-       _ <- Progress.Loader.stop loader
-       return result)
+       let basemsg =
+             ("   " <> fileTypeTitle fileType <> ": " <> T.pack input) :: T.Text
+       CR.setConsoleRegion region basemsg
+       case fileType of
+         Ast.Elm -> elmCompiler elmMake region basemsg args config arguments
+         Ast.Js -> jsCompiler region basemsg arguments
+         Ast.Coffee -> coffeeCompiler coffee region basemsg args arguments)
 
 fileTypeTitle :: Ast.SourceType -> T.Text
 fileTypeTitle fileType =

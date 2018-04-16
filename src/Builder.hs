@@ -66,13 +66,12 @@ buildHelp config args@Args {preHook, postHook} = do
   let Config {temp_directory} = config
   deps <-
     Progress.Region.region
-      "Building dependency tree for entrypoints: "
-      (\region basemsg -> do
+      "Building dependency tree for entrypoints:"
+      (\region -> do
          cache <- DependencyTree.readTreeCache temp_directory
          deps <-
            Progress.Counter.mapConcurrently
              region
-             basemsg
              (DependencyTree.build config cache)
              entryPoints
          DependencyTree.writeTreeCache temp_directory deps
@@ -81,12 +80,11 @@ buildHelp config args@Args {preHook, postHook} = do
   let modules = LU.uniq $ concatMap Tree.flatten deps
   result <-
     Progress.Region.region
-      "Compiling: "
-      (\region basemsg -> do
+      "Compiling:"
+      (\region -> do
          result <-
            Progress.Counter.mapGroupConcurrently
              region
-             basemsg
              (\Dependency {fileType} -> fileType)
              (Compile.compile args config toolPaths)
              modules
@@ -102,17 +100,13 @@ buildHelp config args@Args {preHook, postHook} = do
              result
          return result)
   _ <-
-    CR.withConsoleRegion
-      CR.Linear
+    Progress.Region.region
+      "Write modules:"
       (\region -> do
-         let basemsg = "Write modules: " :: T.Text
-         CR.setConsoleRegion region basemsg
-         CR.appendConsoleRegion region ("..." :: T.Text)
          pg <- start (L.length deps) "Write modules"
          modules <-
            Progress.Counter.mapConcurrently
              region
-             basemsg
              (ConcatModule.wrap pg config)
              deps
          _ <- createdModulesJson config modules
