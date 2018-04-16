@@ -23,6 +23,7 @@ import qualified Init
 import qualified Logger
 import qualified Message
 import qualified Progress.Counter
+import qualified Progress.Loader
 import qualified Progress.Region
 import qualified System.Console.Regions as CR
 import qualified System.Exit
@@ -58,7 +59,9 @@ buildHelp config args@Args {preHook, postHook} = do
   toolPaths <- Init.setup config
   _ <- traverse (Logger.clearLog config) Logger.allLogs
   -- HOOK
+  loader <- Progress.Loader.startWithMsg "Pre hook:"
   maybeRunHook config Pre preHook
+  _ <- Progress.Loader.stop loader
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   let Config {temp_directory} = config
@@ -110,7 +113,9 @@ buildHelp config args@Args {preHook, postHook} = do
          return modules)
   _ <- traverse (Compile.printTime args) result
   -- HOOK
+  loader <- Progress.Loader.startWithMsg "Post hook:"
   maybeRunHook config Post postHook
+  _ <- Progress.Loader.stop loader
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   case warnings of

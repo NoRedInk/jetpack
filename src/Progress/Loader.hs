@@ -1,5 +1,6 @@
 module Progress.Loader
   ( start
+  , startWithMsg
   , stop
   ) where
 
@@ -12,7 +13,16 @@ newtype Loader =
 
 start :: CR.ConsoleRegion -> IO Loader
 start region = do
-  id <- C.forkIO (loader' region (cycle loaderParts))
+  id <- C.forkIO (loader region (cycle loaderParts))
+  return (Loader id)
+
+startWithMsg :: T.Text -> IO Loader
+startWithMsg msg = do
+  id <-
+    C.forkIO
+      (CR.withConsoleRegion CR.Linear $ \r -> do
+         _ <- CR.setConsoleRegion r msg
+         CR.withConsoleRegion (CR.InLine r) $ \s -> loader s (cycle loaderParts))
   return (Loader id)
 
 stop :: Loader -> IO ()
@@ -39,9 +49,9 @@ loaderParts
   , "=   "
   ]
 
-loader' :: CR.ConsoleRegion -> [T.Text] -> IO ()
-loader' _ [] = return ()
-loader' region (x:rest) = do
+loader :: CR.ConsoleRegion -> [T.Text] -> IO ()
+loader _ [] = return ()
+loader region (x:rest) = do
   CR.setConsoleRegion region x
   C.threadDelay 200000
-  loader' region rest
+  loader region rest
