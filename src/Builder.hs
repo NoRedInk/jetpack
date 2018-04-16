@@ -9,7 +9,6 @@ import Config
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
 import Data.Semigroup ((<>))
@@ -25,7 +24,6 @@ import qualified Logger
 import qualified Message
 import qualified Progress.Counter
 import qualified Progress.Region
-import ProgressBar (start)
 import qualified System.Console.Regions as CR
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
@@ -103,11 +101,10 @@ buildHelp config args@Args {preHook, postHook} = do
     Progress.Region.region
       "Write modules:"
       (\region -> do
-         pg <- start (L.length deps) "Write modules"
          modules <-
            Progress.Counter.mapConcurrently
              region
-             (ConcatModule.wrap pg config)
+             (ConcatModule.wrap config)
              deps
          _ <- createdModulesJson config modules
          return modules)

@@ -14,19 +14,16 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import Dependencies
-import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
-wrap pg env dep = do
+wrap :: Config -> DependencyTree -> IO FilePath
+wrap env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
-  out <- writeModule env dep $ catMaybes wrapped
-  _ <- tick pg
-  return out
+  writeModule env dep $ catMaybes wrapped
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren

@@ -19,7 +19,25 @@ stop :: Loader -> IO ()
 stop (Loader id) = C.killThread id
 
 loaderParts :: [T.Text]
-loaderParts = [".  ", " . ", "  .", " . "]
+loaderParts
+  -- copied from https://github.com/sindresorhus/cli-spinners
+ =
+  [ "    "
+  , "=   "
+  , "==  "
+  , "=== "
+  , " ==="
+  , "  =="
+  , "   ="
+  , "    "
+  , "   ="
+  , "  =="
+  , " ==="
+  , "===="
+  , "=== "
+  , "==  "
+  , "=   "
+  ]
 
 loader' :: CR.ConsoleRegion -> [T.Text] -> IO ()
 loader' _ [] = return ()

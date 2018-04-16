@@ -13,5 +13,5 @@ region title run =
     (\region -> do
        CR.setConsoleRegion region title
        result <- run region
-       CR.finishConsoleRegion region (title <> " done!")
+       CR.finishConsoleRegion region (title <> " ✔")
        return result)
