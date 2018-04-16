@@ -1,6 +1,6 @@
 module Progress.Counter
   ( mapConcurrently
-  , mapGroupped
+  , mapGroupConcurrently
   ) where
 
 import qualified Control.Concurrent as C
@@ -9,6 +9,7 @@ import qualified Data.List as L
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Traversable as T
+import GHC.Exts (groupWith)
 import qualified System.Console.Regions as CR
 
 mapConcurrently :: CR.ConsoleRegion -> T.Text -> (a -> IO b) -> [a] -> IO [b]
@@ -27,9 +28,17 @@ mapConcurrently region title go items = do
        return result)
     items
 
-mapGroupped :: CR.ConsoleRegion -> T.Text -> (a -> IO b) -> [[a]] -> IO [b]
-mapGroupped region title go groupped = do
-  let max = T.pack $ show $ L.length $ mconcat groupped
+mapGroupConcurrently ::
+     Ord b
+  => CR.ConsoleRegion
+  -> T.Text
+  -> (a -> b)
+  -> (a -> IO c)
+  -> [a]
+  -> IO [c]
+mapGroupConcurrently region title groupper go items = do
+  let max = T.pack $ show $ L.length items
+  let groupped = groupWith groupper items
   mVar <- C.newMVar (0 :: Integer)
   result <-
     Concurrent.mapConcurrently

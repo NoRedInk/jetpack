@@ -19,7 +19,6 @@ import qualified Data.Tree as Tree
 import Dependencies (Dependency(..))
 import qualified DependencyTree
 import qualified EntryPoints
-import GHC.Exts (groupWith)
 import qualified Hooks
 import qualified Init
 import qualified Logger
@@ -84,13 +83,13 @@ buildHelp config args@Args {preHook, postHook} = do
     Progress.Region.region
       "Compiling: "
       (\region basemsg -> do
-         let groupped = groupWith (\Dependency {fileType} -> fileType) modules
          result <-
-           Progress.Counter.mapGroupped
+           Progress.Counter.mapGroupConcurrently
              region
              basemsg
+             (\Dependency {fileType} -> fileType)
              (Compile.compile args config toolPaths)
-             groupped
+             modules
          _ <-
            traverse
              (Logger.appendLog config Logger.compileLog . T.pack . show)
