@@ -18,15 +18,15 @@ import Dependencies (Dependency(..))
 import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
 
--- import GHC.IO.Handle
+import qualified GHC.IO.Handle as IOH
 import Parser.Ast as Ast
-import ProgressBar (ProgressBar, tick)
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
-import qualified System.Console.Concurrent as CC
+import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
+import qualified System.Process as P
 import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
@@ -57,10 +57,9 @@ instance Show Duration where
   show (Duration start end) =
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
-compile :: ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> IO Result
-compile pg args config toolPaths Dependency {fileType, filePath} =
+compile :: Args -> Config -> ToolPaths -> Dependency -> IO Result
+compile args config toolPaths Dependency {fileType, filePath} =
   runCompiler
-    pg
     args
     config
     fileType
@@ -74,18 +73,25 @@ data Arguments = Arguments
   }
 
 runCompiler ::
-     ProgressBar
-  -> Args
-  -> Config
-  -> Ast.SourceType
-  -> ToolPaths
-  -> Arguments
-  -> IO Result
-runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
+     Args -> Config -> Ast.SourceType -> ToolPaths -> Arguments -> IO Result
+runCompiler args config fileType ToolPaths {elmMake, coffee} arguments@Arguments {input} =
+  CR.withConsoleRegion
+    CR.Linear
+    (\region -> do
+       let basemsg =
+             ("  " <> fileTypeTitle fileType <> ": " <> T.pack input) :: T.Text
+       CR.setConsoleRegion region basemsg
+       case fileType of
+         Ast.Elm -> elmCompiler elmMake region basemsg args config arguments
+         Ast.Js -> jsCompiler region basemsg arguments
+         Ast.Coffee -> coffeeCompiler coffee region basemsg args arguments)
+
+fileTypeTitle :: Ast.SourceType -> T.Text
+fileTypeTitle fileType =
   case fileType of
-    Ast.Elm -> elmCompiler elmMake pg args config arguments
-    Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg args arguments
+    Ast.Elm -> "Elm"
+    Ast.Js -> "JS"
+    Ast.Coffee -> "Coffee"
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
 buildArtifactPath Config {temp_directory} fileType inputPath =
@@ -101,10 +107,16 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
-elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
-                                                                  , output
-                                                                  } = do
+     FilePath
+  -> CR.ConsoleRegion
+  -> T.Text
+  -> Args
+  -> Config
+  -> Arguments
+  -> IO Result
+elmCompiler elmMake region basemsg args Config {elm_root_directory} Arguments { input
+                                                                              , output
+                                                                              } = do
   let Args {debug, warn} = args
   let debugFlag =
         if debug
@@ -120,20 +132,21 @@ elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
         "../" ++
         input ++
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-  runCmd pg args input cmd $ Just elm_root_directory
+  runCmd region basemsg args input cmd $ Just elm_root_directory
 
-coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
-coffeeCompiler coffee pg args Arguments {input, output} = do
+coffeeCompiler ::
+     FilePath -> CR.ConsoleRegion -> T.Text -> Args -> Arguments -> IO Result
+coffeeCompiler coffee region basemsg args Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg args input cmd Nothing
+  runCmd region basemsg args input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: ProgressBar -> Arguments -> IO Result
-jsCompiler pg Arguments {input, output} = do
+jsCompiler :: CR.ConsoleRegion -> T.Text -> Arguments -> IO Result
+jsCompiler _region _basemsg Arguments {input, output} = do
   start <- getTime Monotonic
   _ <- copyFile input output
-  _ <- tick pg
+  -- _ <- tick region basemsg
   currentTime <- getCurrentTime
   end <- getTime Monotonic
   return
@@ -146,14 +159,22 @@ jsCompiler pg Arguments {input, output} = do
     , compiledFile = input
     }
 
-runCmd :: ProgressBar -> Args -> FilePath -> String -> Maybe String -> IO Result
-runCmd pg Args {warn} input cmd maybeCwd = do
+runCmd ::
+     CR.ConsoleRegion
+  -> T.Text
+  -> Args
+  -> FilePath
+  -> String
+  -> Maybe String
+  -> IO Result
+runCmd _region _basemsg Args {warn} input cmd maybeCwd = do
   start <- getTime Monotonic
   (ec, errContent, content) <- runAndWaitForProcess cmd maybeCwd
   end <- getTime Monotonic
   case ec of
-    ExitSuccess -> do
-      _ <- tick pg
+    ExitSuccess
+      -- _ <- tick region basemsg
+     -> do
       currentTime <- getCurrentTime
       return
         Result
@@ -173,12 +194,14 @@ runCmd pg Args {warn} input cmd maybeCwd = do
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
-  (_, _, _, ph) <-
-    CC.createProcessConcurrent (proc "bash" ["-c", cmd]) {cwd = maybeCwd}
+  (_, Just out, Just err, ph) <-
+    P.createProcess
+      (proc "bash" ["-c", cmd])
+      {cwd = maybeCwd, std_out = CreatePipe, std_err = CreatePipe}
   ec <- waitForProcess ph
-  -- content <- hGetContents out
-  -- errContent <- hGetContents err
-  pure (ec, "", "")
+  content <- IOH.hGetContents out
+  errContent <- IOH.hGetContents err
+  pure (ec, errContent, content)
 
 data Error =
   CompileError T.Text

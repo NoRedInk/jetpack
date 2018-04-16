@@ -16,14 +16,17 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
+import Dependencies (Dependency(..))
 import qualified DependencyTree
 import qualified EntryPoints
+import GHC.Exts (groupWith)
 import qualified Hooks
 import qualified Init
 import qualified Logger
 import qualified Message
 import qualified Progress.Counter
-import ProgressBar (ProgressBar, complete, start, tick)
+import qualified Progress.Region
+import ProgressBar (start)
 import qualified System.Console.Regions as CR
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
@@ -63,12 +66,9 @@ buildHelp config args@Args {preHook, postHook} = do
   -- GETTING DEPENDENCY TREE
   let Config {temp_directory} = config
   deps <-
-    CR.withConsoleRegion
-      CR.Linear
-      (\region -> do
-         let basemsg = "Building dependency tree for entrypoints: " :: T.Text
-         CR.setConsoleRegion region basemsg
-         CR.appendConsoleRegion region ("..." :: T.Text)
+    Progress.Region.region
+      "Building dependency tree for entrypoints: "
+      (\region basemsg -> do
          cache <- DependencyTree.readTreeCache temp_directory
          deps <-
            Progress.Counter.mapConcurrently
@@ -77,22 +77,32 @@ buildHelp config args@Args {preHook, postHook} = do
              (DependencyTree.build config cache)
              entryPoints
          DependencyTree.writeTreeCache temp_directory deps
-         CR.finishConsoleRegion region (basemsg <> " done!")
          return deps)
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
-  pg <- start (L.length modules) "Compiling"
-  result <- traverse (Compile.compile pg args config toolPaths) modules
+  result <-
+    Progress.Region.region
+      "Compiling: "
+      (\region basemsg -> do
+         let groupped = groupWith (\Dependency {fileType} -> fileType) modules
+         result <-
+           Progress.Counter.mapGroupped
+             region
+             basemsg
+             (Compile.compile args config toolPaths)
+             groupped
+         _ <-
+           traverse
+             (Logger.appendLog config Logger.compileLog . T.pack . show)
+             result
+         _ <-
+           traverse
+             (\Compile.Result {compiledFile, duration} ->
+                Logger.appendLog config Logger.compileTime $
+                T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+             result
+         return result)
   _ <-
-    traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
-  _ <-
-    traverse
-      (\Compile.Result {compiledFile, duration} ->
-         Logger.appendLog config Logger.compileTime $
-         T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-      result
-  complete pg
-  modules <-
     CR.withConsoleRegion
       CR.Linear
       (\region -> do
@@ -106,9 +116,8 @@ buildHelp config args@Args {preHook, postHook} = do
              basemsg
              (ConcatModule.wrap pg config)
              deps
-         CR.finishConsoleRegion region (basemsg <> " done!")
+         _ <- createdModulesJson config modules
          return modules)
-  _ <- createdModulesJson pg config modules
   _ <- traverse (Compile.printTime args) result
   -- HOOK
   maybeRunHook config Post postHook
@@ -133,11 +142,11 @@ data Hook
   | Post
   deriving (Show)
 
-createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
-createdModulesJson pg config paths = do
+createdModulesJson :: Config -> [FilePath] -> IO ()
+createdModulesJson config paths = do
   let encodedPaths = Aeson.encode paths
   let Config {temp_directory} = config
   let jsonPath = temp_directory </> "modules" <.> "json"
   _ <- BL.writeFile jsonPath encodedPaths
-  _ <- tick pg
+  -- _ <- tick pg
   return ()
