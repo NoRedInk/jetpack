@@ -9,21 +9,9 @@ import Data.Tree as Tree
 import Dependencies
 import DependencyTree
 import Parser.Ast as Ast
-import System.Console.AsciiProgress
 import System.FilePath ((<.>), (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
-
-mockProgressBar :: IO ProgressBar
-mockProgressBar =
-  newProgressBar
-    def
-    { pgTotal = toInteger 1
-    , pgOnCompletion = Just ""
-    , pgCompletedChar = ' '
-    , pgPendingChar = ' '
-    , pgFormat = ""
-    }
 
 basicsFixtures :: Config
 basicsFixtures =
@@ -73,8 +61,7 @@ suite =
   testGroup
     "Dependencies"
     [ testCase "#build success" $ do
-        pg <- mockProgressBar
-        dep <- DependencyTree.build pg basicsFixtures [] ("test" <.> "js")
+        dep <- DependencyTree.build basicsFixtures [] ("test" <.> "js")
         (fmap dropLastMod $ Tree.flatten dep) @?=
           [ ( Ast.Js
             , "" </> "test.js"
@@ -111,9 +98,7 @@ suite =
               "debug.js")
           ]
     , testCase "#build no_parse" $ do
-        pg <- mockProgressBar
-        dep <-
-          DependencyTree.build pg basicsFixtures [] ("test_no_parse" <.> "js")
+        dep <- DependencyTree.build basicsFixtures [] ("test_no_parse" <.> "js")
         (fmap dropLastMod $ Tree.flatten dep) @?=
           [ ( Ast.Js
             , "" </> "test_no_parse.js"
@@ -130,10 +115,8 @@ suite =
               "index.js")
           ]
     , testCase "#build failing" $ do
-        pg <- mockProgressBar
         result <-
-          ES.tryAny $
-          DependencyTree.build pg failingFixtures [] ("test" <.> "js")
+          ES.tryAny $ DependencyTree.build failingFixtures [] ("test" <.> "js")
         case result of
           Left err ->
             show err @?=
