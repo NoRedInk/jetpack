@@ -3,6 +3,9 @@
   "version": "2.0.18",
   "description": "Install jetpack",
   "preferGlobal": true,
+  "engines": {
+    "node": ">=5.2.0"
+  },
   "main": "index.js",
   "scripts": {
     "install": "npx binwrap-install",
