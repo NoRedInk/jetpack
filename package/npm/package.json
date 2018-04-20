@@ -21,8 +21,7 @@
     "url": "https://github.com/NoRedInk/jetpack/issues"
   },
   "files": [
-    "index.js",
-    "bin"
+    "index.js"
   ],
   "homepage": "https://github.com/NoRedInk/jetpack",
   "bin": {
