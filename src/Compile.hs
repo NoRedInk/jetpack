@@ -1,17 +1,20 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 {-|
 -}
 module Compile where
 
 import CliArguments (Args(..))
 import Config (Config(..))
+import Control.Exception.Safe (Exception)
+import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
-import Control.Monad.Except (throwError)
 import Data.Semigroup ((<>))
 import Data.Text as T
 import Data.Text.Lazy as TL
 import Data.Time.Clock (UTCTime, getCurrentTime)
+import Data.Typeable (Typeable)
 import Dependencies (Dependency(..))
-import Error
 import Formatting (format)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
@@ -23,7 +26,6 @@ import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
 import System.Process
-import Task (Task, lift)
 import ToolPaths
 import Utils.Files (pathToFileName)
 
@@ -54,8 +56,7 @@ instance Show Duration where
   show (Duration start end) =
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
-compile ::
-     ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> Task Result
+compile :: ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> IO Result
 compile pg args config toolPaths Dependency {fileType, filePath} =
   runCompiler
     pg
@@ -78,7 +79,7 @@ runCompiler ::
   -> Ast.SourceType
   -> ToolPaths
   -> Arguments
-  -> Task Result
+  -> IO Result
 runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
   case fileType of
     Ast.Elm -> elmCompiler elmMake pg args config arguments
@@ -99,7 +100,7 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> Task Result
+     FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
 elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
                                                                   , output
                                                                   } = do
@@ -120,41 +121,39 @@ elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
   runCmd pg args input cmd $ Just elm_root_directory
 
-coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> Task Result
+coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
 coffeeCompiler coffee pg args Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
   runCmd pg args input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: ProgressBar -> Arguments -> Task Result
-jsCompiler pg Arguments {input, output} =
-  lift $ do
-    start <- getTime Monotonic
-    _ <- copyFile input output
-    _ <- tick pg
-    currentTime <- getCurrentTime
-    end <- getTime Monotonic
-    return
-      Result
-      { duration = Duration start end
-      , compiledAt = currentTime
-      , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
-      , stdout = Nothing
-      , warnings = Nothing
-      , compiledFile = input
-      }
+jsCompiler :: ProgressBar -> Arguments -> IO Result
+jsCompiler pg Arguments {input, output} = do
+  start <- getTime Monotonic
+  _ <- copyFile input output
+  _ <- tick pg
+  currentTime <- getCurrentTime
+  end <- getTime Monotonic
+  return
+    Result
+    { duration = Duration start end
+    , compiledAt = currentTime
+    , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
+    , stdout = Nothing
+    , warnings = Nothing
+    , compiledFile = input
+    }
 
-runCmd ::
-     ProgressBar -> Args -> FilePath -> String -> Maybe String -> Task Result
+runCmd :: ProgressBar -> Args -> FilePath -> String -> Maybe String -> IO Result
 runCmd pg Args {warn} input cmd maybeCwd = do
-  start <- lift $ getTime Monotonic
-  (ec, errContent, content) <- lift $ runAndWaitForProcess cmd maybeCwd
-  end <- lift $ getTime Monotonic
+  start <- getTime Monotonic
+  (ec, errContent, content) <- runAndWaitForProcess cmd maybeCwd
+  end <- getTime Monotonic
   case ec of
     ExitSuccess -> do
-      _ <- lift $ tick pg
-      currentTime <- lift getCurrentTime
+      _ <- tick pg
+      currentTime <- getCurrentTime
       return
         Result
         { duration = Duration start end
@@ -169,7 +168,7 @@ runCmd pg Args {warn} input cmd maybeCwd = do
         , compiledFile = input
         }
     ExitFailure _ ->
-      throwError [CompileError (T.pack cmd) (T.pack (content <> errContent))]
+      ES.throwM $ CompileError (T.pack cmd) (T.pack (content <> errContent))
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
@@ -181,3 +180,12 @@ runAndWaitForProcess cmd maybeCwd = do
   content <- hGetContents out
   errContent <- hGetContents err
   pure (ec, errContent, content)
+
+data Error =
+  CompileError T.Text
+               T.Text
+  deriving (Typeable, Exception)
+
+instance Show Error where
+  show (CompileError cmd msg) =
+    T.unpack $ T.unlines ["Command:", "", "    $ " <> cmd, "", msg]

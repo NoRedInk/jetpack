@@ -1,6 +1,6 @@
 module Utils.Tree
   ( searchNode
-  , foldTree
+  , foldTree_
   , roots
   , nodesWithChildren
   ) where
@@ -31,11 +31,11 @@ searchNode p = find . pure
 
 {-| Fold over a tree.
     >>> let myTree = Node 1 [ Node 11 [], Node 12 [ Node 21 [ Node 31 [] ] , Node 22 [] ] ]
-    >>> foldTree (\a as -> show a : fmap show as) myTree
+    >>> foldTree_ (\a as -> show a : fmap show as) myTree
     ["1","11","12","11","12","21","22","21","31","31","22"]
 -}
-foldTree :: Monoid m => (a -> [a] -> m) -> Tree a -> m
-foldTree f (Node x ts) = mconcat $ f x (roots ts) : fmap (foldTree f) ts
+foldTree_ :: Monoid m => (a -> [a] -> m) -> Tree a -> m
+foldTree_ f (Node x ts) = mconcat $ f x (roots ts) : fmap (foldTree_ f) ts
 
 {-| Get all nodes and the children of each node.
     >>> let myTree = Node 1 [ Node 11 [], Node 12 [ Node 21 [ Node 31 [] ] , Node 22 [] ] ]
@@ -43,7 +43,7 @@ foldTree f (Node x ts) = mconcat $ f x (roots ts) : fmap (foldTree f) ts
     [(1,[11,12]),(11,[]),(12,[21,22]),(21,[31]),(31,[]),(22,[])]
 -}
 nodesWithChildren :: Tree a -> [(a, [a])]
-nodesWithChildren = foldTree (\a as -> [(a, as)])
+nodesWithChildren = foldTree_ (\a as -> [(a, as)])
 
 {-| Get all rootLabels of a Forest.
     >>> let myForest = [ Node 11 [], Node 12 [ Node 21 [ Node 31 [] ] , Node 22 [] ], Node 13 [] ]

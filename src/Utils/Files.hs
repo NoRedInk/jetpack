@@ -1,28 +1,13 @@
 {-| Helpers for working with files/paths/dirs)
 -}
 module Utils.Files
-  ( fileExistsTask
-  , pathToFileName
+  ( pathToFileName
   , pathToFunctionName
   ) where
 
-import Control.Monad.Except
-
 import Data.List as L
 import Data.Text as T
-import Error (Error(..))
-import System.Directory (doesFileExist)
 import System.FilePath ((<.>), splitDirectories)
-import Task (Task, lift)
-
-{-| Checks if file exists and returns a failing task if it doesn't
--}
-fileExistsTask :: FilePath -> Task ()
-fileExistsTask path = do
-  exists <- lift $ doesFileExist path
-  case exists of
-    True -> lift $ return ()
-    False -> throwError $ [FileNotFound (T.pack path)]
 
 {-| Converts a path into a flat filename.
     >>> import System.FilePath ((</>), (<.>))
