@@ -8,9 +8,8 @@ import qualified Data.Aeson as Aeson
 import Data.Aeson ((.!=), (.:), (.:?))
 import Data.Aeson.Types (typeMismatch)
 import qualified Data.ByteString.Lazy as BL
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Error (Error(..))
-import qualified Error
 import Message
 import qualified System.Directory as Dir
 import System.Exit
@@ -67,8 +66,16 @@ load root = do
         Right config -> return config
         Left err -> do
           _ <-
-            Message.error $ Error.description $ ConfigInvalid path $ T.pack err
+            Message.error $
+            T.unlines
+              [ "Invalid jetpack.json: " <> T.pack path
+              , ""
+              , "    " <> T.pack err
+              , ""
+              ]
           System.Exit.exitFailure
     else do
-      _ <- Message.error $ Error.description $ NoConfigFound path
+      _ <-
+        Message.error $
+        T.unlines ["I didn't find a config for jetpack at " <> T.pack path]
       System.Exit.exitFailure

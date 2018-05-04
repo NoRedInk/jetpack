@@ -1,4 +1,3 @@
--- TODO move this to a better place. This is not an AST
 module Parser.Ast
   ( Require(..)
   , SourceType(..)

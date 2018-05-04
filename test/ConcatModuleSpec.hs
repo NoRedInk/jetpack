@@ -11,7 +11,6 @@ import Parser.Ast as Ast
 import System.Console.AsciiProgress
 import System.Directory (removeFile)
 import System.FilePath ((<.>), (</>))
-import Task
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -132,36 +131,31 @@ suite =
   testGroup
     "ConcatModule"
     [ testCase "#wrapModule" $ do wrapModule "" "" @?= ""
-    , testCase "#wrapModule wraps a module in a function" $ do
-        wrapModule "testFunction" mockModule @?= wrappedModule
+    , testCase "#wrapModule wraps a module in a function" $
+      wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase
         "#replaceRequire replaces require('string') with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require('foo')"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require('foo')" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
         "#replaceRequire replaces require(\"string\") with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require(\"foo\")"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require(\"foo\")" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
         "#replaceRequire replaces require( 'string' ) with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require( 'foo' )"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require( 'foo' )" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
-        e <-
-          runExceptT $ do
-            pg <- lift mockProgressBar
-            traverse (wrap pg mockConfig) mockDependencies
-        case e of
-          Left _ -> assertFailure ""
-          Right paths -> do
-            paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
-            actual <- traverse readFile paths
-            actual @?= expectedOutput
-            traverse_ removeFile paths
+        pg <- mockProgressBar
+        paths <- traverse (wrap pg mockConfig) mockDependencies
+        paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
+        actual <- traverse readFile paths
+        actual @?= expectedOutput
+        traverse_ removeFile paths
     ]

@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 {-| Resolves `requires`-statements. It tries to locate the module in the following directories.
 
 1. relative to the file requiring the module
@@ -29,53 +31,61 @@ module Resolver
 
 import Config (Config(..))
 import Control.Applicative ((<|>))
+import Control.Exception.Safe (Exception)
+import qualified Control.Exception.Safe as ES
 import Control.Monad.Except (throwError)
-
+import qualified Control.Monad.Except as ME
+import Control.Monad.Except (ExceptT, lift)
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
+import Data.Typeable (Typeable)
 import Dependencies (Dependency(..))
-import Error (Error(ModuleNotFound))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
+import System.Directory (doesFileExist)
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
-import Task (Task, lift)
-import Utils.Files (fileExistsTask)
 
-resolve :: Config -> Maybe Dependency -> Dependency -> Task Dependency
+resolve :: Config -> Maybe Dependency -> Dependency -> IO Dependency
 resolve config requiredIn dep = do
-  let Config {modulesDirs} = config
+  result <- ME.runExceptT (resolveHelp config dep)
+  case result of
+    Left _ ->
+      ES.throwM $ ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep
+    Right dep -> return dep
+
+resolveHelp :: Config -> Dependency -> ExceptT () IO Dependency
+resolveHelp Config {modulesDirs, entryPoints, sourceDir} dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
-    findInEntryPoints config dep <|>
-    findInSources config dep <|>
-    findInModules dep modulesDirs <|>
-    moduleNotFound requiredIn (requiredAs dep)
+    findInEntryPoints entryPoints dep <|>
+    findInSources sourceDir dep <|>
+    findInModules modulesDirs dep
   updateDepTime $ updateDepType resolved
 
-findRelative :: Dependency -> Task Dependency
-findRelative parent = tryToFind (filePath parent) (requiredAs parent) parent
+findRelative :: Dependency -> ExceptT () IO Dependency
+findRelative dep@Dependency {filePath, requiredAs} =
+  tryToFind filePath requiredAs dep
 
-findRelativeNodeModules :: Dependency -> Task Dependency
-findRelativeNodeModules parent =
-  tryToFind (filePath parent </> "node_modules") (requiredAs parent) parent
+findRelativeNodeModules :: Dependency -> ExceptT () IO Dependency
+findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
+  tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints :: Config -> Dependency -> Task Dependency
-findInEntryPoints config parent = do
-  let Config {entryPoints} = config
-  tryToFind entryPoints (requiredAs parent) parent
+findInEntryPoints :: FilePath -> Dependency -> ExceptT () IO Dependency
+findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
+  tryToFind entryPoints requiredAs dep
 
-findInModules :: Dependency -> [FilePath] -> Task Dependency
-findInModules _parent [] = throwError []
-findInModules parent (x:xs) =
-  tryToFind x (requiredAs parent) parent <|> findInModules parent xs
+findInModules :: [FilePath] -> Dependency -> ExceptT () IO Dependency
+findInModules [] _parent = throwError ()
+findInModules (x:xs) dep@Dependency {requiredAs} =
+  tryToFind x requiredAs dep <|> findInModules xs dep
 
-findInSources :: Config -> Dependency -> Task Dependency
-findInSources config parent = do
-  let Config {sourceDir} = config
-  tryToFind sourceDir (requiredAs parent) parent
+findInSources :: FilePath -> Dependency -> ExceptT () IO Dependency
+findInSources sourceDir dep@Dependency {requiredAs} = do
+  tryToFind sourceDir requiredAs dep
 
-tryToFind :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryToFind :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryToFind basePath fileName require = do
   let ext = takeExtension fileName
   case ext of
@@ -83,7 +93,7 @@ tryToFind basePath fileName require = do
     ".coffee" -> tryCoffeeWithExt basePath fileName require
     _ -> tryJs basePath fileName require <|> tryCoffee basePath fileName require
 
-tryJs :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryJs :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryJs basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
   moduleExistsInBase "" require <|>
@@ -93,7 +103,7 @@ tryJs basePath fileName require =
   where
     moduleExistsInBase = moduleExists basePath
 
-tryJsWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryJsWithExt :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryJsWithExt basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
   moduleExistsInBase "" require <|>
@@ -101,7 +111,7 @@ tryJsWithExt basePath fileName require =
   where
     moduleExistsInBase = moduleExists basePath
 
-tryCoffee :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryCoffee :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryCoffee basePath fileName require =
   moduleExistsInBase fileName require <|>
   moduleExistsInBase (fileName <.> "coffee") require <|>
@@ -109,7 +119,8 @@ tryCoffee basePath fileName require =
   where
     moduleExistsInBase = moduleExists basePath
 
-tryCoffeeWithExt :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryCoffeeWithExt ::
+     FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryCoffeeWithExt basePath fileName require =
   moduleExistsInBase "" require <|> moduleExistsInBase fileName require
   where
@@ -117,34 +128,59 @@ tryCoffeeWithExt basePath fileName require =
 
 {-| check if we have a package.json. It contains information about the main file.
 -}
-tryMainFromPackageJson :: FilePath -> FilePath -> Dependency -> Task Dependency
+tryMainFromPackageJson ::
+     FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryMainFromPackageJson basePath fileName require = do
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
-  PackageJson {main, browser} <- PackageJson.load packageJsonPath
-  case browser <|> main of
-    Just entryPoint ->
-      moduleExists basePath (fileName </> T.unpack entryPoint) require
-    Nothing -> throwError []
+  exists <- lift (doesFileExist packageJsonPath)
+  if exists
+    then do
+      PackageJson {main, browser} <- lift (PackageJson.load packageJsonPath)
+      case browser <|> main of
+        Just packageIndex ->
+          moduleExists basePath (fileName </> packageIndex) require
+        Nothing -> throwError ()
+    else throwError ()
 
-moduleNotFound :: Maybe Dependency -> FilePath -> Task Dependency
-moduleNotFound requiredIn fileName =
-  throwError [ModuleNotFound (filePath <$> requiredIn) $ fileName]
-
-moduleExists :: FilePath -> FilePath -> Dependency -> Task Dependency
-moduleExists basePath path require =
-  fileExistsTask searchPath >> return (require {filePath = searchPath})
-  where
-    searchPath = basePath </> path
+moduleExists :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+moduleExists basePath path require = do
+  let searchPath = basePath </> path
+  exists <- lift (doesFileExist searchPath)
+  if exists
+    then return (require {filePath = searchPath})
+    else throwError ()
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
   where
     newType = Parser.Require.getFileType $ takeExtension p
 
-updateDepTime :: Dependency -> Task Dependency
-updateDepTime (Dependency t r p _) =
-  lift $ do
-    status <- getFileStatus p
-    let lastModificationTime =
-          posixSecondsToUTCTime $ modificationTimeHiRes status
-    return $ Dependency t r p $ Just lastModificationTime
+updateDepTime :: Dependency -> ExceptT () IO Dependency
+updateDepTime (Dependency t r p _) = do
+  status <- lift (getFileStatus p)
+  let lastModificationTime =
+        posixSecondsToUTCTime $ modificationTimeHiRes status
+  return $ Dependency t r p $ Just lastModificationTime
+
+data Error =
+  ModuleNotFound (Maybe FilePath)
+                 FilePath
+  deriving (Typeable, Exception)
+
+instance Show Error where
+  show (ModuleNotFound (Just requiredIn) file) =
+    T.unpack $
+    T.unlines
+      [ ""
+      , ""
+      , "I had troubles finding '" <> T.pack file <> "' required in '" <>
+        T.pack requiredIn <>
+        "'."
+      , ""
+      , "Make sure that you spelled the name of the module correctly."
+      , "You might also want to make sure that all dependencies are updated."
+      ]
+  show (ModuleNotFound Nothing file) =
+    T.unpack $
+    T.unlines
+      ["", "", "I had troubles finding the entry point " <> T.pack file <> "."]
