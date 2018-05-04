@@ -4,6 +4,7 @@ module Init where
 
 import Config
 
+import qualified Data.Text.IO as TIO
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((<.>), (</>))
 import qualified ToolPaths
@@ -25,4 +26,4 @@ createDepsJsonIfMissing tempDirectory = do
   exists <- doesFileExist depsJSONPath
   if exists
     then return ()
-    else writeFile depsJSONPath "[]"
+    else TIO.writeFile depsJSONPath "[]"

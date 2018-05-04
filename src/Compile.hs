@@ -10,12 +10,12 @@ import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
 import Data.Semigroup ((<>))
-import Data.Text as T
-import Data.Text.Lazy as TL
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Typeable (Typeable)
 import Dependencies (Dependency(..))
-import Formatting (format)
+import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
@@ -41,11 +41,10 @@ data Result = Result
 printTime :: Args -> Compile.Result -> IO ()
 printTime Args {time} Compile.Result {compiledFile, duration} =
   when time $
-  putStrLn $
-  T.unpack $ T.pack compiledFile <> ": " <> T.pack (formatDuration duration)
+  TIO.putStrLn $ T.pack compiledFile <> ": " <> formatDuration duration
 
-formatDuration :: Duration -> String
-formatDuration (Duration start end) = TL.unpack $ format timeSpecs start end
+formatDuration :: Duration -> T.Text
+formatDuration (Duration start end) = sformat timeSpecs start end
 
 data Duration = Duration
   { start :: TimeSpec
