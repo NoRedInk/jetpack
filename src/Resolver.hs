@@ -29,13 +29,13 @@ module Resolver
   ( resolve
   ) where
 
+import Alternative.IO (AlternativeIO)
+import qualified Alternative.IO as AIO
 import Config (Config(..))
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
-import Control.Monad.Except (throwError)
 import qualified Control.Monad.Except as ME
-import Control.Monad.Except (ExceptT, lift)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
@@ -55,7 +55,7 @@ resolve config requiredIn dep = do
       ES.throwM $ ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep
     Right dep -> return dep
 
-resolveHelp :: Config -> Dependency -> ExceptT () IO Dependency
+resolveHelp :: Config -> Dependency -> AlternativeIO Dependency
 resolveHelp Config {modules_directories, entry_points, source_directory} dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
@@ -64,28 +64,28 @@ resolveHelp Config {modules_directories, entry_points, source_directory} dep = d
     findInModules modules_directories dep
   updateDepTime $ updateDepType resolved
 
-findRelative :: Dependency -> ExceptT () IO Dependency
+findRelative :: Dependency -> AlternativeIO Dependency
 findRelative dep@Dependency {filePath, requiredAs} =
   tryToFind filePath requiredAs dep
 
-findRelativeNodeModules :: Dependency -> ExceptT () IO Dependency
+findRelativeNodeModules :: Dependency -> AlternativeIO Dependency
 findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
   tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints :: FilePath -> Dependency -> ExceptT () IO Dependency
+findInEntryPoints :: FilePath -> Dependency -> AlternativeIO Dependency
 findInEntryPoints entry_points dep@Dependency {requiredAs} = do
   tryToFind entry_points requiredAs dep
 
-findInModules :: [FilePath] -> Dependency -> ExceptT () IO Dependency
-findInModules [] _parent = throwError ()
+findInModules :: [FilePath] -> Dependency -> AlternativeIO Dependency
+findInModules [] _parent = AIO.tryNext
 findInModules (x:xs) dep@Dependency {requiredAs} =
   tryToFind x requiredAs dep <|> findInModules xs dep
 
-findInSources :: FilePath -> Dependency -> ExceptT () IO Dependency
+findInSources :: FilePath -> Dependency -> AlternativeIO Dependency
 findInSources source_directory dep@Dependency {requiredAs} = do
   tryToFind source_directory requiredAs dep
 
-tryToFind :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+tryToFind :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryToFind basePath fileName require = do
   let ext = takeExtension fileName
   case ext of
@@ -93,7 +93,7 @@ tryToFind basePath fileName require = do
     ".coffee" -> tryCoffeeWithExt basePath fileName require
     _ -> tryJs basePath fileName require <|> tryCoffee basePath fileName require
 
-tryJs :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+tryJs :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryJs basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
   moduleExistsInBase "" require <|>
@@ -103,7 +103,7 @@ tryJs basePath fileName require =
   where
     moduleExistsInBase = moduleExists basePath
 
-tryJsWithExt :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+tryJsWithExt :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryJsWithExt basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
   moduleExistsInBase "" require <|>
@@ -111,7 +111,7 @@ tryJsWithExt basePath fileName require =
   where
     moduleExistsInBase = moduleExists basePath
 
-tryCoffee :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+tryCoffee :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryCoffee basePath fileName require =
   moduleExistsInBase fileName require <|>
   moduleExistsInBase (fileName <.> "coffee") require <|>
@@ -120,7 +120,7 @@ tryCoffee basePath fileName require =
     moduleExistsInBase = moduleExists basePath
 
 tryCoffeeWithExt ::
-     FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+     FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryCoffeeWithExt basePath fileName require =
   moduleExistsInBase "" require <|> moduleExistsInBase fileName require
   where
@@ -129,35 +129,35 @@ tryCoffeeWithExt basePath fileName require =
 {-| check if we have a package.json. It contains information about the main file.
 -}
 tryMainFromPackageJson ::
-     FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+     FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryMainFromPackageJson basePath fileName require = do
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
-  exists <- lift (doesFileExist packageJsonPath)
+  exists <- AIO.lift (doesFileExist packageJsonPath)
   if exists
     then do
-      PackageJson {main, browser} <- lift (PackageJson.load packageJsonPath)
+      PackageJson {main, browser} <- AIO.lift (PackageJson.load packageJsonPath)
       case browser <|> main of
         Just packageIndex ->
           moduleExists basePath (fileName </> packageIndex) require
-        Nothing -> throwError ()
-    else throwError ()
+        Nothing -> AIO.tryNext
+    else AIO.tryNext
 
-moduleExists :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
+moduleExists :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 moduleExists basePath path require = do
   let searchPath = basePath </> path
-  exists <- lift (doesFileExist searchPath)
+  exists <- AIO.lift (doesFileExist searchPath)
   if exists
     then return (require {filePath = searchPath})
-    else throwError ()
+    else AIO.tryNext
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
   where
     newType = Parser.Require.getFileType $ takeExtension p
 
-updateDepTime :: Dependency -> ExceptT () IO Dependency
+updateDepTime :: Dependency -> AlternativeIO Dependency
 updateDepTime (Dependency t r p _) = do
-  status <- lift (getFileStatus p)
+  status <- AIO.lift (getFileStatus p)
   let lastModificationTime =
         posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency t r p $ Just lastModificationTime
