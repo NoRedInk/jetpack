@@ -16,8 +16,7 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process ()
-import Text.Regex (matchRegex, Regex)
-
+import Text.Regex (Regex, matchRegex)
 
 {-| Internal state of the watcher.
 We keep track of running processes and the config.
