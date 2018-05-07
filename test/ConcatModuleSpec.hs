@@ -55,20 +55,20 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-  { entry_points = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
-  , modules_directories = []
-  , source_directory =
+  { entryPoints = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+  , modulesDirs = []
+  , sourceDir =
       ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , elm_root_directory =
+  , elmRoot =
       ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , temp_directory = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-  , log_directory = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
-  , output_js_directory = ("." </> "test" </> "fixtures" </> "concat" </> "js")
-  , elm_make_path = Nothing
-  , coffee_path = Nothing
-  , no_parse = []
-  , watch_file_extensions = []
-  , watch_file_ignore_patterns = []
+  , tempDir = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+  , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+  , outputDir = ("." </> "test" </> "fixtures" </> "concat" </> "js")
+  , elmMakePath = Nothing
+  , coffeePath = Nothing
+  , noParse = []
+  , watchFileExt = []
+  , watchIgnorePatterns = []
   }
 
 mockDependency :: FilePath -> FilePath -> D.Dependency

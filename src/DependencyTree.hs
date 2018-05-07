@@ -19,7 +19,7 @@ We are searching in the following folders.
 2. relative in node_modules
 3. in `modules_directory`
 4. in `source_directory`
-5. in `{source_directory}/../node_modules`
+5. in `{sourceDir}/../node_modules`
 6. in `{root}/node_modules`
 7. in `{root}/vendor/assets/components`
 8. in `{root}/vendor/assets/javascripts`
@@ -80,17 +80,16 @@ buildTree config cache =
   Resolver.resolve config Nothing
 
 readTreeCache :: FilePath -> IO Dependencies
-readTreeCache temp_directory =
-  (fromMaybe [] . Aeson.decode) <$>
-  BL.readFile (temp_directory </> "deps" <.> "json")
+readTreeCache tempDir =
+  (fromMaybe [] . Aeson.decode) <$> BL.readFile (tempDir </> "deps" <.> "json")
 
 writeTreeCache :: FilePath -> Dependencies -> IO ()
-writeTreeCache temp_directory =
-  BL.writeFile (temp_directory </> "deps" <.> "json") . Aeson.encode
+writeTreeCache tempDir =
+  BL.writeFile (tempDir </> "deps" <.> "json") . Aeson.encode
 
 toDependency :: Config -> FilePath -> IO Dependency
-toDependency Config {entry_points} path = do
-  status <- getFileStatus $ entry_points </> path
+toDependency Config {entryPoints} path = do
+  status <- getFileStatus $ entryPoints </> path
   let lastModificationTime =
         posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
@@ -100,8 +99,8 @@ requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 findRequires ::
      Dependencies -> Config -> Dependency -> IO (Dependency, [Dependency])
-findRequires cache Config {no_parse} parent@Dependency {filePath, fileType} =
-  if filePath `elem` no_parse
+findRequires cache Config {noParse} parent@Dependency {filePath, fileType} =
+  if filePath `elem` noParse
     then return (parent, [])
     else case fileType of
            Ast.Js -> parseModule cache parent Parser.Require.jsRequires

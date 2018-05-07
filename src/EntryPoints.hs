@@ -23,12 +23,12 @@ find args config = do
   paths <- findFilesIn entryPointsGlob
   case paths of
     [] -> ES.throwM $ NoModulesPresent (takeDirectory <$> entryPointsGlob)
-    _ -> return $ makeRelative (entry_points config) <$> paths
+    _ -> return $ makeRelative (entryPoints config) <$> paths
 
 normalisedEntryPointsGlob :: Config -> Args -> [FilePath]
 normalisedEntryPointsGlob config args =
   case entryPointGlob args of
-    [] -> [entry_points config </> "**" </> "*.*"]
+    [] -> [entryPoints config </> "**" </> "*.*"]
     entryPoints
         -- handle arguments with and without a leading "./"
      -> (\entry -> "." </> normalise entry) <$> entryPoints

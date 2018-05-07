@@ -56,12 +56,12 @@ resolve config requiredIn dep = do
     Right dep -> return dep
 
 resolveHelp :: Config -> Dependency -> ExceptT () IO Dependency
-resolveHelp Config {modules_directories, entry_points, source_directory} dep = do
+resolveHelp Config {modulesDirs, entryPoints, sourceDir} dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
-    findInEntryPoints entry_points dep <|>
-    findInSources source_directory dep <|>
-    findInModules modules_directories dep
+    findInEntryPoints entryPoints dep <|>
+    findInSources sourceDir dep <|>
+    findInModules modulesDirs dep
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> ExceptT () IO Dependency
@@ -73,8 +73,8 @@ findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
   tryToFind (filePath </> "node_modules") requiredAs dep
 
 findInEntryPoints :: FilePath -> Dependency -> ExceptT () IO Dependency
-findInEntryPoints entry_points dep@Dependency {requiredAs} = do
-  tryToFind entry_points requiredAs dep
+findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
+  tryToFind entryPoints requiredAs dep
 
 findInModules :: [FilePath] -> Dependency -> ExceptT () IO Dependency
 findInModules [] _parent = throwError ()
@@ -82,8 +82,8 @@ findInModules (x:xs) dep@Dependency {requiredAs} =
   tryToFind x requiredAs dep <|> findInModules xs dep
 
 findInSources :: FilePath -> Dependency -> ExceptT () IO Dependency
-findInSources source_directory dep@Dependency {requiredAs} = do
-  tryToFind source_directory requiredAs dep
+findInSources sourceDir dep@Dependency {requiredAs} = do
+  tryToFind sourceDir requiredAs dep
 
 tryToFind :: FilePath -> FilePath -> Dependency -> ExceptT () IO Dependency
 tryToFind basePath fileName require = do

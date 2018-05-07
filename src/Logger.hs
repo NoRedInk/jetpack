@@ -26,9 +26,8 @@ allLogs :: [FilePath]
 allLogs = [compileTime, compileLog, preHookLog, postHookLog]
 
 appendLog :: Config -> FilePath -> T.Text -> IO ()
-appendLog Config {log_directory} fileName msg =
-  TIO.appendFile (log_directory </> fileName) msg
+appendLog Config {logDir} fileName msg =
+  TIO.appendFile (logDir </> fileName) msg
 
 clearLog :: Config -> FilePath -> IO ()
-clearLog Config {log_directory} fileName =
-  TIO.writeFile (log_directory </> fileName) ""
+clearLog Config {logDir} fileName = TIO.writeFile (logDir </> fileName) ""

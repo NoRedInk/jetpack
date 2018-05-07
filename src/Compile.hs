@@ -86,8 +86,8 @@ runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
     Ast.Coffee -> coffeeCompiler coffee pg args arguments
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
-buildArtifactPath Config {temp_directory} fileType inputPath =
-  temp_directory </> pathToFileName inputPath extension
+buildArtifactPath Config {tempDir} fileType inputPath =
+  tempDir </> pathToFileName inputPath extension
   where
     extension =
       case fileType of
@@ -100,9 +100,7 @@ buildArtifactPath Config {temp_directory} fileType inputPath =
 ---------------
 elmCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
-elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
-                                                                  , output
-                                                                  } = do
+elmCompiler elmMake pg args Config {elmRoot} Arguments {input, output} = do
   let Args {debug, warn} = args
   let debugFlag =
         if debug
@@ -118,7 +116,7 @@ elmCompiler elmMake pg args Config {elm_root_directory} Arguments { input
         "../" ++
         input ++
         " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-  runCmd pg args input cmd $ Just elm_root_directory
+  runCmd pg args input cmd $ Just elmRoot
 
 coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
 coffeeCompiler coffee pg args Arguments {input, output} = do

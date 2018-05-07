@@ -63,13 +63,13 @@ buildHelp config args@Args {preHook, postHook} = do
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
-  let Config {temp_directory} = config
-  cache <- DependencyTree.readTreeCache temp_directory
+  let Config {tempDir} = config
+  cache <- DependencyTree.readTreeCache tempDir
   deps <-
     Concurrent.mapConcurrently
       (DependencyTree.build pg config cache)
       entryPoints
-  DependencyTree.writeTreeCache temp_directory deps
+  DependencyTree.writeTreeCache tempDir deps
   complete pg
   -- COMPILATION
   let modules = LU.uniq $ concatMap Tree.flatten deps
@@ -116,8 +116,8 @@ data Hook
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
   let encodedPaths = Aeson.encode paths
-  let Config {temp_directory} = config
-  let jsonPath = temp_directory </> "modules" <.> "json"
+  let Config {tempDir} = config
+  let jsonPath = tempDir </> "modules" <.> "json"
   _ <- BL.writeFile jsonPath encodedPaths
   _ <- tick pg
   return ()

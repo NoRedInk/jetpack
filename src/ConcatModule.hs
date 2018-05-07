@@ -33,9 +33,9 @@ uniqNodes = LU.uniq . UT.nodesWithChildren
 
 wrapper :: Config -> (Dependency, [Dependency]) -> IO (Maybe T.Text)
 wrapper config (Dependency {filePath}, ds) = do
-  let Config {temp_directory} = config
+  let Config {tempDir} = config
   let name = F.pathToFileName filePath "js"
-  content <- readFile $ temp_directory </> name
+  content <- readFile $ tempDir </> name
   let fnName = pathToFunctionName filePath "js"
   let replacedContent = foldr replaceRequire (T.pack content) ds
   let wrapped = wrapModule fnName replacedContent
@@ -57,14 +57,11 @@ writeModule config dependencyTree fns = do
   writeJsModule config filePath fns
 
 writeJsModule :: Config -> FilePath -> [T.Text] -> IO FilePath
-writeJsModule Config {output_js_directory, entry_points} rootFilePath fns = do
+writeJsModule Config {outputDir, entryPoints} rootFilePath fns = do
   let out =
         outputPath
           Output
-          { outDir = output_js_directory
-          , moduleDir = entry_points
-          , name = rootFilePath
-          }
+          {outDir = outputDir, moduleDir = entryPoints, name = rootFilePath}
   let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   TIO.writeFile out $ addBoilerplate rootName fns
