@@ -1,72 +1,71 @@
 {-| Concat all modules required in an entrypoint into one file.
 -}
-module ConcatModule where
+module ConcatModule
+  ( wrap
+  , wrapModule
+  , replaceRequire
+  ) where
 
 import Config
-
 import qualified Data.List.Utils as LU
 import Data.Maybe (catMaybes)
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import Dependencies
 import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
-import Task
 import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: ProgressBar -> Config -> DependencyTree -> Task FilePath
+wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
 wrap pg env dep = do
   wrapped <- traverse (wrapper env) $ uniqNodes dep
   out <- writeModule env dep $ catMaybes wrapped
-  _ <- lift $ tick pg
+  _ <- tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-wrapper :: Config -> (Dependency, [Dependency]) -> Task (Maybe T.Text)
+wrapper :: Config -> (Dependency, [Dependency]) -> IO (Maybe T.Text)
 wrapper config (Dependency {filePath}, ds) = do
-  let Config {temp_directory} = config
-  lift $ do
-    let name = F.pathToFileName filePath "js"
-    content <- readFile $ temp_directory </> name
-    let fnName = F.pathToFunctionName filePath "js"
-    let replacedContent = foldr replaceRequire (T.pack content) ds
-    let wrapped = wrapModule fnName replacedContent
-    return $ Just wrapped
+  let Config {tempDir} = config
+  let name = F.pathToFileName filePath "js"
+  content <- readFile $ tempDir </> name
+  let fnName = pathToFunctionName filePath "js"
+  let replacedContent = foldr replaceRequire (T.pack content) ds
+  let wrapped = wrapModule fnName replacedContent
+  return $ Just wrapped
 
 -- TODO check if require got replaced
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
-  T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
+  T.pack $ subRegex requireRegex (T.unpack body) (T.unpack jetpackRequire)
   where
-    fnName = T.unpack $ F.pathToFunctionName filePath "js"
+    fnName = pathToFunctionName filePath "js"
     requireRegex =
-      mkRegex $ "require\\([ \t]*['\"]" ++ requiredAs ++ "['\"][ \t]*\\)"
-    jetpackRequire = "jetpackRequire(" ++ fnName ++ ", \"" ++ fnName ++ "\")"
+      mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
+    jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
-writeModule :: Config -> DependencyTree -> [T.Text] -> Task FilePath
+writeModule :: Config -> DependencyTree -> [T.Text] -> IO FilePath
 writeModule config dependencyTree fns = do
   let Dependency {filePath} = Tree.rootLabel dependencyTree
   writeJsModule config filePath fns
 
-writeJsModule :: Config -> FilePath -> [T.Text] -> Task FilePath
-writeJsModule Config {output_js_directory, entry_points} rootFilePath fns =
-  lift $ do
-    let out =
-          outputPath
-            Output
-            { outDir = output_js_directory
-            , moduleDir = entry_points
-            , name = rootFilePath
-            }
-    let rootName = F.pathToFunctionName rootFilePath "js"
-    createDirectoryIfMissing True $ FP.takeDirectory out
-    writeFile out $ T.unpack $ addBoilerplate rootName fns
-    return out
+writeJsModule :: Config -> FilePath -> [T.Text] -> IO FilePath
+writeJsModule Config {outputDir, entryPoints} rootFilePath fns = do
+  let out =
+        outputPath
+          Output
+          {outDir = outputDir, moduleDir = entryPoints, name = rootFilePath}
+  let rootName = pathToFunctionName rootFilePath "js"
+  createDirectoryIfMissing True $ FP.takeDirectory out
+  TIO.writeFile out $ addBoilerplate rootName fns
+  return out
 
 data Output = Output
   { outDir :: FilePath
@@ -122,3 +121,7 @@ wrapModule fnName body =
     , " */"
     , "\n"
     ]
+
+pathToFunctionName :: FilePath -> String -> T.Text
+pathToFunctionName filePath =
+  T.replace "@" "_" . T.replace "." "_" . T.pack . F.pathToFileName filePath

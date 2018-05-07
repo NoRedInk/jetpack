@@ -9,15 +9,14 @@ module ProgressBar
   ) where
 
 import qualified Data.Text as T
-import Task (Task)
 
 newtype ProgressBar =
   ProgressBar ()
 
-start :: Int -> T.Text -> Task ProgressBar
+start :: Int -> T.Text -> IO ProgressBar
 start _ _ = return (ProgressBar ())
 
-pipeAndTick :: ProgressBar -> a -> Task a
+pipeAndTick :: ProgressBar -> a -> IO a
 pipeAndTick _ x = return x
 
 complete :: ProgressBar -> IO ProgressBar

@@ -2,70 +2,60 @@ module Config
   ( Config(..)
   , readConfig
   , load
-  , defaultConfig
   ) where
 
-import Data.Aeson as Aeson
+import qualified Data.Aeson as Aeson
+import Data.Aeson ((.!=), (.:), (.:?))
+import Data.Aeson.Types (typeMismatch)
 import qualified Data.ByteString.Lazy as BL
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Error (Error(..))
-import qualified Error
-import GHC.Generics (Generic)
 import Message
 import qualified System.Directory as Dir
 import System.Exit
 import System.FilePath ((</>))
 
 data Config = Config
-  { entry_points :: FilePath
-  , modules_directories :: [FilePath]
-  , source_directory :: FilePath
-  , elm_root_directory :: FilePath
-  , temp_directory :: FilePath
-  , log_directory :: FilePath
-  , output_js_directory :: FilePath
-  , elm_make_path :: Maybe FilePath
-  , coffee_path :: Maybe FilePath
-  , no_parse :: [FilePath]
-  , watch_file_extensions :: [T.Text]
-  , watch_file_ignore_patterns :: [T.Text]
-  } deriving (Show, Eq, Generic)
+  { entryPoints :: FilePath
+  , modulesDirs :: [FilePath]
+  , sourceDir :: FilePath
+  , elmRoot :: FilePath
+  , tempDir :: FilePath
+  , logDir :: FilePath
+  , outputDir :: FilePath
+  , elmMakePath :: Maybe FilePath
+  , coffeePath :: Maybe FilePath
+  , noParse :: [FilePath]
+  , watchFileExt :: [T.Text]
+  , watchIgnorePatterns :: [T.Text]
+  } deriving (Show, Eq)
 
-instance ToJSON Config
-
-instance FromJSON Config
+instance Aeson.FromJSON Config where
+  parseJSON (Aeson.Object v) =
+    Config --
+     <$>
+    v .: "entry_points" <*>
+    v .: "modules_directories" <*>
+    v .: "source_directory" <*>
+    v .: "elm_root_directory" <*>
+    v .: "temp_directory" .!= "./.jetpack/build_artifacts" <*>
+    v .:? "log_directory" .!= "./.jetpack/logs" <*>
+    v .: "output_js_directory" <*>
+    v .:? "elm_make_path" <*>
+    v .:? "coffee_path" <*>
+    v .:? "no_parse" .!= [] <*>
+    v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
+    v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]
+  parseJSON invalid = typeMismatch "Config" invalid
 
 readConfig :: IO Config
 readConfig = do
   cwd <- Dir.getCurrentDirectory
-  maybeLocalConfig <- load cwd
-  case maybeLocalConfig of
-    Just config -> return config
-    Nothing -> return defaultConfig
-
-defaultConfig :: Config
-defaultConfig =
-  Config
-  { entry_points = "." </> "modules"
-  , modules_directories = ["." </> "node_modules"]
-  , source_directory = "." </> "src"
-  , elm_root_directory = "."
-  , temp_directory = "." </> ".jetpack" </> "build_artifacts"
-  , log_directory = "." </> ".jetpack" </> "logs"
-  , output_js_directory = "." </> "dist" </> "javascripts" </> "jetpack"
-  , elm_make_path = Just ("." </> "node_modules" </> ".bin" </> "elm-make")
-  , coffee_path = Just ("." </> "node_modules" </> ".bin" </> "coffee")
-  , no_parse = []
-  , watch_file_extensions = [".elm", ".coffee", ".js", ".json"]
-  -- Ignore files like Emacs' backup files (`.#filename`) and other backup files
-  -- (`~filename`). Files like these are often created when editing begins, as a
-  -- recovery file for example, and do not imply that a build should be done.
-  , watch_file_ignore_patterns = ["/[.]#[^/]*$", "/~[^/]*$"]
-  }
+  load cwd
 
 {-| Loads configuration for jetpack from `jetpack.json`.
 -}
-load :: FilePath -> IO (Maybe Config)
+load :: FilePath -> IO (Config)
 load root = do
   let path = root </> "jetpack.json"
   exists <- Dir.doesFileExist path
@@ -73,9 +63,19 @@ load root = do
     then do
       content <- BL.readFile path
       case Aeson.eitherDecode content of
-        Right config -> return $ Just config
+        Right config -> return config
         Left err -> do
           _ <-
-            Message.error $ Error.description $ ConfigInvalid path $ T.pack err
+            Message.error $
+            T.unlines
+              [ "Invalid jetpack.json: " <> T.pack path
+              , ""
+              , "    " <> T.pack err
+              , ""
+              ]
           System.Exit.exitFailure
-    else return Nothing
+    else do
+      _ <-
+        Message.error $
+        T.unlines ["I didn't find a config for jetpack at " <> T.pack path]
+      System.Exit.exitFailure
