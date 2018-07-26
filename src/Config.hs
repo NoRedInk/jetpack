@@ -28,6 +28,7 @@ data Config = Config
   , noParse :: [FilePath]
   , watchFileExt :: [T.Text]
   , watchIgnorePatterns :: [T.Text]
+  , replayScriptPath :: Maybe FilePath
   } deriving (Show, Eq)
 
 instance Aeson.FromJSON Config where
@@ -45,7 +46,8 @@ instance Aeson.FromJSON Config where
     v .:? "coffee_path" <*>
     v .:? "no_parse" .!= [] <*>
     v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
-    v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]
+    v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"] <*>
+    v .:? "replay_script_path"
   parseJSON invalid = typeMismatch "Config" invalid
 
 readConfig :: IO Config

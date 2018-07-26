@@ -12,6 +12,7 @@ import qualified Data.Text.IO as TIO
 import qualified Message
 import qualified Parser.JetpackVersion as JetpackVersion
 import qualified Version
+import qualified WatchMode
 import qualified Watcher
 
 main :: IO ()
@@ -27,5 +28,6 @@ main
   when clean (Cleaner.clean config)
   case runMode of
     Version -> TIO.putStrLn Version.print
-    Watch -> Watcher.watch config args
-    RunOnce -> Builder.build config args
+    Watch -> Watcher.watch config args WatchMode.NoHacks
+    WatchMsgReplay -> Watcher.watch config args WatchMode.Replay
+    RunOnce -> Builder.build config args WatchMode.NoHacks

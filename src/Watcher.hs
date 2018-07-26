@@ -11,9 +11,10 @@ import qualified Data.Text.IO as TIO
 import qualified Notify
 import System.FilePath ()
 import Text.Regex (mkRegex)
+import qualified WatchMode
 
-watch :: Config -> Args -> IO ()
-watch config@Config {sourceDir, watchFileExt, watchIgnorePatterns} args = do
+watch :: Config -> Args -> WatchMode.Mode -> IO ()
+watch config@Config {sourceDir, watchFileExt, watchIgnorePatterns} args mode = do
   putStrLn "Watching. Enter '?' to see the help."
   state <-
     Notify.watch
@@ -22,7 +23,7 @@ watch config@Config {sourceDir, watchFileExt, watchIgnorePatterns} args = do
       , relevantExtensions = watchFileExt
       , ignorePatterns = mkRegex . T.unpack <$> watchIgnorePatterns
       }
-      (Builder.build config args)
+      (Builder.build config args mode)
   Notify.buildNow state
   listenToCommands state
 

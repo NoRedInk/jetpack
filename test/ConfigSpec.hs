@@ -26,5 +26,6 @@ suite =
                ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]
            , watchFileExt = [".elm", ".coffee", ".js", ".json"]
            , watchIgnorePatterns = ["/[.]#[^/]*$", "/~[^/]*$"]
+           , replayScriptPath = Nothing
            })
     ]

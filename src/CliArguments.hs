@@ -25,6 +25,7 @@ data Args = Args
 data RunMode
   = RunOnce
   | Watch
+  | WatchMsgReplay
   | Version
 
 readArguments :: IO Args
@@ -57,6 +58,10 @@ parser = do
       (long "version" <> short 'v' <> help "display the version of jetpack")
   time <- switch (long "time" <> short 't' <> help "display compile times.")
   watch <- switch (long "watch" <> short 'w' <> help "watch for changes.")
+  watchMsgReplay <-
+    switch
+      (long "watch-with-msg-replay" <> short 'r' <>
+       help "watch for changes and replay msgs in the browser.")
   clean <-
     switch
       (long "clean" <> short 'c' <> help "Cleans elm-stuff and removes .jetpack")
@@ -65,11 +70,11 @@ parser = do
     { entryPointGlob = entryPointGlob
     , configPath = configPath
     , debug =
-        if watch
+        if watch || watchMsgReplay
           then True
           else debug
     , warn =
-        if watch
+        if watch || watchMsgReplay
           then True
           else warn
     , postHook = postHook
@@ -81,7 +86,9 @@ parser = do
           then Version
           else if watch
                  then Watch
-                 else RunOnce
+                 else if watchMsgReplay
+                        then WatchMsgReplay
+                        else RunOnce
     }
   where
     go :: String -> Maybe (Maybe String)

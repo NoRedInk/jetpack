@@ -10,6 +10,7 @@ import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import qualified Data.Maybe
@@ -17,21 +18,26 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
+import Dependencies
 import qualified DependencyTree
 import qualified EntryPoints
 import qualified Hooks
 import qualified Init
 import qualified Logger
 import qualified Message
+import qualified Parser.Ast as Ast
 import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
+import System.Process
+import qualified Utils.Tree
+import qualified WatchMode
 
-build :: Config.Config -> Args -> IO ()
-build config args = do
+build :: Config.Config -> Args -> WatchMode.Mode -> IO ()
+build config args mode = do
   result <-
-    AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
+    AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args mode
   printResult result
 
 data Result
@@ -54,8 +60,8 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-buildHelp :: Config.Config -> Args -> IO Result
-buildHelp config args@Args {preHook, postHook} = do
+buildHelp :: Config.Config -> Args -> WatchMode.Mode -> IO Result
+buildHelp config args@Args {preHook, postHook} mode = do
   toolPaths <- Init.setup config
   _ <- traverse (Logger.clearLog config) Logger.allLogs
   -- HOOK
@@ -85,11 +91,15 @@ buildHelp config args@Args {preHook, postHook} = do
       result
   complete pg
   pg <- start (L.length deps) "Write modules"
-  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
+  modules <-
+    Concurrent.mapConcurrently
+      (\dep -> fmap ((,) dep) (ConcatModule.wrap pg config dep))
+      deps
   _ <-
-    do createdModulesJson pg config modules
+    do createdModulesJson pg config (fmap snd modules)
        complete pg
        traverse (Compile.printTime args) result
+  maybeRunReplay config mode modules
   -- HOOK
   maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY
@@ -97,6 +107,31 @@ buildHelp config args@Args {preHook, postHook} = do
   case warnings of
     [] -> return $ Success entryPoints
     xs -> return $ Warnings entryPoints xs
+
+maybeRunReplay ::
+     Config -> WatchMode.Mode -> [(DependencyTree, FilePath)] -> IO ()
+maybeRunReplay Config {replayScriptPath, sourceDir} mode modules =
+  case mode of
+    WatchMode.NoHacks -> pure ()
+    WatchMode.Replay -> traverse_ (runReplay sourceDir replayScriptPath) modules
+
+runReplay :: FilePath -> Maybe FilePath -> (DependencyTree, FilePath) -> IO ()
+runReplay _ Nothing _ = pure ()
+runReplay _sourceDir (Just replayScriptPath) (deps, path) = do
+  let elmEntry = Tree.rootLabel <$> Utils.Tree.searchNode isElmEntry deps
+  case elmEntry of
+    Nothing -> pure ()
+    Just _ -> do
+      let moduleName = "_NoRedInk\\$noredink\\$Page_Login_Main\\$"
+      _ <-
+        createProcess
+          (proc
+             "bash"
+             ["-c", replayScriptPath <> " " <> path <> " " <> moduleName])
+      pure ()
+
+isElmEntry :: DependencyTree -> Bool
+isElmEntry tree = (fileType $ Tree.rootLabel tree) == Ast.Elm
 
 maybeRunHook :: Config -> Hook -> Maybe String -> IO ()
 maybeRunHook _ _ Nothing = return ()
