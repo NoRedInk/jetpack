@@ -3,8 +3,6 @@ module Logger
   , appendLog
   , compileLog
   , compileTime
-  , preHookLog
-  , postHookLog
   , allLogs
   ) where
 
@@ -13,17 +11,13 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.FilePath ((<.>), (</>))
 
-compileLog, compileTime, preHookLog, postHookLog :: FilePath
+compileLog, compileTime :: FilePath
 compileLog = "compile" <.> "log"
 
 compileTime = "compile" <.> "time"
 
-preHookLog = "pre-hook" <.> "log"
-
-postHookLog = "post-hook" <.> "log"
-
 allLogs :: [FilePath]
-allLogs = [compileTime, compileLog, preHookLog, postHookLog]
+allLogs = [compileTime, compileLog]
 
 appendLog :: Config -> FilePath -> T.Text -> IO ()
 appendLog Config {logDir} fileName msg =
