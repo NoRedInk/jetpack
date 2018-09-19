@@ -15,8 +15,6 @@ data Args = Args
   , configPath :: Maybe FilePath
   , debug :: Bool
   , warn :: Bool
-  , preHook :: Maybe String
-  , postHook :: Maybe String
   , time :: Bool
   , clean :: Bool
   , runMode :: RunMode
@@ -42,16 +40,6 @@ parser = do
   debug <-
     switch (long "debug" <> short 'd' <> help "Run jetpack in debug mode.")
   warn <- switch (long "warn" <> short 'w' <> help "Output elm make warnings.")
-  preHook <-
-    option
-      (maybeReader go)
-      (long "pre-hook" <> value Nothing <>
-       help "Bash commands that will get executed before jetpack runs.")
-  postHook <-
-    option
-      (maybeReader go)
-      (long "post-hook" <> value Nothing <>
-       help "Bash commands that will get executed after jetpack runs.")
   version <-
     switch
       (long "version" <> short 'v' <> help "display the version of jetpack")
@@ -72,8 +60,6 @@ parser = do
         if watch
           then True
           else warn
-    , postHook = postHook
-    , preHook = preHook
     , time = time
     , clean = clean
     , runMode =
@@ -83,7 +69,3 @@ parser = do
                  then Watch
                  else RunOnce
     }
-  where
-    go :: String -> Maybe (Maybe String)
-    go "" = Just Nothing
-    go str = Just $ Just str

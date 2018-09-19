@@ -19,7 +19,6 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import qualified DependencyTree
 import qualified EntryPoints
-import qualified Hooks
 import qualified Init
 import qualified Logger
 import qualified Message
@@ -55,11 +54,9 @@ printResult result =
       System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> IO Result
-buildHelp config args@Args {preHook, postHook} = do
+buildHelp config args = do
   toolPaths <- Init.setup config
   _ <- traverse (Logger.clearLog config) Logger.allLogs
-  -- HOOK
-  maybeRunHook config Pre preHook
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
@@ -90,28 +87,11 @@ buildHelp config args@Args {preHook, postHook} = do
     do createdModulesJson pg config modules
        complete pg
        traverse (Compile.printTime args) result
-  -- HOOK
-  maybeRunHook config Post postHook
   -- RETURN WARNINGS IF ANY
   let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
   case warnings of
     [] -> return $ Success entryPoints
     xs -> return $ Warnings entryPoints xs
-
-maybeRunHook :: Config -> Hook -> Maybe String -> IO ()
-maybeRunHook _ _ Nothing = return ()
-maybeRunHook config type_ (Just hookScript) = do
-  out <- Hooks.run hookScript
-  Logger.appendLog config (log type_) out
-    -- TODO title = T.pack $ show type_ ++ " hook (" ++ hookScript ++ ")"
-  where
-    log Pre = Logger.preHookLog
-    log Post = Logger.postHookLog
-
-data Hook
-  = Pre
-  | Post
-  deriving (Show)
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
