@@ -32,7 +32,7 @@ wrappedModule :: T.Text
 wrappedModule =
   T.unlines
     [ "/* START: testFunction */"
-    , "function testFunction(module, exports) {"
+    , "function testFunction_js(module, exports) {"
     , "var foo = require('foo.js');"
     , ""
     , "foo(42)"
@@ -57,10 +57,8 @@ mockConfig =
   Config
   { entryPoints = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
   , modulesDirs = []
-  , sourceDir =
-      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , elmRoot =
-      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , sourceDir = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , elmRoot = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "concat" </> "js")
@@ -109,17 +107,17 @@ expectedOutput =
       , "  jetpackCache[fnName] = m.exports;"
       , "  return m.exports;"
       , "}"
-      , "/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
+      , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
       , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
       , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
       , "moo(4, 2);"
-      , "\n} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
-      , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
+      , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
+      , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
       , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
       , "module.exports = function(a, b) {"
       , "  console.log(a + b + \"\");"
       , "};"
-      , "\n} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
+      , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
       , ""
       , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
       , "})();"
@@ -130,7 +128,9 @@ suite :: TestTree
 suite =
   testGroup
     "ConcatModule"
-    [ testCase "#wrapModule" $ do wrapModule "" "" @?= ""
+    [ testCase "#wrapModule" $ do
+        wrapModule "a___b.elm" "" @?=
+          "/* START: a/b.elm */  console.warn(\"a/b.elm: is an empty module!\");\nfunction a___b_elm_js(module, exports) {\n\n} /* END: a/b.elm */\n"
     , testCase "#wrapModule wraps a module in a function" $
       wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase
