@@ -23,25 +23,31 @@ import qualified Utils.Tree as UT
 
 wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
 wrap pg config dep = do
-  depsWithContent <- traverse (withContent config) $ uniqNodes dep
-  let wrapped = fmap wrapDependency depsWithContent
-  out <- writeJsModule config wrapped $ filePath $ Tree.rootLabel dep
+  module' <- traverse (withContent config) $ uniqNodes dep
+  let wrapped = fmap wrapDependency module'
+  out <-
+    writeJsModule config wrapped $ Dependencies.filePath $ Tree.rootLabel dep
   _ <- tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-withContent ::
-     Config -> (Dependency, [Dependency]) -> IO (FilePath, [Dependency], T.Text)
-withContent Config {tempDir} (Dependency {filePath}, ds) = do
-  let name = F.pathToFileName filePath "js"
-  content <- readFile $ tempDir </> name
-  return (filePath, ds, T.pack content)
+data Module = Module
+  { filePath :: FilePath
+  , dependencies :: [Dependency]
+  , content :: T.Text
+  }
 
-wrapDependency :: (FilePath, [Dependency], T.Text) -> T.Text
-wrapDependency (filePath, ds, content) =
-  wrapModule filePath (foldr replaceRequire content ds)
+withContent :: Config -> (Dependency, [Dependency]) -> IO Module
+withContent Config {tempDir} (Dependency {filePath}, dependencies) = do
+  let name = F.pathToFileName filePath "js"
+  content <- fmap T.pack $ readFile $ tempDir </> name
+  return Module {filePath, dependencies, content}
+
+wrapDependency :: Module -> T.Text
+wrapDependency Module {filePath, dependencies, content} =
+  wrapModule filePath (foldr replaceRequire content dependencies)
 
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
