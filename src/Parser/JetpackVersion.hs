@@ -1,19 +1,23 @@
-module Parser.JetpackVersion where
+{-# LANGUAGE DeriveAnyClass #-}
 
-import Control.Monad.Except (throwError)
+module Parser.JetpackVersion
+  ( Version(..)
+  , load
+  ) where
 
+import Control.Exception.Safe (Exception)
+import qualified Control.Exception.Safe as ES
 import Control.Monad (fail)
 import Data.Aeson as Aeson
 import Data.Aeson.Types (Parser)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.SemVer as SemVer
+import Data.Semigroup ((<>))
 import qualified Data.Text as T
-import Error (Error(..))
+import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import qualified System.Directory as Dir
-import System.FilePath ((</>))
-import Task (Task, lift)
-import Utils.Files (fileExistsTask)
+import System.FilePath (FilePath, (</>), dropFileName)
 
 data Version = Version
   { version :: SemVer.Version
@@ -33,12 +37,26 @@ toSemVer v =
 
 {-| Loads a package.json
 -}
-load :: Task Version
+load :: IO Version
 load = do
-  cwd <- lift Dir.getCurrentDirectory
+  cwd <- Dir.getCurrentDirectory
   let path = cwd </> "package.json"
-  _ <- fileExistsTask path
-  content <- lift $ BL.readFile path
+  content <- BL.readFile path
   case Aeson.eitherDecode content of
-    Left err -> throwError [JsonInvalid path (T.pack err)]
+    Left err -> ES.throwM $ JsonInvalid path $ T.pack err
     Right json -> return json
+
+data Error =
+  JsonInvalid FilePath
+              T.Text
+  deriving (Typeable, Exception)
+
+instance Show Error where
+  show (JsonInvalid file err) =
+    T.unpack $
+    T.unlines
+      [ "I couldn't decode package.json in " <> (T.pack $ dropFileName file)
+      , ""
+      , "    " <> err
+      , ""
+      ]

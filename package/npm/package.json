@@ -1,11 +1,15 @@
 {
   "name": "@noredink/jetpack",
-  "version": "2.0.14",
+  "version": "2.0.18",
   "description": "Install jetpack",
   "preferGlobal": true,
+  "engines": {
+    "node": ">=5.2.0"
+  },
   "main": "index.js",
   "scripts": {
-    "install": "binwrap-install"
+    "install": "npx binwrap-install",
+    "prepublishOnly": "npx binwrap-test"
   },
   "repository": {
     "type": "git",
@@ -21,7 +25,8 @@
   },
   "files": [
     "index.js",
-    "bin"
+    "bin",
+    "bin/jetpack"
   ],
   "homepage": "https://github.com/NoRedInk/jetpack",
   "bin": {
@@ -30,6 +35,5 @@
   "dependencies": {
     "binwrap": "^0.1.4"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

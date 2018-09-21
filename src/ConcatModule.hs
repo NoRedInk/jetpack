@@ -2,12 +2,11 @@
 -}
 module ConcatModule
   ( wrap
-  , replaceRequire
   , wrapModule
+  , replaceRequire
   ) where
 
 import Config
-
 import Data.Char (isSpace)
 import Data.Foldable (all)
 import qualified Data.List.Utils as LU
@@ -35,9 +34,9 @@ uniqNodes = LU.uniq . UT.nodesWithChildren
 
 withContent ::
      Config -> (Dependency, [Dependency]) -> IO (FilePath, [Dependency], T.Text)
-withContent Config {temp_directory} (Dependency {filePath}, ds) = do
+withContent Config {tempDir} (Dependency {filePath}, ds) = do
   let name = F.pathToFileName filePath "js"
-  content <- readFile $ temp_directory </> name
+  content <- readFile $ tempDir </> name
   return (filePath, ds, T.pack content)
 
 wrapDependency :: (FilePath, [Dependency], T.Text) -> T.Text
@@ -46,17 +45,17 @@ wrapDependency (filePath, ds, content) =
 
 replaceRequire :: Dependency -> T.Text -> T.Text
 replaceRequire Dependency {requiredAs, filePath} body =
-  T.pack $ subRegex requireRegex (T.unpack body) jetpackRequire
+  T.pack $ subRegex requireRegex (T.unpack body) (T.unpack jetpackRequire)
   where
-    fnName = T.unpack $ F.pathToFunctionName filePath "js"
+    fnName = pathToFunctionName filePath "js"
     requireRegex =
       mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
 writeJsModule :: Config -> [T.Text] -> FilePath -> IO FilePath
-writeJsModule Config {output_js_directory, entry_points} fns rootFilePath = do
-  let out = output_js_directory </> FP.makeRelative entry_points rootFilePath
-  let rootName = F.pathToFunctionName rootFilePath "js"
+writeJsModule Config {outputDir, entryPoints} fns rootFilePath = do
+  let out = outputDir </> FP.makeRelative entryPoints rootFilePath
+  let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   writeFile out $ T.unpack $ addBoilerplate rootName fns
   return out
@@ -88,25 +87,29 @@ addBoilerplate root fns =
 
 {-| Wraps a module in a function and injects require, module, exports.
     >>> wrapModule "foo" "console.log(42);"
-    "/* START: foo_js */\nfunction foo_js(module, exports) {\nconsole.log(42);\n} /* END: foo_js */\n"
+    "/* START: foo */\nfunction foo_js(module, exports) {\nconsole.log(42);\n} /* END: foo */\n"
 -}
 wrapModule :: FilePath -> T.Text -> T.Text
-wrapModule filePath body =
+wrapModule path body =
   T.concat
     [ "/* START: "
-    , fnName
+    , filePath
     , " */"
     , if all isSpace $ T.unpack body
-        then "  console.warn(\"" <> T.pack filePath <>
-             ": is an empty module!\");"
+        then "  console.warn(\"" <> filePath <> ": is an empty module!\");"
         else ""
     , "\n"
     , T.concat ["function ", fnName, "(module, exports) {\n"]
     , body
     , "\n} /* END: "
-    , fnName
+    , filePath
     , " */"
     , "\n"
     ]
   where
-    fnName = F.pathToFunctionName filePath "js"
+    fnName = pathToFunctionName path "js"
+    filePath = T.replace "___" "/" $ T.pack path
+
+pathToFunctionName :: FilePath -> String -> T.Text
+pathToFunctionName filePath =
+  T.replace "@" "_" . T.replace "." "_" . T.pack . F.pathToFileName filePath

@@ -21,6 +21,7 @@ data Error
                T.Text
   | ConfigInvalid FilePath
                   T.Text
+  | NoConfigFound FilePath
   deriving (Eq, Show)
 
 description :: Error -> T.Text
@@ -57,3 +58,5 @@ description (CompileError cmd msg) =
   T.unlines ["Command:", "", "    $ " <> cmd, "", msg]
 description (HookFailed msg hookScript) =
   T.unlines ["Hook:", "", "    $ " <> hookScript, "", msg]
+description (NoConfigFound path) =
+  T.unlines ["I didn't find a config for jetpack at " <> T.pack path]

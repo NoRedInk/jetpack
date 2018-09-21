@@ -31,12 +31,12 @@ mockModule = T.unlines ["var foo = require('foo.js');", "", "foo(42)"]
 wrappedModule :: T.Text
 wrappedModule =
   T.unlines
-    [ "/* START: testFunction_js */"
+    [ "/* START: testFunction */"
     , "function testFunction_js(module, exports) {"
     , "var foo = require('foo.js');"
     , ""
     , "foo(42)"
-    , "\n} /* END: testFunction_js */"
+    , "\n} /* END: testFunction */"
     ]
 
 mockDependencyTree :: D.DependencyTree
@@ -55,18 +55,18 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-  { entry_points = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
-  , modules_directories = []
-  , source_directory =
-      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , elm_root_directory =
-      ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , temp_directory = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-  , log_directory = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
-  , output_js_directory = ("." </> "test" </> "fixtures" </> "concat" </> "js")
-  , elm_make_path = Nothing
-  , coffee_path = Nothing
-  , no_parse = []
+  { entryPoints = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+  , modulesDirs = []
+  , sourceDir = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , elmRoot = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , tempDir = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+  , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+  , outputDir = ("." </> "test" </> "fixtures" </> "concat" </> "js")
+  , elmMakePath = Nothing
+  , coffeePath = Nothing
+  , noParse = []
+  , watchFileExt = []
+  , watchIgnorePatterns = []
   }
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
@@ -107,17 +107,17 @@ expectedOutput =
       , "  jetpackCache[fnName] = m.exports;"
       , "  return m.exports;"
       , "}"
-      , "/* START: test___fixtures___concat___modules___Page___Foo_js_js */"
+      , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
       , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
       , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
       , "moo(4, 2);"
-      , "\n} /* END: test___fixtures___concat___modules___Page___Foo_js_js */"
-      , "/* START: test___fixtures___concat___sources___Page___Moo_js_js */"
+      , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
+      , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
       , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
       , "module.exports = function(a, b) {"
       , "  console.log(a + b + \"\");"
       , "};"
-      , "\n} /* END: test___fixtures___concat___sources___Page___Moo_js_js */"
+      , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
       , ""
       , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
       , "})();"
@@ -129,32 +129,31 @@ suite =
   testGroup
     "ConcatModule"
     [ testCase "#wrapModule" $ do
-        wrapModule "a/b.elm" "" @?=
-          "/* START: a___b_elm_js */  console.warn(\"a/b.elm: is an empty module!\");\nfunction a___b_elm_js(module, exports) {\n\n} /* END: a___b_elm_js */\n"
-    , testCase "#wrapModule wraps a module in a function" $ do
-        wrapModule "testFunction" mockModule @?= wrappedModule
+        wrapModule "a___b.elm" "" @?=
+          "/* START: a/b.elm */  console.warn(\"a/b.elm: is an empty module!\");\nfunction a___b_elm_js(module, exports) {\n\n} /* END: a/b.elm */\n"
+    , testCase "#wrapModule wraps a module in a function" $
+      wrapModule "testFunction" mockModule @?= wrappedModule
     , testCase
         "#replaceRequire replaces require('string') with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require('foo')"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require('foo')" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
         "#replaceRequire replaces require(\"string\") with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require(\"foo\")"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require(\"foo\")" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
         "#replaceRequire replaces require( 'string' ) with jetpackRequire(function, fnName)" $
-      do replaceRequire
-           (mockDependency "foo" $ "ui" </> "src" </> "foo")
-           "var x = require( 'foo' )"
-     @?= "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
+      replaceRequire
+        (mockDependency "foo" $ "ui" </> "src" </> "foo")
+        "var x = require( 'foo' )" @?=
+      "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
-        paths <-
-          do pg <- mockProgressBar
-             traverse (wrap pg mockConfig) mockDependencies
+        pg <- mockProgressBar
+        paths <- traverse (wrap pg mockConfig) mockDependencies
         paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
         actual <- traverse readFile paths
         actual @?= expectedOutput

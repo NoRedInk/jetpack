@@ -8,9 +8,9 @@ import System.Directory (removeDirectoryRecursive)
 import System.FilePath ((</>))
 
 clean :: Config.Config -> IO ()
-clean Config {elm_root_directory, temp_directory} = do
-  let elmStuff = (elm_root_directory </> "elm-stuff" </> "build-artifacts")
+clean Config {elmRoot, tempDir} = do
+  let elmStuff = (elmRoot </> "elm-stuff" </> "build-artifacts")
   removeDirectoryRecursive elmStuff
-  removeDirectoryRecursive temp_directory
+  removeDirectoryRecursive tempDir
   Message.warning
-    ("Removed " <> T.pack elmStuff <> " and " <> T.pack temp_directory)
+    ("Removed " <> T.pack elmStuff <> " and " <> T.pack tempDir)

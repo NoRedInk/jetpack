@@ -8,6 +8,7 @@ module Notify
 
 import Control.Concurrent
 import Data.Foldable (traverse_)
+import Data.Maybe (isJust)
 import qualified Data.Text as T
 import System.FSNotify
 import System.FilePath
@@ -15,6 +16,7 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types (ProcessID)
 import System.Process ()
+import Text.Regex (Regex, matchRegex)
 
 {-| Internal state of the watcher.
 We keep track of running processes and the config.
@@ -30,6 +32,7 @@ data State = State
 data Config = Config
   { pathToWatch :: FilePath -- Watch files recursivelly under this path.
   , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
+  , ignorePatterns :: [Regex] -- Which filename patterns do we want to ignore? Empty list will accept all.
   }
 
 watch :: Config -> IO () -> IO State
@@ -40,7 +43,7 @@ watch config onChange = do
   pure state
 
 start :: MVar (Maybe ProcessID) -> Config -> IO () -> IO ()
-start mVar Config {pathToWatch, relevantExtensions} onChange = do
+start mVar Config {pathToWatch, relevantExtensions, ignorePatterns} onChange = do
   manager <-
     startManagerConf
       (WatchConfig
@@ -52,13 +55,14 @@ start mVar Config {pathToWatch, relevantExtensions} onChange = do
     watchTree
       manager
       pathToWatch
-      (eventIsRelevant relevantExtensions)
+      (eventIsRelevant relevantExtensions ignorePatterns)
       (actOnEvent mVar onChange)
   pure ()
 
-eventIsRelevant :: [T.Text] -> Event -> Bool
-eventIsRelevant relevantExtensions event =
-  getExtensionFromEvent event `elem` relevantExtensions
+eventIsRelevant :: [T.Text] -> [Regex] -> Event -> Bool
+eventIsRelevant relevantExtensions ignorePatterns event =
+  getExtensionFromEvent event `elem` relevantExtensions &&
+  getFilepathFromEvent event `matchesNone` ignorePatterns
 
 getExtensionFromEvent :: Event -> T.Text
 getExtensionFromEvent = T.pack . takeExtension . getFilepathFromEvent
@@ -88,3 +92,6 @@ getFilepathFromEvent :: Event -> FilePath
 getFilepathFromEvent (Added filepath _) = filepath
 getFilepathFromEvent (Modified filepath _) = filepath
 getFilepathFromEvent (Removed filepath _) = filepath
+
+matchesNone :: FilePath -> [Regex] -> Bool
+matchesNone filepath = not . any (isJust . flip matchRegex filepath)
