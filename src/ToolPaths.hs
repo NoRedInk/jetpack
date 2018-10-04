@@ -28,7 +28,7 @@ data ToolPaths = ToolPaths
 -}
 find :: Config -> IO ToolPaths
 find Config {elmPath, coffeePath} =
-  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm-make") elmPath <*>
+  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm") elmPath <*>
   (binExists <=< toAbsPathOrBin "coffee") coffeePath
 
 toAbsPathOrBin :: String -> Maybe FilePath -> IO FilePath
