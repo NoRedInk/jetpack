@@ -9,7 +9,9 @@
   "main": "index.js",
   "scripts": {
     "install": "npx binwrap-install",
-    "prepublishOnly": "npx binwrap-test"
+    "prepare": "npx binwrap-prepare",
+    "test": "npx binwrap-test",
+    "prepublish": "npm test"
   },
   "repository": {
     "type": "git",
@@ -33,7 +35,7 @@
     "jetpack": "bin/jetpack"
   },
   "dependencies": {
-    "binwrap": "^0.1.4"
+    "binwrap": "^0.2.0"
   },
   "devDependencies": {}
 }
