@@ -1,35 +1,43 @@
 #!/usr/bin/env node
-
-// This file exists for the benefit of npm users who have --ignore-scripts
-// enabled. (Enabling this flag globally is a good security measure.)
-// Since they won't run the post-install hook, the binaries won't be downloaded
-// and installed.
-//
-// Since this file is included in "bin" in package.json, npm will install
-// it automatically in a place that should be on the PATH. All the file does
-// is to download the appropriate binary (just like the post-install hook would
-// have), replace this file with that binary, and run the binary.
-//
-// In this way, the first time a user with --ignore-scripts enabled runs this
-// binary, it will download and install itself, and then run as normal. From
-// then on, it will run as normal without re-downloading.
-
-var install = require("..").install;
-var spawn = require("child_process").spawn;
 var path = require("path");
+var spawn = require("child_process").spawn;
 var fs = require("fs");
+var packageInfo = require(path.join(__dirname, "..", "package.json"));
+var package = require(path.join(__dirname, "..", packageInfo.main));
 
-// Make sure we get the right path even if we're executing from the symlinked
-// node_modules/.bin/ executable
-var targetPath = fs.realpathSync(process.argv[1]);
+var os = process.env.BINWRAP_PLATFORM || process.platform;
+var arch = process.env.BINWRAP_ARCH || process.arch;
 
-console.log("Finishing setup for first run...\n");
+var requested = os + "-" + arch;
+var current = process.platform + "-" + process.arch;
+if (requested !== current ) {
+  console.error("WARNING: Using binaries for the requested platform (" + requested + ") instead of for the actual platform (" + current + ").")
+}
 
-// cd into the directory above bin/ so install() puts bin/ in the right place.
-process.chdir(path.join(path.dirname(targetPath), ".."));
+var binExt = "";
+if (os == "win32") {
+  binExt = ".exe";
+}
 
-install(process.platform, process.arch).then(function() {
-  spawn(targetPath, process.argv.slice(2), {
-    stdio: "inherit"
-  }).on("exit", process.exit);
-});
+var unpackedBinPath = path.join(__dirname, "..", "unpacked_bin");
+var binPath = path.join(unpackedBinPath, "jetpack" + binExt);
+
+function execBin() {
+  spawn(
+    binPath,
+    process.argv.slice(2),
+    {stdio: 'inherit'}
+  ).on('exit', process.exit);
+}
+
+if (fs.existsSync(binPath)) {
+  execBin();
+} else {
+  console.error("INFO: Running " + path.basename(__filename) + " for the first time; downloading the actual binary");
+  package.install(unpackedBinPath, os, arch).then(function(result) {
+    execBin();
+  }, function(err) {
+    console.log("ERR", err);
+    process.exit(1);
+  });
+}
