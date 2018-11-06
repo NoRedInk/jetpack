@@ -3,7 +3,6 @@
 module CliArguments
   ( Args(..)
   , RunMode(..)
-  , CompileMode(..)
   , readArguments
   ) where
 
@@ -14,18 +13,12 @@ import System.FilePath ()
 data Args = Args
   { entryPointGlob :: [String]
   , configPath :: Maybe FilePath
-  , compileMode :: CompileMode
+  , debug :: Bool
+  , warn :: Bool
   , time :: Bool
   , clean :: Bool
   , runMode :: RunMode
   }
-
-
-data CompileMode
-  = Normal
-  | Debug
-  | Optimize
-
 
 data RunMode
   = RunOnce
@@ -46,10 +39,10 @@ parser = do
        help "Path to config file.")
   debug <-
     switch (long "debug" <> short 'd' <> help "Run jetpack in debug mode.")
-  optimize <-
-    switch (long "optimize" <> short 'O' <> help "Compile Elm in optimized mode.")
+  warn <- switch (long "warn" <> short 'w' <> help "Output elm make warnings.")
   version <-
-    switch (long "version" <> short 'v' <> help "display the version of jetpack.")
+    switch
+      (long "version" <> short 'v' <> help "display the version of jetpack")
   time <- switch (long "time" <> short 't' <> help "display compile times.")
   watch <- switch (long "watch" <> short 'w' <> help "watch for changes.")
   clean <-
@@ -59,12 +52,14 @@ parser = do
     Args
     { entryPointGlob = entryPointGlob
     , configPath = configPath
-    , compileMode =
-        if debug
-          then Debug
-          else if optimize
-            then Optimize
-            else Normal
+    , debug =
+        if watch
+          then True
+          else debug
+    , warn =
+        if watch
+          then True
+          else warn
     , time = time
     , clean = clean
     , runMode =

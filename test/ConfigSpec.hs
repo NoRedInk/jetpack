@@ -20,7 +20,7 @@ suite =
            , tempDir = "app" </> "tmp"
            , logDir = "app" </> "logs"
            , outputDir = "app" </> "js"
-           , elmPath = Nothing
+           , elmMakePath = Nothing
            , coffeePath = Nothing
            , noParse =
                ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]

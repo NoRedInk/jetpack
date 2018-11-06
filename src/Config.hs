@@ -23,7 +23,7 @@ data Config = Config
   , tempDir :: FilePath
   , logDir :: FilePath
   , outputDir :: FilePath
-  , elmPath :: Maybe FilePath
+  , elmMakePath :: Maybe FilePath
   , coffeePath :: Maybe FilePath
   , noParse :: [FilePath]
   , watchFileExt :: [T.Text]

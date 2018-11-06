@@ -12,8 +12,10 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
+import qualified Data.Maybe
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.Tree as Tree
 import qualified DependencyTree
 import qualified EntryPoints
@@ -31,11 +33,19 @@ build config args = do
     AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
   printResult result
 
+data Result
+  = Success [FilePath]
+  | Warnings [FilePath]
+             [T.Text]
 
-printResult :: Either ES.SomeException [FilePath] -> IO ()
+printResult :: Either ES.SomeException Result -> IO ()
 printResult result =
   case result of
-    Right entryPoints -> do
+    Right (Warnings entryPoints warnings) -> do
+      _ <- traverse (TIO.putStrLn) warnings
+      _ <- Message.list $ T.pack <$> entryPoints
+      Message.warning "Succeeded with Warnings!"
+    Right (Success entryPoints) -> do
       _ <- Message.list $ T.pack <$> entryPoints
       Message.success $ T.pack "Succeeded"
     Left err -> do
@@ -43,7 +53,7 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-buildHelp :: Config.Config -> Args -> IO [FilePath]
+buildHelp :: Config.Config -> Args -> IO Result
 buildHelp config args = do
   toolPaths <- Init.setup config
   _ <- traverse (Logger.clearLog config) Logger.allLogs
@@ -78,7 +88,10 @@ buildHelp config args = do
        complete pg
        traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
-  return entryPoints
+  let warnings = Data.Maybe.catMaybes (fmap Compile.warnings result)
+  case warnings of
+    [] -> return $ Success entryPoints
+    xs -> return $ Warnings entryPoints xs
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do

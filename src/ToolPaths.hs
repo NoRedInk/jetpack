@@ -20,15 +20,15 @@ import System.FilePath (FilePath)
 import System.Process (system)
 
 data ToolPaths = ToolPaths
-  { elm :: FilePath
+  { elmMake :: FilePath
   , coffee :: FilePath
   }
 
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
 find :: Config -> IO ToolPaths
-find Config {elmPath, coffeePath} =
-  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm") elmPath <*>
+find Config {elmMakePath, coffeePath} =
+  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm-make") elmMakePath <*>
   (binExists <=< toAbsPathOrBin "coffee") coffeePath
 
 toAbsPathOrBin :: String -> Maybe FilePath -> IO FilePath

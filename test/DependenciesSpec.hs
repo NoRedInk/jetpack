@@ -38,7 +38,7 @@ basicsFixtures =
   , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
-  , elmPath = Nothing
+  , elmMakePath = Nothing
   , coffeePath = Nothing
   , noParse =
       [ "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
@@ -61,7 +61,7 @@ failingFixtures =
   , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")
-  , elmPath = Nothing
+  , elmMakePath = Nothing
   , coffeePath = Nothing
   , noParse = []
   , watchFileExt = []
