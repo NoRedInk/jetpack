@@ -4,7 +4,7 @@
 -}
 module Compile where
 
-import CliArguments (Args(..), CompileMode(..))
+import CliArguments (Args(..))
 import Config (Config(..))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -34,6 +34,7 @@ data Result = Result
   , compiledAt :: UTCTime
   , command :: T.Text
   , stdout :: Maybe T.Text
+  , warnings :: Maybe T.Text
   , compiledFile :: FilePath
   } deriving (Show)
 
@@ -82,7 +83,7 @@ runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
   case fileType of
     Ast.Elm -> elmCompiler elm pg args config arguments
     Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg arguments
+    Ast.Coffee -> coffeeCompiler coffee pg args arguments
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
 buildArtifactPath Config {tempDir} fileType inputPath =
@@ -100,11 +101,15 @@ buildArtifactPath Config {tempDir} fileType inputPath =
 elmCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
 elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
-  let Args {compileMode} = args
-  let modeFlag = case compileMode of
-                  Debug -> " --debug"
-                  Optimize -> " --optimize"
-                  Normal -> ""
+  let Args {debug, optimize} = args
+  let debugFlag =
+        if debug
+          then " --debug"
+          else ""
+  let optimizeFlag =
+        if optimize
+          then " --optimize"
+          else ""
   let cmd =
         elm ++
         " " ++
@@ -112,13 +117,13 @@ elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
         " " ++
         "../" ++
         input ++
-        " --output " ++ "../" ++ output ++ modeFlag
-  runCmd pg input cmd $ Just elmRoot
+        " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ optimizeFlag
+  runCmd pg args input cmd $ Just elmRoot
 
-coffeeCompiler :: FilePath -> ProgressBar -> Arguments -> IO Result
-coffeeCompiler coffee pg Arguments {input, output} = do
+coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
+coffeeCompiler coffee pg args Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg input cmd Nothing
+  runCmd pg args input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -135,11 +140,12 @@ jsCompiler pg Arguments {input, output} = do
     , compiledAt = currentTime
     , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
     , stdout = Nothing
+    , warnings = Nothing
     , compiledFile = input
     }
 
-runCmd :: ProgressBar -> FilePath -> String -> Maybe String -> IO Result
-runCmd pg input cmd maybeCwd = do
+runCmd :: ProgressBar -> Args -> FilePath -> String -> Maybe String -> IO Result
+runCmd pg Args {warn} input cmd maybeCwd = do
   start <- getTime Monotonic
   (ec, errContent, content) <- runAndWaitForProcess cmd maybeCwd
   end <- getTime Monotonic
@@ -153,6 +159,11 @@ runCmd pg input cmd maybeCwd = do
         , compiledAt = currentTime
         , command = T.pack cmd
         , stdout = Just $ T.pack content
+        , warnings =
+            T.pack <$>
+            if warn && errContent /= ""
+              then Just errContent
+              else Nothing
         , compiledFile = input
         }
     ExitFailure _ ->
