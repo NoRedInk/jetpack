@@ -79,9 +79,9 @@ runCompiler ::
   -> ToolPaths
   -> Arguments
   -> IO Result
-runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
+runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
   case fileType of
-    Ast.Elm -> elmCompiler elm pg args config arguments
+    Ast.Elm -> elmCompiler elmMake pg args config arguments
     Ast.Js -> jsCompiler pg arguments
     Ast.Coffee -> coffeeCompiler coffee pg args arguments
 
@@ -100,24 +100,22 @@ buildArtifactPath Config {tempDir} fileType inputPath =
 ---------------
 elmCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
-elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
-  let Args {debug, optimize} = args
+elmCompiler elmMake pg args Config {elmRoot} Arguments {input, output} = do
+  let Args {debug, warn} = args
   let debugFlag =
         if debug
           then " --debug"
           else ""
-  let optimizeFlag =
-        if optimize
-          then " --optimize"
+  let warnFlag =
+        if warn
+          then " --warn"
           else ""
   let cmd =
-        elm ++
-        " " ++
-        "make" ++
+        elmMake ++
         " " ++
         "../" ++
         input ++
-        " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ optimizeFlag
+        " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
   runCmd pg args input cmd $ Just elmRoot
 
 coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
