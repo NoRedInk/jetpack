@@ -6,6 +6,7 @@
   "temp_directory" : "app/tmp",
   "log_directory" : "app/logs",
   "output_js_directory" : "app/js",
+  "minifier_path" : "uglify",
   "no_parse": [
     "./node_modules/clipboard/clipboard.js"
   ]

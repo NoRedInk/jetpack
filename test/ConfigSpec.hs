@@ -22,6 +22,7 @@ suite =
            , outputDir = "app" </> "js"
            , elmMakePath = Nothing
            , coffeePath = Nothing
+           , minifierPath = "uglify"
            , noParse =
                ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]
            , watchFileExt = [".elm", ".coffee", ".js", ".json"]

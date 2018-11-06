@@ -25,6 +25,7 @@ data Config = Config
   , outputDir :: FilePath
   , elmMakePath :: Maybe FilePath
   , coffeePath :: Maybe FilePath
+  , minifierPath :: FilePath
   , noParse :: [FilePath]
   , watchFileExt :: [T.Text]
   , watchIgnorePatterns :: [T.Text]
@@ -43,6 +44,7 @@ instance Aeson.FromJSON Config where
     v .: "output_js_directory" <*>
     v .:? "elm_make_path" <*>
     v .:? "coffee_path" <*>
+    v .: "minifier_path" <*>
     v .:? "no_parse" .!= [] <*>
     v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
     v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]

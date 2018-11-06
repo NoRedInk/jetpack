@@ -3,6 +3,7 @@
 module CliArguments
   ( Args(..)
   , RunMode(..)
+  , Minify(..)
   , readArguments
   ) where
 
@@ -17,6 +18,7 @@ data Args = Args
   , warn :: Bool
   , time :: Bool
   , clean :: Bool
+  , minify :: Minify
   , runMode :: RunMode
   }
 
@@ -24,6 +26,10 @@ data RunMode
   = RunOnce
   | Watch
   | Version
+
+data Minify
+  = Minify
+  | DontMinify
 
 readArguments :: IO Args
 readArguments =
@@ -48,6 +54,7 @@ parser = do
   clean <-
     switch
       (long "clean" <> short 'c' <> help "Cleans elm-stuff and removes .jetpack")
+  minify <- switch (long "minify" <> help "Minify the compiled js bundle.")
   return
     Args
     { entryPointGlob = entryPointGlob
@@ -62,6 +69,10 @@ parser = do
           else warn
     , time = time
     , clean = clean
+    , minify =
+        if minify
+          then Minify
+          else DontMinify
     , runMode =
         if version
           then Version
