@@ -36,7 +36,7 @@ basicsFixtures =
       ]
   , sourceDir =
       SourceDir ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-  , elmRoot = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
@@ -59,7 +59,8 @@ failingFixtures =
   , modulesDirs = []
   , sourceDir =
       SourceDir ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-  , elmRoot = ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , elmRoot =
+      ElmRoot ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")

@@ -5,7 +5,7 @@
 module Compile where
 
 import CliArguments (Args(..), CompileMode(..))
-import Config (Config(..))
+import Config (Config(Config))
 import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -115,7 +115,7 @@ elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
         " " ++
         "make" ++
         " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ modeFlag
-  runCmd pg input cmd $ Just elmRoot
+  runCmd pg input cmd $ Just $ Config.unElmRoot elmRoot
 
 coffeeCompiler :: Config.CoffeePath -> ProgressBar -> Arguments -> IO Result
 coffeeCompiler coffee pg Arguments {input, output} = do
