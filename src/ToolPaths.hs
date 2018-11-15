@@ -7,7 +7,7 @@ module ToolPaths
   , ToolPaths(..)
   ) where
 
-import Config (Config(..))
+import Config (Config(Config))
 import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -27,7 +27,7 @@ data ToolPaths = ToolPaths
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
 find :: Config -> IO ToolPaths
-find Config {elmPath, coffeePath} = do
+find Config {Config.elmPath, Config.coffeePath} = do
   elmPath' <- toAbsPathOrBin "elm" (Config.unElmPath <$> elmPath)
   _ <- binExists elmPath'
   let elm = Config.ElmPath elmPath'

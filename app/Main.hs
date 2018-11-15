@@ -3,7 +3,6 @@ module Main where
 import qualified Builder
 import qualified Cleaner
 import CliArguments (Args(..), RunMode(..), readArguments)
-import Config (Config(..))
 import qualified Config
 import Control.Monad (when)
 import Data.Foldable (traverse_)
