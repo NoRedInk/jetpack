@@ -46,7 +46,7 @@ module DependencyTree
   , writeTreeCache
   ) where
 
-import Config (Config(Config))
+import Config (Config)
 import qualified Config
 import Control.Monad ((<=<))
 import Data.Aeson as Aeson
@@ -77,7 +77,8 @@ build pg config cache entryPoint = do
 
 buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree
 buildTree config cache =
-  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
+  Tree.unfoldTreeM
+    (resolveChildren config <=< findRequires cache (Config.noParse config)) <=<
   Resolver.resolve config Nothing
 
 readTreeCache :: Config.TempDir -> IO Dependencies
@@ -100,11 +101,12 @@ requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 findRequires ::
-     Dependencies -> Config -> Dependency -> IO (Dependency, [Dependency])
-findRequires cache Config {Config.noParse} parent@Dependency { filePath
-                                                             , fileType
-                                                             } =
-  if filePath `elem` noParse
+     Dependencies
+  -> [Config.NoParse]
+  -> Dependency
+  -> IO (Dependency, [Dependency])
+findRequires cache noParse parent@Dependency {filePath, fileType} =
+  if Config.NoParse filePath `elem` noParse
     then return (parent, [])
     else case fileType of
            Ast.Js -> parseModule cache parent Parser.Require.jsRequires

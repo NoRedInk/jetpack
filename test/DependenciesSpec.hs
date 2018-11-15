@@ -43,7 +43,8 @@ basicsFixtures =
   , elmPath = Nothing
   , coffeePath = Nothing
   , noParse =
-      [ "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
+      [ NoParse $
+        "." </> "test" </> "fixtures" </> "basics" </> "node_modules" </>
         "clipboard" </>
         "index.js"
       ]
