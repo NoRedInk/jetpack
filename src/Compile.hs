@@ -170,11 +170,8 @@ runAndWaitForProcess cmd maybeCwd = do
   hSetEncoding out utf8
   hSetEncoding err utf8    
   gatherOutput ph err out
-  -- ec <- waitForProcess ph
-  -- content <- hGetContents out
-  -- errContent <- hGetContents err
-  -- pure (ec, errContent, content)
 
+-- https://passingcuriosity.com/2015/haskell-reading-process-safe-deadlock/
 gatherOutput :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
 gatherOutput ph h1 h2 = work mempty mempty
   where
