@@ -47,14 +47,13 @@ printResult result =
       System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> IO [FilePath]
-buildHelp config args = do
+buildHelp config@Config {Config.tempDir} args = do
   toolPaths <- Init.setup config
   traverse_ (Logger.clearLog config) Logger.allLogs
   checkElmStuffConsistency config
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
-  let Config {tempDir} = config
   cache <- DependencyTree.readTreeCache tempDir
   deps <-
     Concurrent.mapConcurrently
@@ -78,7 +77,7 @@ buildHelp config args = do
   pg <- start (L.length deps) "Write modules"
   modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
   _ <-
-    do createdModulesJson pg config modules
+    do createdModulesJson pg tempDir modules
        complete pg
        traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
@@ -89,7 +88,7 @@ checkElmStuffConsistency config@Config.Config {elmRoot} = do
   files <-
     mconcat .
     filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
-    Glob.glob (elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
+    Glob.glob (Config.unElmRoot elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
   Logger.appendLog config Logger.consistencyLog . mconcat $
     L.intersperse "\n" $ fmap T.pack files
   traverse_ Dir.removeFile files
@@ -100,11 +99,10 @@ sameModule a b = FP.dropExtension a == FP.dropExtension b
 sortModules :: FilePath -> FilePath -> Ordering
 sortModules a b = compare (FP.dropExtension a) (FP.dropExtension b)
 
-createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
-createdModulesJson pg config paths = do
+createdModulesJson :: ProgressBar -> Config.TempDir -> [FilePath] -> IO ()
+createdModulesJson pg tempDir paths = do
   let encodedPaths = Aeson.encode paths
-  let Config {tempDir} = config
-  let jsonPath = tempDir </> "modules" <.> "json"
+  let jsonPath = Config.unTempDir tempDir </> "modules" <.> "json"
   _ <- BL.writeFile jsonPath encodedPaths
   _ <- tick pg
   return ()

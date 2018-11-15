@@ -24,11 +24,12 @@ import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
 wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
-wrap pg config dep = do
-  module' <- traverse (withContent config) $ uniqNodes dep
+wrap pg Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
+  module' <- traverse (withContent tempDir) $ uniqNodes dep
   let wrapped = fmap wrapDependency module'
   out <-
-    writeJsModule config wrapped $ Dependencies.filePath $ Tree.rootLabel dep
+    writeJsModule outputDir entryPoints wrapped $
+    Dependencies.filePath $ Tree.rootLabel dep
   _ <- tick pg
   return out
 
@@ -41,10 +42,10 @@ data Module = Module
   , content :: T.Text
   }
 
-withContent :: Config -> (Dependency, [Dependency]) -> IO Module
-withContent Config {Config.tempDir} (Dependency {filePath, fileType}, dependencies) = do
+withContent :: Config.TempDir -> (Dependency, [Dependency]) -> IO Module
+withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
   let name = F.pathToFileName filePath "js"
-  rawContent <- fmap T.pack $ readFile $ tempDir </> name
+  rawContent <- fmap T.pack $ readFile $ Config.unTempDir tempDir </> name
   let content =
         case fileType of
           Ast.Elm -> ensureElmIife rawContent
@@ -67,8 +68,9 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
-writeJsModule :: Config -> [T.Text] -> FilePath -> IO FilePath
-writeJsModule Config {Config.outputDir, Config.entryPoints} fns rootFilePath = do
+writeJsModule ::
+     FilePath -> Config.EntryPoints -> [T.Text] -> FilePath -> IO FilePath
+writeJsModule outputDir entryPoints fns rootFilePath = do
   let out =
         outputDir </>
         FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath

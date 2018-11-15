@@ -2,7 +2,8 @@
 -}
 module Init where
 
-import Config
+import qualified Config
+import Config (Config(Config))
 
 import qualified Data.Text.IO as TIO
 import System.Directory (createDirectoryIfMissing, doesFileExist)
@@ -11,18 +12,18 @@ import qualified ToolPaths
 
 setup :: Config -> IO ToolPaths.ToolPaths
 setup config = do
-  let Config {tempDir, logDir, outputDir} = config
+  let Config {Config.tempDir, Config.logDir, Config.outputDir} = config
   requiredBins <- ToolPaths.find config
   _ <-
     traverse
       (createDirectoryIfMissing True)
-      [tempDir, logDir, outputDir]
+      [Config.unTempDir tempDir, logDir, outputDir]
   createDepsJsonIfMissing tempDir
   return requiredBins
 
-createDepsJsonIfMissing :: FilePath -> IO ()
-createDepsJsonIfMissing tempDirectory = do
-  let depsJSONPath = tempDirectory </> "deps" <.> "json"
+createDepsJsonIfMissing :: Config.TempDir -> IO ()
+createDepsJsonIfMissing tempDir = do
+  let depsJSONPath = Config.unTempDir tempDir </> "deps" <.> "json"
   exists <- doesFileExist depsJSONPath
   if exists
     then return ()

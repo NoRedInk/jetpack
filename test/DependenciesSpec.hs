@@ -37,7 +37,7 @@ basicsFixtures =
   , sourceDir =
       SourceDir ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-  , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
+  , tempDir = TempDir ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
   , elmPath = Nothing
@@ -61,7 +61,7 @@ failingFixtures =
       SourceDir ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , elmRoot =
       ElmRoot ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-  , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
+  , tempDir = TempDir ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")
   , elmPath = Nothing

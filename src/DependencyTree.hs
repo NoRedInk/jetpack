@@ -80,13 +80,14 @@ buildTree config cache =
   Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
   Resolver.resolve config Nothing
 
-readTreeCache :: FilePath -> IO Dependencies
+readTreeCache :: Config.TempDir -> IO Dependencies
 readTreeCache tempDir =
-  (fromMaybe [] . Aeson.decode) <$> BL.readFile (tempDir </> "deps" <.> "json")
+  (fromMaybe [] . Aeson.decode) <$>
+  BL.readFile (Config.unTempDir tempDir </> "deps" <.> "json")
 
-writeTreeCache :: FilePath -> Dependencies -> IO ()
+writeTreeCache :: Config.TempDir -> Dependencies -> IO ()
 writeTreeCache tempDir =
-  BL.writeFile (tempDir </> "deps" <.> "json") . Aeson.encode
+  BL.writeFile (Config.unTempDir tempDir </> "deps" <.> "json") . Aeson.encode
 
 toDependency :: Config.EntryPoints -> FilePath -> IO Dependency
 toDependency entryPoints path = do

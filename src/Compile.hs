@@ -59,7 +59,9 @@ instance Show Duration where
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
 compile :: ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> IO Result
-compile pg args config toolPaths Dependency {fileType, filePath} =
+compile pg args config@Config {Config.tempDir} toolPaths Dependency { fileType
+                                                                    , filePath
+                                                                    } =
   runCompiler
     pg
     args
@@ -67,7 +69,7 @@ compile pg args config toolPaths Dependency {fileType, filePath} =
     fileType
     toolPaths
     Arguments
-    {input = filePath, output = buildArtifactPath config fileType filePath}
+    {input = filePath, output = buildArtifactPath tempDir fileType filePath}
 
 data Arguments = Arguments
   { input :: FilePath
@@ -88,9 +90,9 @@ runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
     Ast.Js -> jsCompiler pg arguments
     Ast.Coffee -> coffeeCompiler coffee pg arguments
 
-buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
-buildArtifactPath Config {tempDir} fileType inputPath =
-  tempDir </> pathToFileName inputPath extension
+buildArtifactPath :: Config.TempDir -> Ast.SourceType -> FilePath -> String
+buildArtifactPath tempDir fileType inputPath =
+  Config.unTempDir tempDir </> pathToFileName inputPath extension
   where
     extension =
       case fileType of

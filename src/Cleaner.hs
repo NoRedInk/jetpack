@@ -13,5 +13,7 @@ clean Config {Config.elmRoot, Config.tempDir} = do
   let elmStuff =
         (Config.unElmRoot elmRoot </> "elm-stuff" </> "build-artifacts")
   removeDirectoryRecursive elmStuff
-  removeDirectoryRecursive tempDir
-  Message.warning ("Removed " <> T.pack elmStuff <> " and " <> T.pack tempDir)
+  removeDirectoryRecursive $ Config.unTempDir tempDir
+  Message.warning
+    ("Removed " <> T.pack elmStuff <> " and " <>
+     T.pack (Config.unTempDir tempDir))
