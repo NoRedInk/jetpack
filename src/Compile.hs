@@ -9,6 +9,8 @@ import Config (Config(..))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -25,6 +27,7 @@ import System.Clock
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
+import System.IO (utf8)
 import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
@@ -164,10 +167,35 @@ runAndWaitForProcess cmd maybeCwd = do
     createProcess
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
-  ec <- waitForProcess ph
-  content <- hGetContents out
-  errContent <- hGetContents err
-  pure (ec, errContent, content)
+  hSetEncoding out utf8
+  hSetEncoding err utf8    
+  gatherOutput ph err out
+  -- ec <- waitForProcess ph
+  -- content <- hGetContents out
+  -- errContent <- hGetContents err
+  -- pure (ec, errContent, content)
+
+gatherOutput :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
+gatherOutput ph h1 h2 = work mempty mempty
+  where
+    work acc1 acc2 = do
+        -- Read any outstanding input.
+        bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
+        let acc1' = acc1 <> bs1
+        bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
+        let acc2' = acc2 <> bs2
+
+        -- Check on the process.
+        s <- getProcessExitCode ph
+        -- Exit or loop.
+        case s of
+            Nothing -> work acc1' acc2'
+            Just ec -> do
+                -- Get any last bit written between the read and the status
+                -- check.
+                last1 <- BS.hGetContents h1
+                last2 <- BS.hGetContents h2
+                pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
 
 data Error =
   CompileError T.Text
