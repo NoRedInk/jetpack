@@ -24,7 +24,9 @@ watch config@Config { Config.sourceDir
       Notify.Config
       { pathToWatch = Config.unSourceDir sourceDir
       , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
-      , ignorePatterns = mkRegex . T.unpack <$> watchIgnorePatterns
+      , ignorePatterns =
+          mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
+          watchIgnorePatterns
       }
       (Builder.build config args)
   Notify.buildNow state

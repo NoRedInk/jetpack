@@ -27,6 +27,7 @@ suite =
                  "." </> "node_modules" </> "clipboard" </> "clipboard.js"
                ]
            , watchFileExt = WatchFileExt <$> [".elm", ".coffee", ".js", ".json"]
-           , watchIgnorePatterns = ["/[.]#[^/]*$", "/~[^/]*$"]
+           , watchIgnorePatterns =
+               WatchIgnorePatterns <$> ["/[.]#[^/]*$", "/~[^/]*$"]
            })
     ]
