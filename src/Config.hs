@@ -22,6 +22,8 @@ module Config
   , unOutputDir
   , NoParse(NoParse)
   , unNoParse
+  , WatchFileExt(WatchFileExt)
+  , unWatchFileExt
   ) where
 
 import qualified Data.Aeson as Aeson
@@ -46,7 +48,7 @@ data Config = Config
   , elmPath :: Maybe ElmPath
   , coffeePath :: Maybe CoffeePath
   , noParse :: [NoParse]
-  , watchFileExt :: [T.Text]
+  , watchFileExt :: [WatchFileExt]
   , watchIgnorePatterns :: [T.Text]
   } deriving (Show, Eq)
 
@@ -90,6 +92,10 @@ newtype NoParse = NoParse
   { unNoParse :: FilePath
   } deriving (Show, Eq)
 
+newtype WatchFileExt = WatchFileExt
+  { unWatchFileExt :: T.Text
+  } deriving (Show, Eq)
+
 instance Aeson.FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config --
@@ -104,7 +110,8 @@ instance Aeson.FromJSON Config where
     (fmap ElmPath <$> v .:? "elm_bin_path") <*>
     (fmap CoffeePath <$> v .:? "coffee_path") <*>
     (fmap NoParse <$> v .:? "no_parse" .!= []) <*>
-    v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
+    (fmap WatchFileExt <$>
+     v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"]) <*>
     v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]
   parseJSON invalid = typeMismatch "Config" invalid
 

@@ -23,7 +23,7 @@ watch config@Config { Config.sourceDir
     Notify.watch
       Notify.Config
       { pathToWatch = Config.unSourceDir sourceDir
-      , relevantExtensions = watchFileExt
+      , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
       , ignorePatterns = mkRegex . T.unpack <$> watchIgnorePatterns
       }
       (Builder.build config args)
