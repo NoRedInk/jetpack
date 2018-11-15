@@ -4,7 +4,8 @@ module Watcher
 
 import qualified Builder
 import CliArguments (Args(..))
-import Config (Config(..))
+import Config (Config(Config))
+import qualified Config
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -13,12 +14,15 @@ import System.FilePath ()
 import Text.Regex (mkRegex)
 
 watch :: Config -> Args -> IO ()
-watch config@Config {sourceDir, watchFileExt, watchIgnorePatterns} args = do
+watch config@Config { Config.sourceDir
+                    , Config.watchFileExt
+                    , Config.watchIgnorePatterns
+                    } args = do
   putStrLn "Watching. Enter '?' to see the help."
   state <-
     Notify.watch
       Notify.Config
-      { pathToWatch = sourceDir
+      { pathToWatch = Config.unSourceDir sourceDir
       , relevantExtensions = watchFileExt
       , ignorePatterns = mkRegex . T.unpack <$> watchIgnorePatterns
       }

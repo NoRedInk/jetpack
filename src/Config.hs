@@ -10,6 +10,8 @@ module Config
   , unEntryPoints
   , ModulesDir(ModulesDir)
   , unModulesDir
+  , SourceDir(SourceDir)
+  , unSourceDir
   ) where
 
 import qualified Data.Aeson as Aeson
@@ -26,7 +28,7 @@ import System.FilePath ((</>))
 data Config = Config
   { entryPoints :: EntryPoints
   , modulesDirs :: [ModulesDir]
-  , sourceDir :: FilePath
+  , sourceDir :: SourceDir
   , elmRoot :: FilePath
   , tempDir :: FilePath
   , logDir :: FilePath
@@ -54,13 +56,17 @@ newtype ModulesDir = ModulesDir
   { unModulesDir :: FilePath
   } deriving (Show, Eq)
 
+newtype SourceDir = SourceDir
+  { unSourceDir :: FilePath
+  } deriving (Show, Eq)
+
 instance Aeson.FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config --
      <$>
     (EntryPoints <$> v .: "entry_points") <*>
     (fmap ModulesDir <$> v .: "modules_directories") <*>
-    v .: "source_directory" <*>
+    (SourceDir <$> v .: "source_directory") <*>
     v .: "elm_root_directory" <*>
     v .: "temp_directory" .!= "./.jetpack/build_artifacts" <*>
     v .:? "log_directory" .!= "./.jetpack/logs" <*>

@@ -58,7 +58,8 @@ mockConfig =
   { entryPoints =
       EntryPoints ("." </> "test" </> "fixtures" </> "concat" </> "modules")
   , modulesDirs = []
-  , sourceDir = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , sourceDir =
+      SourceDir ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , elmRoot = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")

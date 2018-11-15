@@ -15,7 +15,7 @@ suite =
           (Config.Config
            { entryPoints = EntryPoints $ "app" </> "modules"
            , modulesDirs = []
-           , sourceDir = "app" </> "sources"
+           , sourceDir = SourceDir $ "app" </> "sources"
            , elmRoot = "app" </> "sources"
            , tempDir = "app" </> "tmp"
            , logDir = "app" </> "logs"

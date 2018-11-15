@@ -31,7 +31,7 @@ module Resolver
 
 import Alternative.IO (AlternativeIO)
 import qualified Alternative.IO as AIO
-import Config (Config)
+import Config (Config(Config))
 import qualified Config
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (Exception)
@@ -57,14 +57,11 @@ resolve config requiredIn dep = do
     Right dep -> return dep
 
 resolveHelp :: Config -> Dependency -> AlternativeIO Dependency
-resolveHelp Config.Config { Config.modulesDirs
-                          , Config.entryPoints
-                          , Config.sourceDir
-                          } dep = do
+resolveHelp Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
     findInEntryPoints entryPoints dep <|>
-    findInSources sourceDir dep <|>
+    findInSources (Config.unSourceDir sourceDir) dep <|>
     findInModules modulesDirs dep
   updateDepTime $ updateDepType resolved
 

@@ -34,7 +34,8 @@ basicsFixtures =
       [ ModulesDir
           ("." </> "test" </> "fixtures" </> "basics" </> "node_modules")
       ]
-  , sourceDir = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , sourceDir =
+      SourceDir ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , elmRoot = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
@@ -56,7 +57,8 @@ failingFixtures =
   { entryPoints =
       EntryPoints ("." </> "test" </> "fixtures" </> "failing" </> "modules")
   , modulesDirs = []
-  , sourceDir = ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , sourceDir =
+      SourceDir ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , elmRoot = ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
