@@ -39,7 +39,7 @@ basicsFixtures =
   , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , tempDir = TempDir ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = LogDir ("." </> "test" </> "fixtures" </> "basics" </> "logs")
-  , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
+  , outputDir = OutputDir ("." </> "test" </> "fixtures" </> "basics" </> "js")
   , elmPath = Nothing
   , coffeePath = Nothing
   , noParse =
@@ -63,7 +63,7 @@ failingFixtures =
       ElmRoot ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , tempDir = TempDir ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = LogDir ("." </> "test" </> "fixtures" </> "failing" </> "logs")
-  , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")
+  , outputDir = OutputDir ("." </> "test" </> "fixtures" </> "failing" </> "js")
   , elmPath = Nothing
   , coffeePath = Nothing
   , noParse = []

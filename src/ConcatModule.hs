@@ -69,10 +69,14 @@ replaceRequire Dependency {requiredAs, filePath} body =
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
 writeJsModule ::
-     FilePath -> Config.EntryPoints -> [T.Text] -> FilePath -> IO FilePath
+     Config.OutputDir
+  -> Config.EntryPoints
+  -> [T.Text]
+  -> FilePath
+  -> IO FilePath
 writeJsModule outputDir entryPoints fns rootFilePath = do
   let out =
-        outputDir </>
+        Config.unOutputDir outputDir </>
         FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath
   let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out

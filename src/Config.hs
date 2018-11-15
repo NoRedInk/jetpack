@@ -18,6 +18,8 @@ module Config
   , unTempDir
   , LogDir(LogDir)
   , unLogDir
+  , OutputDir(OutputDir)
+  , unOutputDir
   ) where
 
 import qualified Data.Aeson as Aeson
@@ -38,7 +40,7 @@ data Config = Config
   , elmRoot :: ElmRoot
   , tempDir :: TempDir
   , logDir :: LogDir
-  , outputDir :: FilePath
+  , outputDir :: OutputDir
   , elmPath :: Maybe ElmPath
   , coffeePath :: Maybe CoffeePath
   , noParse :: [FilePath]
@@ -78,6 +80,10 @@ newtype LogDir = LogDir
   { unLogDir :: FilePath
   } deriving (Show, Eq)
 
+newtype OutputDir = OutputDir
+  { unOutputDir :: FilePath
+  } deriving (Show, Eq)
+
 instance Aeson.FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config --
@@ -88,7 +94,7 @@ instance Aeson.FromJSON Config where
     (ElmRoot <$> v .: "elm_root_directory") <*>
     (TempDir <$> v .: "temp_directory" .!= "./.jetpack/build_artifacts") <*>
     (LogDir <$> v .:? "log_directory" .!= "./.jetpack/logs") <*>
-    v .: "output_js_directory" <*>
+    (OutputDir <$> v .: "output_js_directory") <*>
     (fmap ElmPath <$> v .:? "elm_bin_path") <*>
     (fmap CoffeePath <$> v .:? "coffee_path") <*>
     v .:? "no_parse" .!= [] <*>
