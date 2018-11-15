@@ -81,10 +81,10 @@ findInEntryPoints ::
 findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
   tryToFind (Config.unEntryPoints entryPoints) requiredAs dep
 
-findInModules :: [FilePath] -> Dependency -> AlternativeIO Dependency
+findInModules :: [Config.ModulesDir] -> Dependency -> AlternativeIO Dependency
 findInModules [] _parent = AIO.tryNext
 findInModules (x:xs) dep@Dependency {requiredAs} =
-  tryToFind x requiredAs dep <|> findInModules xs dep
+  tryToFind (Config.unModulesDir x) requiredAs dep <|> findInModules xs dep
 
 findInSources :: FilePath -> Dependency -> AlternativeIO Dependency
 findInSources sourceDir dep@Dependency {requiredAs} = do

@@ -31,7 +31,9 @@ basicsFixtures =
   { entryPoints =
       EntryPoints ("." </> "test" </> "fixtures" </> "basics" </> "modules")
   , modulesDirs =
-      [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
+      [ ModulesDir
+          ("." </> "test" </> "fixtures" </> "basics" </> "node_modules")
+      ]
   , sourceDir = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , elmRoot = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
