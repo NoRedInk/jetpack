@@ -14,6 +14,7 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies (Dependency(..), DependencyTree)
+import qualified Parser.Ast as Ast
 import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
@@ -40,10 +41,17 @@ data Module = Module
   }
 
 withContent :: Config -> (Dependency, [Dependency]) -> IO Module
-withContent Config {tempDir} (Dependency {filePath}, dependencies) = do
+withContent Config {tempDir} (Dependency {filePath,fileType}, dependencies) = do
   let name = F.pathToFileName filePath "js"
-  content <- fmap T.pack $ readFile $ tempDir </> name
+  rawContent <- fmap T.pack $ readFile $ tempDir </> name
+  let content = case fileType of
+                  Ast.Elm -> ensureElmIife rawContent
+                  _ -> rawContent
   return Module {filePath, dependencies, content}
+
+ensureElmIife :: T.Text -> T.Text
+ensureElmIife input =
+  "(function() {\n\n" <> input <> "\n\n}.call(exports))"
 
 wrapDependency :: Module -> T.Text
 wrapDependency Module {filePath, dependencies, content} =

@@ -4,11 +4,13 @@
 -}
 module Compile where
 
-import CliArguments (Args(..))
+import CliArguments (Args(..), CompileMode(..))
 import Config (Config(..))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -25,6 +27,7 @@ import System.Clock
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
+import System.IO (utf8)
 import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
@@ -34,7 +37,6 @@ data Result = Result
   , compiledAt :: UTCTime
   , command :: T.Text
   , stdout :: Maybe T.Text
-  , warnings :: Maybe T.Text
   , compiledFile :: FilePath
   } deriving (Show)
 
@@ -79,11 +81,11 @@ runCompiler ::
   -> ToolPaths
   -> Arguments
   -> IO Result
-runCompiler pg args config fileType ToolPaths {elmMake, coffee} arguments =
+runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
   case fileType of
-    Ast.Elm -> elmCompiler elmMake pg args config arguments
+    Ast.Elm -> elmCompiler elm pg args config arguments
     Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg args arguments
+    Ast.Coffee -> coffeeCompiler coffee pg arguments
 
 buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
 buildArtifactPath Config {tempDir} fileType inputPath =
@@ -100,28 +102,26 @@ buildArtifactPath Config {tempDir} fileType inputPath =
 ---------------
 elmCompiler ::
      FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
-elmCompiler elmMake pg args Config {elmRoot} Arguments {input, output} = do
-  let Args {debug, warn} = args
-  let debugFlag =
-        if debug
-          then " --debug"
-          else ""
-  let warnFlag =
-        if warn
-          then " --warn"
-          else ""
+elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
+  let Args {compileMode} = args
+  let modeFlag = case compileMode of
+                  Debug -> " --debug"
+                  Optimize -> " --optimize"
+                  Normal -> ""
   let cmd =
-        elmMake ++
+        elm ++
+        " " ++
+        "make" ++
         " " ++
         "../" ++
         input ++
-        " --output " ++ "../" ++ output ++ debugFlag ++ " --yes" ++ warnFlag
-  runCmd pg args input cmd $ Just elmRoot
+        " --output " ++ "../" ++ output ++ modeFlag
+  runCmd pg input cmd $ Just elmRoot
 
-coffeeCompiler :: FilePath -> ProgressBar -> Args -> Arguments -> IO Result
-coffeeCompiler coffee pg args Arguments {input, output} = do
+coffeeCompiler :: FilePath -> ProgressBar -> Arguments -> IO Result
+coffeeCompiler coffee pg Arguments {input, output} = do
   let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg args input cmd Nothing
+  runCmd pg input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -138,12 +138,11 @@ jsCompiler pg Arguments {input, output} = do
     , compiledAt = currentTime
     , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
     , stdout = Nothing
-    , warnings = Nothing
     , compiledFile = input
     }
 
-runCmd :: ProgressBar -> Args -> FilePath -> String -> Maybe String -> IO Result
-runCmd pg Args {warn} input cmd maybeCwd = do
+runCmd :: ProgressBar -> FilePath -> String -> Maybe String -> IO Result
+runCmd pg input cmd maybeCwd = do
   start <- getTime Monotonic
   (ec, errContent, content) <- runAndWaitForProcess cmd maybeCwd
   end <- getTime Monotonic
@@ -157,11 +156,6 @@ runCmd pg Args {warn} input cmd maybeCwd = do
         , compiledAt = currentTime
         , command = T.pack cmd
         , stdout = Just $ T.pack content
-        , warnings =
-            T.pack <$>
-            if warn && errContent /= ""
-              then Just errContent
-              else Nothing
         , compiledFile = input
         }
     ExitFailure _ ->
@@ -173,10 +167,32 @@ runAndWaitForProcess cmd maybeCwd = do
     createProcess
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
-  ec <- waitForProcess ph
-  content <- hGetContents out
-  errContent <- hGetContents err
-  pure (ec, errContent, content)
+  hSetEncoding out utf8
+  hSetEncoding err utf8    
+  gatherOutput ph err out
+
+-- https://passingcuriosity.com/2015/haskell-reading-process-safe-deadlock/
+gatherOutput :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
+gatherOutput ph h1 h2 = work mempty mempty
+  where
+    work acc1 acc2 = do
+        -- Read any outstanding input.
+        bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
+        let acc1' = acc1 <> bs1
+        bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
+        let acc2' = acc2 <> bs2
+
+        -- Check on the process.
+        s <- getProcessExitCode ph
+        -- Exit or loop.
+        case s of
+            Nothing -> work acc1' acc2'
+            Just ec -> do
+                -- Get any last bit written between the read and the status
+                -- check.
+                last1 <- BS.hGetContents h1
+                last2 <- BS.hGetContents h2
+                pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
 
 data Error =
   CompileError T.Text

@@ -23,7 +23,7 @@ data Config = Config
   , tempDir :: FilePath
   , logDir :: FilePath
   , outputDir :: FilePath
-  , elmMakePath :: Maybe FilePath
+  , elmPath :: Maybe FilePath
   , coffeePath :: Maybe FilePath
   , noParse :: [FilePath]
   , watchFileExt :: [T.Text]
@@ -41,7 +41,7 @@ instance Aeson.FromJSON Config where
     v .: "temp_directory" .!= "./.jetpack/build_artifacts" <*>
     v .:? "log_directory" .!= "./.jetpack/logs" <*>
     v .: "output_js_directory" <*>
-    v .:? "elm_make_path" <*>
+    v .:? "elm_bin_path" <*>
     v .:? "coffee_path" <*>
     v .:? "no_parse" .!= [] <*>
     v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
