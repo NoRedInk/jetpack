@@ -7,7 +7,8 @@ module EntryPoints
   ) where
 
 import CliArguments (Args(..))
-import Config
+import qualified Config
+import Config (Config)
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Data.Semigroup ((<>))
@@ -18,17 +19,17 @@ import System.FilePath
 import "Glob" System.FilePath.Glob (glob)
 
 find :: Args -> Config -> IO [FilePath]
-find args config = do
-  let entryPointsGlob = normalisedEntryPointsGlob config args
+find args Config.Config {Config.entryPoints} = do
+  let entryPointsGlob = normalisedEntryPointsGlob entryPoints args
   paths <- findFilesIn entryPointsGlob
   case paths of
     [] -> ES.throwM $ NoModulesPresent (takeDirectory <$> entryPointsGlob)
-    _ -> return $ makeRelative (entryPoints config) <$> paths
+    _ -> return $ makeRelative (Config.unEntryPoints entryPoints) <$> paths
 
-normalisedEntryPointsGlob :: Config -> Args -> [FilePath]
-normalisedEntryPointsGlob config args =
+normalisedEntryPointsGlob :: Config.EntryPoints -> Args -> [FilePath]
+normalisedEntryPointsGlob entryPoints args =
   case entryPointGlob args of
-    [] -> [entryPoints config </> "**" </> "*.*"]
+    [] -> [Config.unEntryPoints entryPoints </> "**" </> "*.*"]
     entryPoints
         -- handle arguments with and without a leading "./"
      -> (\entry -> "." </> normalise entry) <$> entryPoints

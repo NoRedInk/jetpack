@@ -28,13 +28,12 @@ mockProgressBar =
 basicsFixtures :: Config
 basicsFixtures =
   Config
-  { entryPoints = ("." </> "test" </> "fixtures" </> "basics" </> "modules")
+  { entryPoints =
+      EntryPoints ("." </> "test" </> "fixtures" </> "basics" </> "modules")
   , modulesDirs =
       [("." </> "test" </> "fixtures" </> "basics" </> "node_modules")]
-  , sourceDir =
-      ("." </> "test" </> "fixtures" </> "basics" </> "sources")
-  , elmRoot =
-      ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , sourceDir = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
+  , elmRoot = ("." </> "test" </> "fixtures" </> "basics" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "basics" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "basics" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "basics" </> "js")
@@ -52,12 +51,11 @@ basicsFixtures =
 failingFixtures :: Config
 failingFixtures =
   Config
-  { entryPoints = ("." </> "test" </> "fixtures" </> "failing" </> "modules")
+  { entryPoints =
+      EntryPoints ("." </> "test" </> "fixtures" </> "failing" </> "modules")
   , modulesDirs = []
-  , sourceDir =
-      ("." </> "test" </> "fixtures" </> "failing" </> "sources")
-  , elmRoot =
-      ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , sourceDir = ("." </> "test" </> "fixtures" </> "failing" </> "sources")
+  , elmRoot = ("." </> "test" </> "fixtures" </> "failing" </> "sources")
   , tempDir = ("." </> "test" </> "fixtures" </> "failing" </> "tmp")
   , logDir = ("." </> "test" </> "fixtures" </> "failing" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "failing" </> "js")

@@ -13,7 +13,7 @@ suite =
         config <- Config.load "./test/fixtures"
         config @=?
           (Config.Config
-           { entryPoints = "app" </> "modules"
+           { entryPoints = EntryPoints $ "app" </> "modules"
            , modulesDirs = []
            , sourceDir = "app" </> "sources"
            , elmRoot = "app" </> "sources"

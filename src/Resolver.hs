@@ -31,7 +31,8 @@ module Resolver
 
 import Alternative.IO (AlternativeIO)
 import qualified Alternative.IO as AIO
-import Config (Config(..))
+import Config (Config)
+import qualified Config
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -56,7 +57,10 @@ resolve config requiredIn dep = do
     Right dep -> return dep
 
 resolveHelp :: Config -> Dependency -> AlternativeIO Dependency
-resolveHelp Config {modulesDirs, entryPoints, sourceDir} dep = do
+resolveHelp Config.Config { Config.modulesDirs
+                          , Config.entryPoints
+                          , Config.sourceDir
+                          } dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
     findInEntryPoints entryPoints dep <|>
@@ -72,9 +76,10 @@ findRelativeNodeModules :: Dependency -> AlternativeIO Dependency
 findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
   tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints :: FilePath -> Dependency -> AlternativeIO Dependency
+findInEntryPoints ::
+     Config.EntryPoints -> Dependency -> AlternativeIO Dependency
 findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
-  tryToFind entryPoints requiredAs dep
+  tryToFind (Config.unEntryPoints entryPoints) requiredAs dep
 
 findInModules :: [FilePath] -> Dependency -> AlternativeIO Dependency
 findInModules [] _parent = AIO.tryNext

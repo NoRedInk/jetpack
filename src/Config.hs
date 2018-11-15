@@ -2,6 +2,12 @@ module Config
   ( Config(..)
   , readConfig
   , load
+  , ElmPath(ElmPath)
+  , unElmPath
+  , CoffeePath(CoffeePath)
+  , unCoffeePath
+  , EntryPoints(EntryPoints)
+  , unEntryPoints
   ) where
 
 import qualified Data.Aeson as Aeson
@@ -16,33 +22,45 @@ import System.Exit
 import System.FilePath ((</>))
 
 data Config = Config
-  { entryPoints :: FilePath
+  { entryPoints :: EntryPoints
   , modulesDirs :: [FilePath]
   , sourceDir :: FilePath
   , elmRoot :: FilePath
   , tempDir :: FilePath
   , logDir :: FilePath
   , outputDir :: FilePath
-  , elmPath :: Maybe FilePath
-  , coffeePath :: Maybe FilePath
+  , elmPath :: Maybe ElmPath
+  , coffeePath :: Maybe CoffeePath
   , noParse :: [FilePath]
   , watchFileExt :: [T.Text]
   , watchIgnorePatterns :: [T.Text]
+  } deriving (Show, Eq)
+
+newtype ElmPath = ElmPath
+  { unElmPath :: FilePath
+  } deriving (Show, Eq)
+
+newtype CoffeePath = CoffeePath
+  { unCoffeePath :: FilePath
+  } deriving (Show, Eq)
+
+newtype EntryPoints = EntryPoints
+  { unEntryPoints :: FilePath
   } deriving (Show, Eq)
 
 instance Aeson.FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config --
      <$>
-    v .: "entry_points" <*>
+    (EntryPoints <$> v .: "entry_points") <*>
     v .: "modules_directories" <*>
     v .: "source_directory" <*>
     v .: "elm_root_directory" <*>
     v .: "temp_directory" .!= "./.jetpack/build_artifacts" <*>
     v .:? "log_directory" .!= "./.jetpack/logs" <*>
     v .: "output_js_directory" <*>
-    v .:? "elm_bin_path" <*>
-    v .:? "coffee_path" <*>
+    (fmap ElmPath <$> v .:? "elm_bin_path") <*>
+    (fmap CoffeePath <$> v .:? "coffee_path") <*>
     v .:? "no_parse" .!= [] <*>
     v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"] <*>
     v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]

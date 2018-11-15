@@ -55,7 +55,8 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-  { entryPoints = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+  { entryPoints =
+      EntryPoints ("." </> "test" </> "fixtures" </> "concat" </> "modules")
   , modulesDirs = []
   , sourceDir = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , elmRoot = ("." </> "test" </> "fixtures" </> "concat" </> "sources")

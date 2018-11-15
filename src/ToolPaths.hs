@@ -8,9 +8,9 @@ module ToolPaths
   ) where
 
 import Config (Config(..))
+import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
-import Control.Monad ((<=<))
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Typeable (Typeable)
@@ -20,16 +20,21 @@ import System.FilePath (FilePath)
 import System.Process (system)
 
 data ToolPaths = ToolPaths
-  { elm :: FilePath
-  , coffee :: FilePath
+  { elm :: Config.ElmPath
+  , coffee :: Config.CoffeePath
   }
 
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
 find :: Config -> IO ToolPaths
-find Config {elmPath, coffeePath} =
-  ToolPaths <$> (binExists <=< toAbsPathOrBin "elm") elmPath <*>
-  (binExists <=< toAbsPathOrBin "coffee") coffeePath
+find Config {elmPath, coffeePath} = do
+  elmPath' <- toAbsPathOrBin "elm" (Config.unElmPath <$> elmPath)
+  _ <- binExists elmPath'
+  let elm = Config.ElmPath elmPath'
+  coffeePath' <- toAbsPathOrBin "coffee" (Config.unCoffeePath <$> coffeePath)
+  _ <- binExists coffeePath'
+  let coffee = Config.CoffeePath coffeePath'
+  pure $ ToolPaths {elm, coffee}
 
 toAbsPathOrBin :: String -> Maybe FilePath -> IO FilePath
 toAbsPathOrBin _ (Just pathToBin) = makeAbsolute pathToBin

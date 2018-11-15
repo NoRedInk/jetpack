@@ -6,6 +6,7 @@ module Compile where
 
 import CliArguments (Args(..), CompileMode(..))
 import Config (Config(..))
+import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
@@ -101,26 +102,24 @@ buildArtifactPath Config {tempDir} fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
+     Config.ElmPath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
 elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
   let Args {compileMode} = args
-  let modeFlag = case compileMode of
-                  Debug -> " --debug"
-                  Optimize -> " --optimize"
-                  Normal -> ""
+  let modeFlag =
+        case compileMode of
+          Debug -> " --debug"
+          Optimize -> " --optimize"
+          Normal -> ""
   let cmd =
-        elm ++
+        Config.unElmPath elm ++
         " " ++
         "make" ++
-        " " ++
-        "../" ++
-        input ++
-        " --output " ++ "../" ++ output ++ modeFlag
+        " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ modeFlag
   runCmd pg input cmd $ Just elmRoot
 
-coffeeCompiler :: FilePath -> ProgressBar -> Arguments -> IO Result
+coffeeCompiler :: Config.CoffeePath -> ProgressBar -> Arguments -> IO Result
 coffeeCompiler coffee pg Arguments {input, output} = do
-  let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
+  let cmd = Config.unCoffeePath coffee ++ " -p " ++ input ++ " > " ++ output
   runCmd pg input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
@@ -168,31 +167,33 @@ runAndWaitForProcess cmd maybeCwd = do
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
   hSetEncoding out utf8
-  hSetEncoding err utf8    
+  hSetEncoding err utf8
   gatherOutput ph err out
 
 -- https://passingcuriosity.com/2015/haskell-reading-process-safe-deadlock/
-gatherOutput :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
+gatherOutput ::
+     ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
 gatherOutput ph h1 h2 = work mempty mempty
   where
-    work acc1 acc2 = do
+    work acc1 acc2
         -- Read any outstanding input.
-        bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
-        let acc1' = acc1 <> bs1
-        bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
-        let acc2' = acc2 <> bs2
-
+     = do
+      bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
+      let acc1' = acc1 <> bs1
+      bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
+      let acc2' = acc2 <> bs2
         -- Check on the process.
-        s <- getProcessExitCode ph
+      s <- getProcessExitCode ph
         -- Exit or loop.
-        case s of
-            Nothing -> work acc1' acc2'
-            Just ec -> do
+      case s of
+        Nothing -> work acc1' acc2'
+        Just ec
                 -- Get any last bit written between the read and the status
                 -- check.
-                last1 <- BS.hGetContents h1
-                last2 <- BS.hGetContents h2
-                pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
+         -> do
+          last1 <- BS.hGetContents h1
+          last2 <- BS.hGetContents h2
+          pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
 
 data Error =
   CompileError T.Text
