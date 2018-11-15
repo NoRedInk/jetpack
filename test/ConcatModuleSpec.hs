@@ -62,7 +62,7 @@ mockConfig =
       SourceDir ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "concat" </> "sources")
   , tempDir = TempDir ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-  , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+  , logDir = LogDir ("." </> "test" </> "fixtures" </> "concat" </> "logs")
   , outputDir = ("." </> "test" </> "fixtures" </> "concat" </> "js")
   , elmPath = Nothing
   , coffeePath = Nothing

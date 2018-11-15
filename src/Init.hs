@@ -17,7 +17,7 @@ setup config = do
   _ <-
     traverse
       (createDirectoryIfMissing True)
-      [Config.unTempDir tempDir, logDir, outputDir]
+      [Config.unTempDir tempDir, Config.unLogDir logDir, outputDir]
   createDepsJsonIfMissing tempDir
   return requiredBins
 

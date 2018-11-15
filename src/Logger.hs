@@ -7,7 +7,7 @@ module Logger
   , allLogs
   ) where
 
-import Config
+import qualified Config
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.FilePath ((<.>), (</>))
@@ -22,9 +22,10 @@ consistencyLog = "elm-stuff__consistency" <.> "log"
 allLogs :: [FilePath]
 allLogs = [compileTime, compileLog, consistencyLog]
 
-appendLog :: Config -> FilePath -> T.Text -> IO ()
-appendLog Config {logDir} fileName msg =
-  TIO.appendFile (logDir </> fileName) msg
+appendLog :: Config.LogDir -> FilePath -> T.Text -> IO ()
+appendLog logDir fileName msg =
+  TIO.appendFile (Config.unLogDir logDir </> fileName) msg
 
-clearLog :: Config -> FilePath -> IO ()
-clearLog Config {logDir} fileName = TIO.writeFile (logDir </> fileName) ""
+clearLog :: Config.LogDir -> FilePath -> IO ()
+clearLog logDir fileName =
+  TIO.writeFile (Config.unLogDir logDir </> fileName) ""

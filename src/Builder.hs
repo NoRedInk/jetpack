@@ -5,7 +5,8 @@ module Builder
 import CliArguments (Args(..))
 import qualified Compile
 import ConcatModule
-import Config
+import Config (Config(Config))
+import qualified Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
@@ -29,7 +30,7 @@ import System.FilePath ((<.>), (</>))
 import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
 
-build :: Config.Config -> Args -> IO ()
+build :: Config -> Args -> IO ()
 build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
@@ -46,10 +47,10 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-buildHelp :: Config.Config -> Args -> IO [FilePath]
-buildHelp config@Config {Config.tempDir} args = do
+buildHelp :: Config -> Args -> IO [FilePath]
+buildHelp config@Config {Config.tempDir, Config.logDir} args = do
   toolPaths <- Init.setup config
-  traverse_ (Logger.clearLog config) Logger.allLogs
+  traverse_ (Logger.clearLog logDir) Logger.allLogs
   checkElmStuffConsistency config
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
@@ -66,11 +67,11 @@ buildHelp config@Config {Config.tempDir} args = do
   pg <- start (L.length modules) "Compiling"
   result <- traverse (Compile.compile pg args config toolPaths) modules
   _ <-
-    traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
+    traverse (Logger.appendLog logDir Logger.compileLog . T.pack . show) result
   _ <-
     traverse
       (\Compile.Result {compiledFile, duration} ->
-         Logger.appendLog config Logger.compileTime $
+         Logger.appendLog logDir Logger.compileTime $
          T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
       result
   complete pg
@@ -84,12 +85,12 @@ buildHelp config@Config {Config.tempDir} args = do
   return entryPoints
 
 checkElmStuffConsistency :: Config.Config -> IO ()
-checkElmStuffConsistency config@Config.Config {elmRoot} = do
+checkElmStuffConsistency Config.Config {elmRoot, logDir} = do
   files <-
     mconcat .
     filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
     Glob.glob (Config.unElmRoot elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
-  Logger.appendLog config Logger.consistencyLog . mconcat $
+  Logger.appendLog logDir Logger.consistencyLog . mconcat $
     L.intersperse "\n" $ fmap T.pack files
   traverse_ Dir.removeFile files
 
