@@ -26,7 +26,8 @@ import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Directory as Dir
 import qualified System.Exit
-import System.FilePath ((<.>), (</>), replaceExtension)
+import System.FilePath
+       ((<.>), (</>), replaceExtension, takeExtension)
 import qualified System.FilePath.Glob as Glob
 
 build :: Config.Config -> Args -> IO ()
@@ -46,14 +47,21 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
+checkElmArtifact :: FilePath -> IO ()
+checkElmArtifact filePath = do
+  case takeExtension filePath of
+    ".elmi" -> checkFile filePath ".elmo"
+    ".elmo" -> checkFile filePath ".elmi"
+    _ -> return ()
+  where
+    checkFile path ext = do
+      fileExists <- Dir.doesFileExist $ replaceExtension path ext
+      when (not fileExists) $ Dir.removeFile path
+
 checkElmStuffConsistency :: Config.Config -> IO ()
 checkElmStuffConsistency Config.Config {elmRoot} = do
-  elmInterfaces <- Glob.glob $ elmRoot </> "elm-stuff/0.19.0/*.elmi"
-  traverse_
-    (\elmI -> do
-       fileExists <- Dir.doesFileExist $ replaceExtension elmI ".elmo"
-       when (not fileExists) $ Dir.removeFile elmI)
-    elmInterfaces
+  files <- Glob.glob $ elmRoot </> "elm-stuff/0.19.0/*.elm[io]"
+  traverse_ checkElmArtifact files
 
 buildHelp :: Config.Config -> Args -> IO [FilePath]
 buildHelp config args = do
