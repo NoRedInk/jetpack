@@ -8,7 +8,6 @@ import ConcatModule
 import Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
-import Control.Monad (when)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
@@ -26,8 +25,8 @@ import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.AsciiProgress as AsciiProgress
 import qualified System.Directory as Dir
 import qualified System.Exit
-import System.FilePath
-       ((<.>), (</>), replaceExtension, takeExtension)
+import System.FilePath ((<.>), (</>))
+import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
 
 build :: Config.Config -> Args -> IO ()
@@ -85,21 +84,19 @@ buildHelp config args = do
   -- RETURN WARNINGS IF ANY
   return entryPoints
 
-checkElmArtifact :: FilePath -> IO ()
-checkElmArtifact filePath = do
-  case takeExtension filePath of
-    ".elmi" -> checkFile filePath ".elmo"
-    ".elmo" -> checkFile filePath ".elmi"
-    _ -> return ()
-  where
-    checkFile path ext = do
-      fileExists <- Dir.doesFileExist $ replaceExtension path ext
-      when (not fileExists) $ Dir.removeFile path
-
 checkElmStuffConsistency :: Config.Config -> IO ()
 checkElmStuffConsistency Config.Config {elmRoot} = do
-  files <- Glob.glob $ elmRoot </> "elm-stuff/0.19.0/*.elm[io]"
-  traverse_ checkElmArtifact files
+  files <-
+    mconcat .
+    filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
+    Glob.glob (elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
+  traverse_ Dir.removeFile files
+
+sameModule :: FilePath -> FilePath -> Bool
+sameModule a b = FP.dropExtension a == FP.dropExtension b
+
+sortModules :: FilePath -> FilePath -> Ordering
+sortModules a b = compare (FP.dropExtension a) (FP.dropExtension b)
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
