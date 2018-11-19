@@ -85,11 +85,13 @@ buildHelp config args = do
   return entryPoints
 
 checkElmStuffConsistency :: Config.Config -> IO ()
-checkElmStuffConsistency Config.Config {elmRoot} = do
+checkElmStuffConsistency config@Config.Config {elmRoot} = do
   files <-
     mconcat .
     filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
     Glob.glob (elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
+  Logger.appendLog config Logger.consistencyLog . mconcat $
+    L.intersperse "\n" $ fmap T.pack files
   traverse_ Dir.removeFile files
 
 sameModule :: FilePath -> FilePath -> Bool
