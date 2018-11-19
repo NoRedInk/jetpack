@@ -47,22 +47,6 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-checkElmArtifact :: FilePath -> IO ()
-checkElmArtifact filePath = do
-  case takeExtension filePath of
-    ".elmi" -> checkFile filePath ".elmo"
-    ".elmo" -> checkFile filePath ".elmi"
-    _ -> return ()
-  where
-    checkFile path ext = do
-      fileExists <- Dir.doesFileExist $ replaceExtension path ext
-      when (not fileExists) $ Dir.removeFile path
-
-checkElmStuffConsistency :: Config.Config -> IO ()
-checkElmStuffConsistency Config.Config {elmRoot} = do
-  files <- Glob.glob $ elmRoot </> "elm-stuff/0.19.0/*.elm[io]"
-  traverse_ checkElmArtifact files
-
 buildHelp :: Config.Config -> Args -> IO [FilePath]
 buildHelp config args = do
   toolPaths <- Init.setup config
@@ -100,6 +84,22 @@ buildHelp config args = do
        traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
   return entryPoints
+
+checkElmArtifact :: FilePath -> IO ()
+checkElmArtifact filePath = do
+  case takeExtension filePath of
+    ".elmi" -> checkFile filePath ".elmo"
+    ".elmo" -> checkFile filePath ".elmi"
+    _ -> return ()
+  where
+    checkFile path ext = do
+      fileExists <- Dir.doesFileExist $ replaceExtension path ext
+      when (not fileExists) $ Dir.removeFile path
+
+checkElmStuffConsistency :: Config.Config -> IO ()
+checkElmStuffConsistency Config.Config {elmRoot} = do
+  files <- Glob.glob $ elmRoot </> "elm-stuff/0.19.0/*.elm[io]"
+  traverse_ checkElmArtifact files
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
