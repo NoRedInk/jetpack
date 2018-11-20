@@ -5,7 +5,8 @@
 module Compile where
 
 import CliArguments (Args(..), CompileMode(..))
-import Config (Config(..))
+import Config (Config(Config))
+import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Control.Monad (when)
@@ -58,7 +59,9 @@ instance Show Duration where
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
 compile :: ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> IO Result
-compile pg args config toolPaths Dependency {fileType, filePath} =
+compile pg args config@Config {Config.tempDir} toolPaths Dependency { fileType
+                                                                    , filePath
+                                                                    } =
   runCompiler
     pg
     args
@@ -66,7 +69,7 @@ compile pg args config toolPaths Dependency {fileType, filePath} =
     fileType
     toolPaths
     Arguments
-    {input = filePath, output = buildArtifactPath config fileType filePath}
+    {input = filePath, output = buildArtifactPath tempDir fileType filePath}
 
 data Arguments = Arguments
   { input :: FilePath
@@ -87,9 +90,9 @@ runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
     Ast.Js -> jsCompiler pg arguments
     Ast.Coffee -> coffeeCompiler coffee pg arguments
 
-buildArtifactPath :: Config -> Ast.SourceType -> FilePath -> String
-buildArtifactPath Config {tempDir} fileType inputPath =
-  tempDir </> pathToFileName inputPath extension
+buildArtifactPath :: Config.TempDir -> Ast.SourceType -> FilePath -> String
+buildArtifactPath tempDir fileType inputPath =
+  Config.unTempDir tempDir </> pathToFileName inputPath extension
   where
     extension =
       case fileType of
@@ -101,26 +104,24 @@ buildArtifactPath Config {tempDir} fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     FilePath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
+     Config.ElmPath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
 elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
   let Args {compileMode} = args
-  let modeFlag = case compileMode of
-                  Debug -> " --debug"
-                  Optimize -> " --optimize"
-                  Normal -> ""
+  let modeFlag =
+        case compileMode of
+          Debug -> " --debug"
+          Optimize -> " --optimize"
+          Normal -> ""
   let cmd =
-        elm ++
+        Config.unElmPath elm ++
         " " ++
         "make" ++
-        " " ++
-        "../" ++
-        input ++
-        " --output " ++ "../" ++ output ++ modeFlag
-  runCmd pg input cmd $ Just elmRoot
+        " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ modeFlag
+  runCmd pg input cmd $ Just $ Config.unElmRoot elmRoot
 
-coffeeCompiler :: FilePath -> ProgressBar -> Arguments -> IO Result
+coffeeCompiler :: Config.CoffeePath -> ProgressBar -> Arguments -> IO Result
 coffeeCompiler coffee pg Arguments {input, output} = do
-  let cmd = coffee ++ " -p " ++ input ++ " > " ++ output
+  let cmd = Config.unCoffeePath coffee ++ " -p " ++ input ++ " > " ++ output
   runCmd pg input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
@@ -168,31 +169,33 @@ runAndWaitForProcess cmd maybeCwd = do
       (proc "bash" ["-c", cmd])
       {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
   hSetEncoding out utf8
-  hSetEncoding err utf8    
+  hSetEncoding err utf8
   gatherOutput ph err out
 
 -- https://passingcuriosity.com/2015/haskell-reading-process-safe-deadlock/
-gatherOutput :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
+gatherOutput ::
+     ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
 gatherOutput ph h1 h2 = work mempty mempty
   where
-    work acc1 acc2 = do
+    work acc1 acc2
         -- Read any outstanding input.
-        bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
-        let acc1' = acc1 <> bs1
-        bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
-        let acc2' = acc2 <> bs2
-
+     = do
+      bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
+      let acc1' = acc1 <> bs1
+      bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
+      let acc2' = acc2 <> bs2
         -- Check on the process.
-        s <- getProcessExitCode ph
+      s <- getProcessExitCode ph
         -- Exit or loop.
-        case s of
-            Nothing -> work acc1' acc2'
-            Just ec -> do
+      case s of
+        Nothing -> work acc1' acc2'
+        Just ec
                 -- Get any last bit written between the read and the status
                 -- check.
-                last1 <- BS.hGetContents h1
-                last2 <- BS.hGetContents h2
-                pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
+         -> do
+          last1 <- BS.hGetContents h1
+          last2 <- BS.hGetContents h2
+          pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
 
 data Error =
   CompileError T.Text

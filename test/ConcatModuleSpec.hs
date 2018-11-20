@@ -55,13 +55,15 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-  { entryPoints = ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+  { entryPoints =
+      EntryPoints ("." </> "test" </> "fixtures" </> "concat" </> "modules")
   , modulesDirs = []
-  , sourceDir = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , elmRoot = ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , tempDir = ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-  , logDir = ("." </> "test" </> "fixtures" </> "concat" </> "logs")
-  , outputDir = ("." </> "test" </> "fixtures" </> "concat" </> "js")
+  , sourceDir =
+      SourceDir ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+  , tempDir = TempDir ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+  , logDir = LogDir ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+  , outputDir = OutputDir ("." </> "test" </> "fixtures" </> "concat" </> "js")
   , elmPath = Nothing
   , coffeePath = Nothing
   , noParse = []

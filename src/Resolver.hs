@@ -31,7 +31,8 @@ module Resolver
 
 import Alternative.IO (AlternativeIO)
 import qualified Alternative.IO as AIO
-import Config (Config(..))
+import Config (Config(Config))
+import qualified Config
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -48,19 +49,24 @@ import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
 
 resolve :: Config -> Maybe Dependency -> Dependency -> IO Dependency
-resolve config requiredIn dep = do
-  result <- ME.runExceptT (resolveHelp config dep)
+resolve Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} requiredIn dep = do
+  result <- ME.runExceptT (resolveHelp modulesDirs entryPoints sourceDir dep)
   case result of
     Left _ ->
       ES.throwM $ ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep
     Right dep -> return dep
 
-resolveHelp :: Config -> Dependency -> AlternativeIO Dependency
-resolveHelp Config {modulesDirs, entryPoints, sourceDir} dep = do
+resolveHelp ::
+     [Config.ModulesDir]
+  -> Config.EntryPoints
+  -> Config.SourceDir
+  -> Dependency
+  -> AlternativeIO Dependency
+resolveHelp modulesDirs entryPoints sourceDir dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
     findInEntryPoints entryPoints dep <|>
-    findInSources sourceDir dep <|>
+    findInSources (Config.unSourceDir sourceDir) dep <|>
     findInModules modulesDirs dep
   updateDepTime $ updateDepType resolved
 
@@ -72,14 +78,15 @@ findRelativeNodeModules :: Dependency -> AlternativeIO Dependency
 findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
   tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints :: FilePath -> Dependency -> AlternativeIO Dependency
+findInEntryPoints ::
+     Config.EntryPoints -> Dependency -> AlternativeIO Dependency
 findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
-  tryToFind entryPoints requiredAs dep
+  tryToFind (Config.unEntryPoints entryPoints) requiredAs dep
 
-findInModules :: [FilePath] -> Dependency -> AlternativeIO Dependency
+findInModules :: [Config.ModulesDir] -> Dependency -> AlternativeIO Dependency
 findInModules [] _parent = AIO.tryNext
 findInModules (x:xs) dep@Dependency {requiredAs} =
-  tryToFind x requiredAs dep <|> findInModules xs dep
+  tryToFind (Config.unModulesDir x) requiredAs dep <|> findInModules xs dep
 
 findInSources :: FilePath -> Dependency -> AlternativeIO Dependency
 findInSources sourceDir dep@Dependency {requiredAs} = do

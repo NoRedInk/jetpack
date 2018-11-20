@@ -6,7 +6,8 @@ module ConcatModule
   , replaceRequire
   ) where
 
-import Config
+import qualified Config
+import Config (Config(Config))
 import Data.Char (isSpace)
 import Data.Foldable (all)
 import qualified Data.List.Utils as LU
@@ -23,11 +24,12 @@ import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
 wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
-wrap pg config dep = do
-  module' <- traverse (withContent config) $ uniqNodes dep
+wrap pg Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
+  module' <- traverse (withContent tempDir) $ uniqNodes dep
   let wrapped = fmap wrapDependency module'
   out <-
-    writeJsModule config wrapped $ Dependencies.filePath $ Tree.rootLabel dep
+    writeJsModule outputDir entryPoints wrapped $
+    Dependencies.filePath $ Tree.rootLabel dep
   _ <- tick pg
   return out
 
@@ -40,18 +42,18 @@ data Module = Module
   , content :: T.Text
   }
 
-withContent :: Config -> (Dependency, [Dependency]) -> IO Module
-withContent Config {tempDir} (Dependency {filePath,fileType}, dependencies) = do
+withContent :: Config.TempDir -> (Dependency, [Dependency]) -> IO Module
+withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
   let name = F.pathToFileName filePath "js"
-  rawContent <- fmap T.pack $ readFile $ tempDir </> name
-  let content = case fileType of
-                  Ast.Elm -> ensureElmIife rawContent
-                  _ -> rawContent
+  rawContent <- fmap T.pack $ readFile $ Config.unTempDir tempDir </> name
+  let content =
+        case fileType of
+          Ast.Elm -> ensureElmIife rawContent
+          _ -> rawContent
   return Module {filePath, dependencies, content}
 
 ensureElmIife :: T.Text -> T.Text
-ensureElmIife input =
-  "(function() {\n\n" <> input <> "\n\n}.call(exports))"
+ensureElmIife input = "(function() {\n\n" <> input <> "\n\n}.call(exports))"
 
 wrapDependency :: Module -> T.Text
 wrapDependency Module {filePath, dependencies, content} =
@@ -66,9 +68,16 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
-writeJsModule :: Config -> [T.Text] -> FilePath -> IO FilePath
-writeJsModule Config {outputDir, entryPoints} fns rootFilePath = do
-  let out = outputDir </> FP.makeRelative entryPoints rootFilePath
+writeJsModule ::
+     Config.OutputDir
+  -> Config.EntryPoints
+  -> [T.Text]
+  -> FilePath
+  -> IO FilePath
+writeJsModule outputDir entryPoints fns rootFilePath = do
+  let out =
+        Config.unOutputDir outputDir </>
+        FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath
   let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   writeFile out $ T.unpack $ addBoilerplate rootName fns

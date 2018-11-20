@@ -13,18 +13,21 @@ suite =
         config <- Config.load "./test/fixtures"
         config @=?
           (Config.Config
-           { entryPoints = "app" </> "modules"
+           { entryPoints = EntryPoints $ "app" </> "modules"
            , modulesDirs = []
-           , sourceDir = "app" </> "sources"
-           , elmRoot = "app" </> "sources"
-           , tempDir = "app" </> "tmp"
-           , logDir = "app" </> "logs"
-           , outputDir = "app" </> "js"
+           , sourceDir = SourceDir $ "app" </> "sources"
+           , elmRoot = ElmRoot $ "app" </> "sources"
+           , tempDir = TempDir $ "app" </> "tmp"
+           , logDir = LogDir $ "app" </> "logs"
+           , outputDir = OutputDir $ "app" </> "js"
            , elmPath = Nothing
            , coffeePath = Nothing
            , noParse =
-               ["." </> "node_modules" </> "clipboard" </> "clipboard.js"]
-           , watchFileExt = [".elm", ".coffee", ".js", ".json"]
-           , watchIgnorePatterns = ["/[.]#[^/]*$", "/~[^/]*$"]
+               [ NoParse $
+                 "." </> "node_modules" </> "clipboard" </> "clipboard.js"
+               ]
+           , watchFileExt = WatchFileExt <$> [".elm", ".coffee", ".js", ".json"]
+           , watchIgnorePatterns =
+               WatchIgnorePatterns <$> ["/[.]#[^/]*$", "/~[^/]*$"]
            })
     ]

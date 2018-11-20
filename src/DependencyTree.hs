@@ -46,7 +46,8 @@ module DependencyTree
   , writeTreeCache
   ) where
 
-import Config
+import Config (Config)
+import qualified Config
 import Control.Monad ((<=<))
 import Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
@@ -69,27 +70,29 @@ import Utils.Tree (searchNode)
 -}
 build :: ProgressBar -> Config -> Dependencies -> FilePath -> IO DependencyTree
 build pg config cache entryPoint = do
-  dep <- toDependency config entryPoint
+  dep <- toDependency (Config.entryPoints config) entryPoint
   tree <- buildTree config cache dep
   _ <- tick pg
   return tree
 
 buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree
 buildTree config cache =
-  Tree.unfoldTreeM (resolveChildren config <=< findRequires cache config) <=<
+  Tree.unfoldTreeM
+    (resolveChildren config <=< findRequires cache (Config.noParse config)) <=<
   Resolver.resolve config Nothing
 
-readTreeCache :: FilePath -> IO Dependencies
+readTreeCache :: Config.TempDir -> IO Dependencies
 readTreeCache tempDir =
-  (fromMaybe [] . Aeson.decode) <$> BL.readFile (tempDir </> "deps" <.> "json")
+  (fromMaybe [] . Aeson.decode) <$>
+  BL.readFile (Config.unTempDir tempDir </> "deps" <.> "json")
 
-writeTreeCache :: FilePath -> Dependencies -> IO ()
+writeTreeCache :: Config.TempDir -> Dependencies -> IO ()
 writeTreeCache tempDir =
-  BL.writeFile (tempDir </> "deps" <.> "json") . Aeson.encode
+  BL.writeFile (Config.unTempDir tempDir </> "deps" <.> "json") . Aeson.encode
 
-toDependency :: Config -> FilePath -> IO Dependency
-toDependency Config {entryPoints} path = do
-  status <- getFileStatus $ entryPoints </> path
+toDependency :: Config.EntryPoints -> FilePath -> IO Dependency
+toDependency entryPoints path = do
+  status <- getFileStatus $ Config.unEntryPoints entryPoints </> path
   let lastModificationTime =
         posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency Ast.Js path path $ Just lastModificationTime
@@ -98,9 +101,12 @@ requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
 findRequires ::
-     Dependencies -> Config -> Dependency -> IO (Dependency, [Dependency])
-findRequires cache Config {noParse} parent@Dependency {filePath, fileType} =
-  if filePath `elem` noParse
+     Dependencies
+  -> [Config.NoParse]
+  -> Dependency
+  -> IO (Dependency, [Dependency])
+findRequires cache noParse parent@Dependency {filePath, fileType} =
+  if Config.NoParse filePath `elem` noParse
     then return (parent, [])
     else case fileType of
            Ast.Js -> parseModule cache parent Parser.Require.jsRequires

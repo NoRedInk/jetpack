@@ -5,7 +5,8 @@ module Builder
 import CliArguments (Args(..))
 import qualified Compile
 import ConcatModule
-import Config
+import Config (Config(Config))
+import qualified Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
@@ -29,7 +30,7 @@ import System.FilePath ((<.>), (</>))
 import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
 
-build :: Config.Config -> Args -> IO ()
+build :: Config -> Args -> IO ()
 build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
@@ -47,14 +48,20 @@ printResult result =
       System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> IO [FilePath]
-buildHelp config args = do
-  toolPaths <- Init.setup config
-  traverse_ (Logger.clearLog config) Logger.allLogs
-  checkElmStuffConsistency config
-  entryPoints <- EntryPoints.find args config
+buildHelp config@Config { Config.tempDir
+                        , Config.logDir
+                        , Config.elmRoot
+                        , Config.outputDir
+                        , Config.elmPath
+                        , Config.coffeePath
+                        , Config.entryPoints
+                        } args = do
+  toolPaths <- Init.setup tempDir logDir outputDir elmPath coffeePath
+  traverse_ (Logger.clearLog logDir) Logger.allLogs
+  checkElmStuffConsistency logDir elmRoot
+  entryPoints <- EntryPoints.find args entryPoints
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
-  let Config {tempDir} = config
   cache <- DependencyTree.readTreeCache tempDir
   deps <-
     Concurrent.mapConcurrently
@@ -67,30 +74,30 @@ buildHelp config args = do
   pg <- start (L.length modules) "Compiling"
   result <- traverse (Compile.compile pg args config toolPaths) modules
   _ <-
-    traverse (Logger.appendLog config Logger.compileLog . T.pack . show) result
+    traverse (Logger.appendLog logDir Logger.compileLog . T.pack . show) result
   _ <-
     traverse
       (\Compile.Result {compiledFile, duration} ->
-         Logger.appendLog config Logger.compileTime $
+         Logger.appendLog logDir Logger.compileTime $
          T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
       result
   complete pg
   pg <- start (L.length deps) "Write modules"
   modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
   _ <-
-    do createdModulesJson pg config modules
+    do createdModulesJson pg tempDir modules
        complete pg
        traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
   return entryPoints
 
-checkElmStuffConsistency :: Config.Config -> IO ()
-checkElmStuffConsistency config@Config.Config {elmRoot} = do
+checkElmStuffConsistency :: Config.LogDir -> Config.ElmRoot -> IO ()
+checkElmStuffConsistency logDir elmRoot = do
   files <-
     mconcat .
     filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
-    Glob.glob (elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
-  Logger.appendLog config Logger.consistencyLog . mconcat $
+    Glob.glob (Config.unElmRoot elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
+  Logger.appendLog logDir Logger.consistencyLog . mconcat $
     L.intersperse "\n" $ fmap T.pack files
   traverse_ Dir.removeFile files
 
@@ -100,11 +107,10 @@ sameModule a b = FP.dropExtension a == FP.dropExtension b
 sortModules :: FilePath -> FilePath -> Ordering
 sortModules a b = compare (FP.dropExtension a) (FP.dropExtension b)
 
-createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
-createdModulesJson pg config paths = do
+createdModulesJson :: ProgressBar -> Config.TempDir -> [FilePath] -> IO ()
+createdModulesJson pg tempDir paths = do
   let encodedPaths = Aeson.encode paths
-  let Config {tempDir} = config
-  let jsonPath = tempDir </> "modules" <.> "json"
+  let jsonPath = Config.unTempDir tempDir </> "modules" <.> "json"
   _ <- BL.writeFile jsonPath encodedPaths
   _ <- tick pg
   return ()
