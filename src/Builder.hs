@@ -48,11 +48,18 @@ printResult result =
       System.Exit.exitFailure
 
 buildHelp :: Config.Config -> Args -> IO [FilePath]
-buildHelp config@Config {Config.tempDir, Config.logDir, Config.elmRoot} args = do
-  toolPaths <- Init.setup config
+buildHelp config@Config { Config.tempDir
+                        , Config.logDir
+                        , Config.elmRoot
+                        , Config.outputDir
+                        , Config.elmPath
+                        , Config.coffeePath
+                        , Config.entryPoints
+                        } args = do
+  toolPaths <- Init.setup tempDir logDir outputDir elmPath coffeePath
   traverse_ (Logger.clearLog logDir) Logger.allLogs
   checkElmStuffConsistency logDir elmRoot
-  entryPoints <- EntryPoints.find args config
+  entryPoints <- EntryPoints.find args entryPoints
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
   cache <- DependencyTree.readTreeCache tempDir

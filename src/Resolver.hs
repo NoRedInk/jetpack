@@ -49,15 +49,20 @@ import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
 
 resolve :: Config -> Maybe Dependency -> Dependency -> IO Dependency
-resolve config requiredIn dep = do
-  result <- ME.runExceptT (resolveHelp config dep)
+resolve Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} requiredIn dep = do
+  result <- ME.runExceptT (resolveHelp modulesDirs entryPoints sourceDir dep)
   case result of
     Left _ ->
       ES.throwM $ ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep
     Right dep -> return dep
 
-resolveHelp :: Config -> Dependency -> AlternativeIO Dependency
-resolveHelp Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} dep = do
+resolveHelp ::
+     [Config.ModulesDir]
+  -> Config.EntryPoints
+  -> Config.SourceDir
+  -> Dependency
+  -> AlternativeIO Dependency
+resolveHelp modulesDirs entryPoints sourceDir dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
     findInEntryPoints entryPoints dep <|>

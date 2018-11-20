@@ -8,7 +8,6 @@ module EntryPoints
 
 import CliArguments (Args(..))
 import qualified Config
-import Config (Config)
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Data.Semigroup ((<>))
@@ -18,8 +17,8 @@ import System.FilePath
        ((</>), makeRelative, normalise, takeDirectory)
 import "Glob" System.FilePath.Glob (glob)
 
-find :: Args -> Config -> IO [FilePath]
-find args Config.Config {Config.entryPoints} = do
+find :: Args -> Config.EntryPoints -> IO [FilePath]
+find args entryPoints = do
   let entryPointsGlob = normalisedEntryPointsGlob entryPoints args
   paths <- findFilesIn entryPointsGlob
   case paths of
