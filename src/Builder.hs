@@ -47,11 +47,11 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-buildHelp :: Config -> Args -> IO [FilePath]
-buildHelp config@Config {Config.tempDir, Config.logDir} args = do
+buildHelp :: Config.Config -> Args -> IO [FilePath]
+buildHelp config@Config {Config.tempDir, Config.logDir, Config.elmRoot} args = do
   toolPaths <- Init.setup config
   traverse_ (Logger.clearLog logDir) Logger.allLogs
-  checkElmStuffConsistency config
+  checkElmStuffConsistency logDir elmRoot
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
@@ -84,8 +84,8 @@ buildHelp config@Config {Config.tempDir, Config.logDir} args = do
   -- RETURN WARNINGS IF ANY
   return entryPoints
 
-checkElmStuffConsistency :: Config.Config -> IO ()
-checkElmStuffConsistency Config.Config {elmRoot, logDir} = do
+checkElmStuffConsistency :: Config.LogDir -> Config.ElmRoot -> IO ()
+checkElmStuffConsistency logDir elmRoot = do
   files <-
     mconcat .
     filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
