@@ -10,6 +10,7 @@ import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
 import Data.Semigroup ((<>))
@@ -22,15 +23,17 @@ import qualified Logger
 import qualified Message
 import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.AsciiProgress as AsciiProgress
+import qualified System.Directory as Dir
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
+import qualified System.FilePath as FP
+import qualified System.FilePath.Glob as Glob
 
 build :: Config.Config -> Args -> IO ()
 build config args = do
   result <-
     AsciiProgress.displayConsoleRegions $ ES.tryAny $ buildHelp config args
   printResult result
-
 
 printResult :: Either ES.SomeException [FilePath] -> IO ()
 printResult result =
@@ -46,7 +49,8 @@ printResult result =
 buildHelp :: Config.Config -> Args -> IO [FilePath]
 buildHelp config args = do
   toolPaths <- Init.setup config
-  _ <- traverse (Logger.clearLog config) Logger.allLogs
+  traverse_ (Logger.clearLog config) Logger.allLogs
+  checkElmStuffConsistency config
   entryPoints <- EntryPoints.find args config
   -- GETTING DEPENDENCY TREE
   pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
@@ -79,6 +83,22 @@ buildHelp config args = do
        traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
   return entryPoints
+
+checkElmStuffConsistency :: Config.Config -> IO ()
+checkElmStuffConsistency config@Config.Config {elmRoot} = do
+  files <-
+    mconcat .
+    filter ((/=) 2 . length) . L.groupBy sameModule . L.sortBy sortModules <$>
+    Glob.glob (elmRoot </> "elm-stuff/0.19.0/*.elm[io]")
+  Logger.appendLog config Logger.consistencyLog . mconcat $
+    L.intersperse "\n" $ fmap T.pack files
+  traverse_ Dir.removeFile files
+
+sameModule :: FilePath -> FilePath -> Bool
+sameModule a b = FP.dropExtension a == FP.dropExtension b
+
+sortModules :: FilePath -> FilePath -> Ordering
+sortModules a b = compare (FP.dropExtension a) (FP.dropExtension b)
 
 createdModulesJson :: ProgressBar -> Config -> [FilePath] -> IO ()
 createdModulesJson pg config paths = do
