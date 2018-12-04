@@ -37,7 +37,7 @@ listenToCommands state = do
   value <- TIO.getLine
   case commandFromStr value of
     Just Rebuild -> do
-      _ <- TIO.putStrLn "focing a rebuild..."
+      _ <- TIO.putStrLn "Forcing a rebuild..."
       _ <- Notify.buildNow state
       listenToCommands state
     Just Quit -> do
