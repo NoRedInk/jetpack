@@ -25,6 +25,7 @@ import qualified EntryPoints
 import qualified Init
 import qualified Logger
 import qualified Message
+import qualified Parser.Ast as Ast
 import qualified System.Console.Regions as CR
 import qualified System.Directory as Dir
 import qualified System.Exit
@@ -79,7 +80,12 @@ buildHelp config@Config { Config.tempDir
         pure deps
   -- COMPILATION
     let modules = LU.uniq $ concatMap Tree.flatten deps
-    result <- compile args config toolPaths modules
+    let Compile.Groupped {elm, js, coffee} = Compile.group modules
+    result <-
+      mconcat <$>
+      Concurrent.mapConcurrently
+        (compile args config toolPaths)
+        [(Ast.Elm, elm), (Ast.Js, js), (Ast.Coffee, coffee)]
     withSpinner $ \subRegion endSpinner -> do
       CR.setConsoleRegion subRegion $ T.pack "Writing modules."
       modules <- Concurrent.mapConcurrently (ConcatModule.wrap config) deps
@@ -94,20 +100,21 @@ compile ::
   => Args
   -> Config
   -> ToolPaths.ToolPaths
-  -> t Dependencies.Dependency
+  -> (Ast.SourceType, t Dependencies.Dependency)
   -> IO (t Compile.Result)
-compile args config@Config {Config.logDir} toolPaths modules =
+compile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
   withSpinner $ \subRegion endSpinner -> do
     _ <-
       CR.setConsoleRegion subRegion $
-      " Compiling (0/" <> show (length modules) <> ") "
+      " " <> show sourceType <> " (0/" <> show (length modules) <> ") "
     CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
       result <-
         Indexed.itraverse
           (\index m -> do
              r <- Compile.compile region args config toolPaths m
              CR.setConsoleRegion subRegion $
-               " Compiling (" <> show index <> "/" <> show (length modules) <>
+               " " <> show sourceType <> " " <> show index <> "/" <>
+               show (length modules) <>
                ") "
              pure r)
           modules
@@ -121,7 +128,8 @@ compile args config@Config {Config.logDir} toolPaths modules =
              Logger.appendLog logDir Logger.compileTime $
              T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
           result
-      endSpinner "Compilation successful"
+      endSpinner $
+        T.pack $ "Compilation of " <> show sourceType <> " successful."
       pure result
 
 withSpinner :: (CR.ConsoleRegion -> (T.Text -> IO ()) -> IO a) -> IO a
