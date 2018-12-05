@@ -82,12 +82,14 @@ buildHelp config@Config { Config.tempDir
     let modules = LU.uniq $ concatMap Tree.flatten deps
     let Compile.Groupped {elm, js, coffee} = Compile.group modules
     result <-
-      mconcat <$>
-      Concurrent.mapConcurrently
-        (compile args config toolPaths)
-        [(Ast.Elm, elm), (Ast.Js, js), (Ast.Coffee, coffee)]
+      mconcat . mconcat . (\(a, b) -> [a, b]) <$>
+      Concurrent.concurrently
+        (traverse (compile args config toolPaths) [(Ast.Elm, elm)])
+        (Concurrent.mapConcurrently
+           (parallelCompile args config toolPaths)
+           [(Ast.Js, js), (Ast.Coffee, coffee)])
     withSpinner $ \subRegion endSpinner -> do
-      CR.setConsoleRegion subRegion $ T.pack "Writing modules."
+      CR.setConsoleRegion subRegion $ T.pack " Writing modules."
       modules <- Concurrent.mapConcurrently (ConcatModule.wrap config) deps
       createdModulesJson tempDir modules
       endSpinner "Modules written."
@@ -113,7 +115,7 @@ compile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
           (\index m -> do
              r <- Compile.compile region args config toolPaths m
              CR.setConsoleRegion subRegion $
-               " " <> show sourceType <> " " <> show index <> "/" <>
+               " " <> show sourceType <> " (" <> show index <> "/" <>
                show (length modules) <>
                ") "
              pure r)
@@ -128,8 +130,37 @@ compile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
              Logger.appendLog logDir Logger.compileTime $
              T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
           result
-      endSpinner $
-        T.pack $ "Compilation of " <> show sourceType <> " successful."
+      endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
+      pure result
+
+parallelCompile ::
+     (Show a, TraversableWithIndex a t)
+  => Args
+  -> Config
+  -> ToolPaths.ToolPaths
+  -> (Ast.SourceType, t Dependencies.Dependency)
+  -> IO (t Compile.Result)
+parallelCompile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
+  withSpinner $ \subRegion endSpinner -> do
+    _ <- CR.setConsoleRegion subRegion $ " " <> show sourceType <> " "
+    CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
+      result <-
+        Concurrent.mapConcurrently
+          (\m -> do
+             r <- Compile.compile region args config toolPaths m
+             pure r)
+          modules
+      _ <-
+        traverse
+          (Logger.appendLog logDir Logger.compileLog . T.pack . show)
+          result
+      _ <-
+        traverse
+          (\Compile.Result {compiledFile, duration} ->
+             Logger.appendLog logDir Logger.compileTime $
+             T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+          result
+      endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
       pure result
 
 withSpinner :: (CR.ConsoleRegion -> (T.Text -> IO ()) -> IO a) -> IO a
