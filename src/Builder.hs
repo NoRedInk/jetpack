@@ -9,6 +9,7 @@ import Config (Config(Config))
 import qualified Config
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
+import Control.Lens.Indexed as Indexed hiding ((<.>))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
@@ -24,6 +25,7 @@ import qualified Logger
 import qualified Message
 import ProgressBar (ProgressBar, complete, start, tick)
 import qualified System.Console.AsciiProgress as AsciiProgress
+import qualified System.Console.Regions as CR
 import qualified System.Directory as Dir
 import qualified System.Exit
 import System.FilePath ((<.>), (</>))
@@ -55,41 +57,57 @@ buildHelp config@Config { Config.tempDir
                         , Config.elmPath
                         , Config.coffeePath
                         , Config.entryPoints
-                        } args = do
-  toolPaths <- Init.setup tempDir logDir outputDir elmPath coffeePath
-  traverse_ (Logger.clearLog logDir) Logger.allLogs
-  checkElmStuffConsistency logDir elmRoot
-  entryPoints <- EntryPoints.find args entryPoints
+                        } args =
+  CR.displayConsoleRegions $ do
+    toolPaths <- Init.setup tempDir logDir outputDir elmPath coffeePath
+    traverse_ (Logger.clearLog logDir) Logger.allLogs
+    checkElmStuffConsistency logDir elmRoot
+    entryPoints <- EntryPoints.find args entryPoints
   -- GETTING DEPENDENCY TREE
-  pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
-  cache <- DependencyTree.readTreeCache tempDir
-  deps <-
-    Concurrent.mapConcurrently
-      (DependencyTree.build pg config cache)
-      entryPoints
-  DependencyTree.writeTreeCache tempDir deps
-  complete pg
+    pg <- start (L.length entryPoints) "Finding dependencies for entrypoints"
+    cache <- DependencyTree.readTreeCache tempDir
+    deps <-
+      Concurrent.mapConcurrently
+        (DependencyTree.build pg config cache)
+        entryPoints
+    DependencyTree.writeTreeCache tempDir deps
+    complete pg
   -- COMPILATION
-  let modules = LU.uniq $ concatMap Tree.flatten deps
-  pg <- start (L.length modules) "Compiling"
-  result <- traverse (Compile.compile pg args config toolPaths) modules
-  _ <-
-    traverse (Logger.appendLog logDir Logger.compileLog . T.pack . show) result
-  _ <-
-    traverse
-      (\Compile.Result {compiledFile, duration} ->
-         Logger.appendLog logDir Logger.compileTime $
-         T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-      result
-  complete pg
-  pg <- start (L.length deps) "Write modules"
-  modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
-  _ <-
-    do createdModulesJson pg tempDir modules
-       complete pg
-       traverse (Compile.printTime args) result
+    let modules = LU.uniq $ concatMap Tree.flatten deps
+    result <-
+      CR.withConsoleRegion CR.Linear $ \counterRegion -> do
+        CR.setConsoleRegion counterRegion $
+          "Compiling (0/" <> show (length modules) <> ")... "
+        CR.withConsoleRegion (CR.InLine counterRegion) $ \region -> do
+          result <-
+            Indexed.itraverse
+              (\index m -> do
+                 r <- Compile.compile region args config toolPaths m
+                 CR.setConsoleRegion counterRegion $
+                   "Compiling (" <> show index <> "/" <> show (length modules) <>
+                   ")... "
+                 pure r)
+              modules
+          _ <-
+            traverse
+              (Logger.appendLog logDir Logger.compileLog . T.pack . show)
+              result
+          _ <-
+            traverse
+              (\Compile.Result {compiledFile, duration} ->
+                 Logger.appendLog logDir Logger.compileTime $
+                 T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+              result
+          CR.finishConsoleRegion region $ T.pack "Compilation successful"
+          pure result
+    pg <- start (L.length deps) "Write modules"
+    modules <- Concurrent.mapConcurrently (ConcatModule.wrap pg config) deps
+    _ <-
+      do createdModulesJson pg tempDir modules
+         complete pg
+         traverse (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
-  return entryPoints
+    return entryPoints
 
 checkElmStuffConsistency :: Config.LogDir -> Config.ElmRoot -> IO ()
 checkElmStuffConsistency logDir elmRoot = do

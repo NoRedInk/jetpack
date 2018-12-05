@@ -22,9 +22,9 @@ import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
-import ProgressBar (ProgressBar, tick)
 import System.Clock
        (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
+import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
 import System.Exit
 import System.FilePath ((</>))
@@ -58,12 +58,13 @@ instance Show Duration where
   show (Duration start end) =
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
-compile :: ProgressBar -> Args -> Config -> ToolPaths -> Dependency -> IO Result
-compile pg args config@Config {Config.tempDir} toolPaths Dependency { fileType
-                                                                    , filePath
-                                                                    } =
+compile ::
+     CR.ConsoleRegion -> Args -> Config -> ToolPaths -> Dependency -> IO Result
+compile region args config@Config {Config.tempDir} toolPaths Dependency { fileType
+                                                                        , filePath
+                                                                        } =
   runCompiler
-    pg
+    region
     args
     config
     fileType
@@ -77,18 +78,18 @@ data Arguments = Arguments
   }
 
 runCompiler ::
-     ProgressBar
+     CR.ConsoleRegion
   -> Args
   -> Config
   -> Ast.SourceType
   -> ToolPaths
   -> Arguments
   -> IO Result
-runCompiler pg args config fileType ToolPaths {elm, coffee} arguments =
+runCompiler region args config fileType ToolPaths {elm, coffee} arguments =
   case fileType of
-    Ast.Elm -> elmCompiler elm pg args config arguments
-    Ast.Js -> jsCompiler pg arguments
-    Ast.Coffee -> coffeeCompiler coffee pg arguments
+    Ast.Elm -> elmCompiler elm region args config arguments
+    Ast.Js -> jsCompiler region arguments
+    Ast.Coffee -> coffeeCompiler coffee region arguments
 
 buildArtifactPath :: Config.TempDir -> Ast.SourceType -> FilePath -> String
 buildArtifactPath tempDir fileType inputPath =
@@ -104,8 +105,13 @@ buildArtifactPath tempDir fileType inputPath =
 -- COMPILERS --
 ---------------
 elmCompiler ::
-     Config.ElmPath -> ProgressBar -> Args -> Config -> Arguments -> IO Result
-elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
+     Config.ElmPath
+  -> CR.ConsoleRegion
+  -> Args
+  -> Config
+  -> Arguments
+  -> IO Result
+elmCompiler elm region args Config {elmRoot} Arguments {input, output} = do
   let Args {compileMode} = args
   let modeFlag =
         case compileMode of
@@ -113,24 +119,29 @@ elmCompiler elm pg args Config {elmRoot} Arguments {input, output} = do
           Optimize -> " --optimize"
           Normal -> ""
   let cmd =
-        Config.unElmPath elm ++
-        " " ++
-        "make" ++
-        " " ++ "../" ++ input ++ " --output " ++ "../" ++ output ++ modeFlag
-  runCmd pg input cmd $ Just $ Config.unElmRoot elmRoot
+        T.pack (Config.unElmPath elm) <> " " <> "make" <> " " <> "../" <>
+        T.pack input <>
+        " --output " <>
+        "../" <>
+        T.pack output <>
+        T.pack modeFlag
+  runCmd region input cmd $ Just $ Config.unElmRoot elmRoot
 
-coffeeCompiler :: Config.CoffeePath -> ProgressBar -> Arguments -> IO Result
-coffeeCompiler coffee pg Arguments {input, output} = do
-  let cmd = Config.unCoffeePath coffee ++ " -p " ++ input ++ " > " ++ output
-  runCmd pg input cmd Nothing
+coffeeCompiler ::
+     Config.CoffeePath -> CR.ConsoleRegion -> Arguments -> IO Result
+coffeeCompiler coffee region Arguments {input, output} = do
+  let cmd =
+        T.pack (Config.unCoffeePath coffee) <> " -p " <> T.pack input <> " > " <>
+        T.pack output
+  runCmd region input cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
-jsCompiler :: ProgressBar -> Arguments -> IO Result
-jsCompiler pg Arguments {input, output} = do
+jsCompiler :: CR.ConsoleRegion -> Arguments -> IO Result
+jsCompiler region Arguments {input, output} = do
   start <- getTime Monotonic
   _ <- copyFile input output
-  _ <- tick pg
+  CR.setConsoleRegion region $ T.pack input <> " -> " <> T.pack output
   currentTime <- getCurrentTime
   end <- getTime Monotonic
   return
@@ -142,25 +153,26 @@ jsCompiler pg Arguments {input, output} = do
     , compiledFile = input
     }
 
-runCmd :: ProgressBar -> FilePath -> String -> Maybe String -> IO Result
-runCmd pg input cmd maybeCwd = do
+runCmd :: CR.ConsoleRegion -> FilePath -> T.Text -> Maybe String -> IO Result
+runCmd region input cmd maybeCwd = do
+  CR.setConsoleRegion region $ T.pack input
   start <- getTime Monotonic
-  (ec, errContent, content) <- runAndWaitForProcess cmd maybeCwd
+  (ec, errContent, content) <- runAndWaitForProcess (T.unpack cmd) maybeCwd
   end <- getTime Monotonic
   case ec of
     ExitSuccess -> do
-      _ <- tick pg
+      CR.setConsoleRegion region $ T.pack "Compiled: " <> T.pack input
       currentTime <- getCurrentTime
       return
         Result
         { duration = Duration start end
         , compiledAt = currentTime
-        , command = T.pack cmd
+        , command = cmd
         , stdout = Just $ T.pack content
         , compiledFile = input
         }
     ExitFailure _ ->
-      ES.throwM $ CompileError (T.pack cmd) (T.pack (content <> errContent))
+      ES.throwM $ CompileError cmd (T.pack (content <> errContent))
 
 runAndWaitForProcess :: String -> Maybe String -> IO (ExitCode, String, String)
 runAndWaitForProcess cmd maybeCwd = do
