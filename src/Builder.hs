@@ -77,7 +77,7 @@ buildHelp config@Config { Config.tempDir
     result <-
       CR.withConsoleRegion CR.Linear $ \counterRegion -> do
         CR.setConsoleRegion counterRegion $
-          "Compiling (0/" <> show (length modules) <> ") -- "
+          "Compiling (0/" <> show (length modules) <> ")... "
         CR.withConsoleRegion (CR.InLine counterRegion) $ \region -> do
           result <-
             Indexed.itraverse
@@ -85,7 +85,7 @@ buildHelp config@Config { Config.tempDir
                  r <- Compile.compile region args config toolPaths m
                  CR.setConsoleRegion counterRegion $
                    "Compiling (" <> show index <> "/" <> show (length modules) <>
-                   ") -- "
+                   ")... "
                  pure r)
               modules
           _ <-
