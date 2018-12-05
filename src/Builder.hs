@@ -19,6 +19,7 @@ import qualified Data.List.Utils as LU
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
+import qualified Dependencies
 import qualified DependencyTree
 import qualified EntryPoints
 import qualified Init
@@ -30,6 +31,7 @@ import qualified System.Exit
 import System.FilePath ((<.>), (</>))
 import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
+import qualified ToolPaths
 
 build :: Config -> Args -> IO ()
 build config args = do
@@ -77,33 +79,7 @@ buildHelp config@Config { Config.tempDir
         pure deps
   -- COMPILATION
     let modules = LU.uniq $ concatMap Tree.flatten deps
-    result <-
-      withSpinner $ \subRegion endSpinner -> do
-        _ <-
-          CR.setConsoleRegion subRegion $
-          " Compiling (0/" <> show (length modules) <> ") "
-        CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
-          result <-
-            Indexed.itraverse
-              (\index m -> do
-                 r <- Compile.compile region args config toolPaths m
-                 CR.setConsoleRegion subRegion $
-                   " Compiling (" <> show index <> "/" <> show (length modules) <>
-                   ") "
-                 pure r)
-              modules
-          _ <-
-            traverse
-              (Logger.appendLog logDir Logger.compileLog . T.pack . show)
-              result
-          _ <-
-            traverse
-              (\Compile.Result {compiledFile, duration} ->
-                 Logger.appendLog logDir Logger.compileTime $
-                 T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-              result
-          endSpinner "Compilation successful"
-          pure result
+    result <- compile args config toolPaths modules
     withSpinner $ \subRegion endSpinner -> do
       CR.setConsoleRegion subRegion $ T.pack "Writing modules."
       modules <- Concurrent.mapConcurrently (ConcatModule.wrap config) deps
@@ -112,6 +88,41 @@ buildHelp config@Config { Config.tempDir
       traverse_ (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
     return entryPoints
+
+compile ::
+     (Show a, TraversableWithIndex a t)
+  => Args
+  -> Config
+  -> ToolPaths.ToolPaths
+  -> t Dependencies.Dependency
+  -> IO (t Compile.Result)
+compile args config@Config {Config.logDir} toolPaths modules =
+  withSpinner $ \subRegion endSpinner -> do
+    _ <-
+      CR.setConsoleRegion subRegion $
+      " Compiling (0/" <> show (length modules) <> ") "
+    CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
+      result <-
+        Indexed.itraverse
+          (\index m -> do
+             r <- Compile.compile region args config toolPaths m
+             CR.setConsoleRegion subRegion $
+               " Compiling (" <> show index <> "/" <> show (length modules) <>
+               ") "
+             pure r)
+          modules
+      _ <-
+        traverse
+          (Logger.appendLog logDir Logger.compileLog . T.pack . show)
+          result
+      _ <-
+        traverse
+          (\Compile.Result {compiledFile, duration} ->
+             Logger.appendLog logDir Logger.compileTime $
+             T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+          result
+      endSpinner "Compilation successful"
+      pure result
 
 withSpinner :: (CR.ConsoleRegion -> (T.Text -> IO ()) -> IO a) -> IO a
 withSpinner go =
