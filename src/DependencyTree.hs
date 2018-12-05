@@ -59,7 +59,6 @@ import qualified Data.Tree as Tree
 import Dependencies
 import qualified Parser.Ast as Ast
 import qualified Parser.Require
-import ProgressBar (ProgressBar, tick)
 import qualified Resolver
 import Safe
 import System.FilePath ((<.>), (</>), takeDirectory)
@@ -68,11 +67,10 @@ import Utils.Tree (searchNode)
 
 {-| Find all dependencies for the given entry points
 -}
-build :: ProgressBar -> Config -> Dependencies -> FilePath -> IO DependencyTree
-build pg config cache entryPoint = do
+build :: Config -> Dependencies -> FilePath -> IO DependencyTree
+build config cache entryPoint = do
   dep <- toDependency (Config.entryPoints config) entryPoint
   tree <- buildTree config cache dep
-  _ <- tick pg
   return tree
 
 buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree

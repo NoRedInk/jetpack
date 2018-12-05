@@ -91,6 +91,22 @@ runCompiler region args config fileType ToolPaths {elm, coffee} arguments =
     Ast.Js -> jsCompiler region arguments
     Ast.Coffee -> coffeeCompiler coffee region arguments
 
+data Groupped = Groupped
+  { elm :: [Dependency]
+  , coffee :: [Dependency]
+  , js :: [Dependency]
+  }
+
+group :: [Dependency] -> Groupped
+group =
+  foldl
+    (\Groupped {elm, js, coffee} dep ->
+       case Dependencies.fileType dep of
+         Ast.Elm -> Groupped {elm = dep : elm, js, coffee}
+         Ast.Js -> Groupped {js = dep : js, elm, coffee}
+         Ast.Coffee -> Groupped {coffee = dep : coffee, elm, js})
+    Groupped {elm = [], js = [], coffee = []}
+
 buildArtifactPath :: Config.TempDir -> Ast.SourceType -> FilePath -> String
 buildArtifactPath tempDir fileType inputPath =
   Config.unTempDir tempDir </> pathToFileName inputPath extension

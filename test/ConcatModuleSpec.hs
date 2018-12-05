@@ -8,22 +8,10 @@ import Data.Text as T
 import Data.Tree as Tree
 import Dependencies as D
 import Parser.Ast as Ast
-import System.Console.AsciiProgress
 import System.Directory (removeFile)
 import System.FilePath ((<.>), (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
-
-mockProgressBar :: IO ProgressBar
-mockProgressBar =
-  newProgressBar
-    def
-    { pgTotal = toInteger 1
-    , pgOnCompletion = Just ""
-    , pgCompletedChar = ' '
-    , pgPendingChar = ' '
-    , pgFormat = ""
-    }
 
 mockModule :: T.Text
 mockModule = T.unlines ["var foo = require('foo.js');", "", "foo(42)"]
@@ -154,8 +142,7 @@ suite =
         "var x = require( 'foo' )" @?=
       "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
-        pg <- mockProgressBar
-        paths <- traverse (wrap pg mockConfig) mockDependencies
+        paths <- traverse (wrap mockConfig) mockDependencies
         paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
         actual <- traverse readFile paths
         actual @?= expectedOutput

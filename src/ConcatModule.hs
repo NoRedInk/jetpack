@@ -16,21 +16,19 @@ import qualified Data.Text as T
 import qualified Data.Tree as Tree
 import Dependencies (Dependency(..), DependencyTree)
 import qualified Parser.Ast as Ast
-import ProgressBar (ProgressBar, tick)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
 import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: ProgressBar -> Config -> DependencyTree -> IO FilePath
-wrap pg Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
+wrap :: Config -> DependencyTree -> IO FilePath
+wrap Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
   module' <- traverse (withContent tempDir) $ uniqNodes dep
   let wrapped = fmap wrapDependency module'
   out <-
     writeJsModule outputDir entryPoints wrapped $
     Dependencies.filePath $ Tree.rootLabel dep
-  _ <- tick pg
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
