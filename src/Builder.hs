@@ -88,6 +88,7 @@ buildHelp config@Config { Config.tempDir
         (Concurrent.mapConcurrently
            (parallelCompile args config toolPaths)
            [(Ast.Js, js), (Ast.Coffee, coffee)])
+    logCompileResults logDir result
     withSpinner $ \subRegion endSpinner -> do
       CR.setConsoleRegion subRegion $ T.pack " Writing modules."
       modules <- Concurrent.mapConcurrently (ConcatModule.wrap config) deps
@@ -104,7 +105,7 @@ compile ::
   -> ToolPaths.ToolPaths
   -> (Ast.SourceType, t Dependencies.Dependency)
   -> IO (t Compile.Result)
-compile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
+compile args config toolPaths (sourceType, modules) =
   withSpinner $ \subRegion endSpinner -> do
     _ <-
       CR.setConsoleRegion subRegion $
@@ -120,16 +121,6 @@ compile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
                ") "
              pure r)
           modules
-      _ <-
-        traverse
-          (Logger.appendLog logDir Logger.compileLog . T.pack . show)
-          result
-      _ <-
-        traverse
-          (\Compile.Result {compiledFile, duration} ->
-             Logger.appendLog logDir Logger.compileTime $
-             T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-          result
       endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
       pure result
 
@@ -140,7 +131,7 @@ parallelCompile ::
   -> ToolPaths.ToolPaths
   -> (Ast.SourceType, t Dependencies.Dependency)
   -> IO (t Compile.Result)
-parallelCompile args config@Config {Config.logDir} toolPaths (sourceType, modules) =
+parallelCompile args config toolPaths (sourceType, modules) =
   withSpinner $ \subRegion endSpinner -> do
     _ <- CR.setConsoleRegion subRegion $ " " <> show sourceType <> " "
     CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
@@ -150,18 +141,18 @@ parallelCompile args config@Config {Config.logDir} toolPaths (sourceType, module
              r <- Compile.compile region args config toolPaths m
              pure r)
           modules
-      _ <-
-        traverse
-          (Logger.appendLog logDir Logger.compileLog . T.pack . show)
-          result
-      _ <-
-        traverse
-          (\Compile.Result {compiledFile, duration} ->
-             Logger.appendLog logDir Logger.compileTime $
-             T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
-          result
       endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
       pure result
+
+logCompileResults :: Traversable t => Config.LogDir -> t Compile.Result -> IO ()
+logCompileResults logDir result = do
+  _ <-
+    traverse (Logger.appendLog logDir Logger.compileLog . T.pack . show) result
+  traverse_
+    (\Compile.Result {compiledFile, duration} ->
+       Logger.appendLog logDir Logger.compileTime $
+       T.pack compiledFile <> ": " <> T.pack (show duration) <> "\n")
+    result
 
 withSpinner :: (CR.ConsoleRegion -> (T.Text -> IO ()) -> IO a) -> IO a
 withSpinner go =
