@@ -29,5 +29,6 @@ suite =
            , watchFileExt = WatchFileExt <$> [".elm", ".coffee", ".js", ".json"]
            , watchIgnorePatterns =
                WatchIgnorePatterns <$> ["/[.]#[^/]*$", "/~[^/]*$"]
+           , hotReloadingPort = Config.HotReloadingPort 31337
            })
     ]

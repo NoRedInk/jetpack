@@ -39,7 +39,14 @@ data Result = Result
   , command :: T.Text
   , stdout :: Maybe T.Text
   , compiledFile :: FilePath
+  , outputFile :: FilePath
   } deriving (Show)
+
+elmFiles :: [Compile.Result] -> [FilePath]
+elmFiles [] = []
+elmFiles (Result {outputFile}:rest)
+  | T.isSuffixOf ".elm.js" (T.pack outputFile) = outputFile : elmFiles rest
+  | otherwise = elmFiles rest
 
 printTime :: Args -> Compile.Result -> IO ()
 printTime Args {time} Compile.Result {compiledFile, duration} =
@@ -141,7 +148,7 @@ elmCompiler elm region args Config {elmRoot} Arguments {input, output} = do
         "../" <>
         T.pack output <>
         T.pack modeFlag
-  runCmd region input cmd $ Just $ Config.unElmRoot elmRoot
+  runCmd region input output cmd $ Just $ Config.unElmRoot elmRoot
 
 coffeeCompiler ::
      Config.CoffeePath -> CR.ConsoleRegion -> Arguments -> IO Result
@@ -149,7 +156,7 @@ coffeeCompiler coffee region Arguments {input, output} = do
   let cmd =
         T.pack (Config.unCoffeePath coffee) <> " -p " <> T.pack input <> " > " <>
         T.pack output
-  runCmd region input cmd Nothing
+  runCmd region input output cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
 -}
@@ -167,10 +174,17 @@ jsCompiler region Arguments {input, output} = do
     , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
     , stdout = Nothing
     , compiledFile = input
+    , outputFile = output
     }
 
-runCmd :: CR.ConsoleRegion -> FilePath -> T.Text -> Maybe String -> IO Result
-runCmd region input cmd maybeCwd = do
+runCmd ::
+     CR.ConsoleRegion
+  -> FilePath
+  -> FilePath
+  -> T.Text
+  -> Maybe String
+  -> IO Result
+runCmd region input output cmd maybeCwd = do
   CR.setConsoleRegion region $ T.pack input
   start <- getTime Monotonic
   (ec, errContent, content) <- runAndWaitForProcess (T.unpack cmd) maybeCwd
@@ -186,6 +200,7 @@ runCmd region input cmd maybeCwd = do
         , command = cmd
         , stdout = Just $ T.pack content
         , compiledFile = input
+        , outputFile = output
         }
     ExitFailure _ ->
       ES.throwM $ CompileError cmd (T.pack (content <> errContent))

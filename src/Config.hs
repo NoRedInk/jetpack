@@ -26,6 +26,8 @@ module Config
   , unWatchFileExt
   , WatchIgnorePatterns(WatchIgnorePatterns)
   , unWatchIgnorePatterns
+  , HotReloadingPort(HotReloadingPort)
+  , unHotReloadingPort
   ) where
 
 import qualified Data.Aeson as Aeson
@@ -52,6 +54,7 @@ data Config = Config
   , noParse :: [NoParse]
   , watchFileExt :: [WatchFileExt]
   , watchIgnorePatterns :: [WatchIgnorePatterns]
+  , hotReloadingPort :: HotReloadingPort
   } deriving (Show, Eq)
 
 newtype ElmPath = ElmPath
@@ -102,6 +105,10 @@ newtype WatchIgnorePatterns = WatchIgnorePatterns
   { unWatchIgnorePatterns :: T.Text
   } deriving (Show, Eq)
 
+newtype HotReloadingPort = HotReloadingPort
+  { unHotReloadingPort :: Int
+  } deriving (Show, Eq)
+
 instance Aeson.FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config --
@@ -119,7 +126,8 @@ instance Aeson.FromJSON Config where
     (fmap WatchFileExt <$>
      v .:? "watch_file_extensions" .!= [".elm", ".coffee", ".js", ".json"]) <*>
     (fmap WatchIgnorePatterns <$>
-     v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"])
+     v .:? "watch_file_ignore_patterns" .!= ["/[.]#[^/]*$", "/~[^/]*$"]) <*>
+    (HotReloadingPort <$> v .:? "hot_reloading_port" .!= 31337)
   parseJSON invalid = typeMismatch "Config" invalid
 
 readConfig :: IO Config

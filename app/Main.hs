@@ -4,7 +4,7 @@ import qualified Builder
 import qualified Cleaner
 import CliArguments (Args(..), RunMode(..), readArguments)
 import qualified Config
-import Control.Monad (when)
+import Control.Monad (void, when)
 import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -26,5 +26,6 @@ main
   when clean (Cleaner.clean config)
   case runMode of
     Version -> TIO.putStrLn Version.print
-    Watch -> Watcher.watch config args
-    RunOnce -> Builder.build config args
+    Watch -> Watcher.watch config args Builder.DontHotReload
+    HotReloading -> Watcher.watch config args Builder.HotReload
+    RunOnce -> void $ Builder.build config args Builder.DontHotReload

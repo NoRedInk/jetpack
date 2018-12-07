@@ -1,5 +1,6 @@
 module Builder
   ( build
+  , HotReload(HotReload, DontHotReload)
   ) where
 
 import CliArguments (Args(..))
@@ -11,6 +12,7 @@ import qualified Control.Concurrent
 import qualified Control.Concurrent.Async.Lifted as Concurrent
 import qualified Control.Exception.Safe as ES
 import Control.Lens.Indexed as Indexed hiding ((<.>))
+import Control.Monad ((<=<))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
@@ -22,6 +24,7 @@ import qualified Data.Tree as Tree
 import qualified Dependencies
 import qualified DependencyTree
 import qualified EntryPoints
+import qualified HotReload
 import qualified Init
 import qualified Logger
 import qualified Message
@@ -34,10 +37,15 @@ import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
 import qualified ToolPaths
 
-build :: Config -> Args -> IO ()
-build config args = do
-  result <- ES.tryAny $ buildHelp config args
-  printResult result
+data HotReload
+  = HotReload
+  | DontHotReload
+
+build :: Config -> Args -> HotReload -> IO (Maybe [Compile.Result])
+build config args hotReloading = do
+  result <- ES.tryAny $ buildHelp config args hotReloading
+  printResult $ snd <$> result
+  return $ either (const Nothing) Just $ fst <$> result
 
 printResult :: Either ES.SomeException [FilePath] -> IO ()
 printResult result =
@@ -50,7 +58,8 @@ printResult result =
       _ <- Message.error $ T.pack "Failed!"
       System.Exit.exitFailure
 
-buildHelp :: Config.Config -> Args -> IO [FilePath]
+buildHelp ::
+     Config.Config -> Args -> HotReload -> IO ([Compile.Result], [FilePath])
 buildHelp config@Config { Config.tempDir
                         , Config.logDir
                         , Config.elmRoot
@@ -58,7 +67,7 @@ buildHelp config@Config { Config.tempDir
                         , Config.elmPath
                         , Config.coffeePath
                         , Config.entryPoints
-                        } args =
+                        } args hotReloading =
   CR.displayConsoleRegions $ do
     toolPaths <- Init.setup tempDir logDir outputDir elmPath coffeePath
     traverse_ (Logger.clearLog logDir) Logger.allLogs
@@ -84,19 +93,32 @@ buildHelp config@Config { Config.tempDir
     result <-
       mconcat . mconcat . (\(a, b) -> [a, b]) <$>
       Concurrent.concurrently
-        (traverse (compile args config toolPaths) [(Ast.Elm, elm)])
+        (traverse
+           (maybeInjectHotReload hotReloading <=< compile args config toolPaths)
+           [(Ast.Elm, elm)])
         (Concurrent.mapConcurrently
            (parallelCompile args config toolPaths)
            [(Ast.Js, js), (Ast.Coffee, coffee)])
     logCompileResults logDir result
     withSpinner $ \subRegion endSpinner -> do
       CR.setConsoleRegion subRegion $ T.pack " Writing modules."
-      modules <- Concurrent.mapConcurrently (ConcatModule.wrap config) deps
-      createdModulesJson tempDir modules
+      modules <-
+        Concurrent.mapConcurrently
+          (\dep -> do
+             (outPath, content) <-
+               case hotReloading of
+                 DontHotReload -> ConcatModule.wrap config dep
+                 HotReload ->
+                   HotReload.wrap (Config.hotReloadingPort config) <$>
+                   ConcatModule.wrap config dep
+             writeFile outPath $ T.unpack content
+             return (dep, outPath))
+          deps
+      createdModulesJson tempDir (fmap snd modules)
       endSpinner "Modules written."
       traverse_ (Compile.printTime args) result
   -- RETURN WARNINGS IF ANY
-    return entryPoints
+    return (result, entryPoints)
 
 compile ::
      (Show a, TraversableWithIndex a t)
@@ -203,3 +225,15 @@ createdModulesJson tempDir paths = do
   let jsonPath = Config.unTempDir tempDir </> "modules" <.> "json"
   _ <- BL.writeFile jsonPath encodedPaths
   return ()
+
+maybeInjectHotReload ::
+     (Show a, TraversableWithIndex a t)
+  => HotReload
+  -> t Compile.Result
+  -> IO (t Compile.Result)
+maybeInjectHotReload mode result =
+  case mode of
+    DontHotReload -> pure result
+    HotReload -> do
+      traverse_ (HotReload.inject . Compile.outputFile) result
+      return result

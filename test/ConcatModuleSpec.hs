@@ -76,42 +76,41 @@ mockDependencies =
          fileName <.>
          "js")
 
-expectedOutput :: [String]
+expectedOutput :: [T.Text]
 expectedOutput =
-  [ T.unpack $
-    T.unlines
-      [ "(function() {"
-      , "var jetpackCache = {};"
-      , "function jetpackRequire(fn, fnName) {"
-      , "  var e = {};"
-      , "  var m = { exports : e };"
-      , "  if (typeof fn !== \"function\") {"
-      , "    console.error(\"Required function isn't a jetpack module.\", fn)"
-      , "    return;"
-      , "  }"
-      , "  if (jetpackCache[fnName]) {"
-      , "    return jetpackCache[fnName];"
-      , "  }"
-      , "  jetpackCache[fnName] = m.exports;"
-      , "  fn(m, e);  "
-      , "  jetpackCache[fnName] = m.exports;"
-      , "  return m.exports;"
-      , "}"
-      , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
-      , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
-      , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
-      , "moo(4, 2);"
-      , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
-      , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
-      , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
-      , "module.exports = function(a, b) {"
-      , "  console.log(a + b + \"\");"
-      , "};"
-      , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
-      , ""
-      , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
-      , "})();"
-      ]
+  [ T.unlines $
+    [ "(function() {"
+    , "var jetpackCache = {};"
+    , "function jetpackRequire(fn, fnName) {"
+    , "  var e = {};"
+    , "  var m = { exports : e };"
+    , "  if (typeof fn !== \"function\") {"
+    , "    console.error(\"Required function isn't a jetpack module.\", fn)"
+    , "    return;"
+    , "  }"
+    , "  if (jetpackCache[fnName]) {"
+    , "    return jetpackCache[fnName];"
+    , "  }"
+    , "  jetpackCache[fnName] = m.exports;"
+    , "  fn(m, e);  "
+    , "  jetpackCache[fnName] = m.exports;"
+    , "  return m.exports;"
+    , "}"
+    , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
+    , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
+    , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
+    , "moo(4, 2);"
+    , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
+    , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
+    , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
+    , "module.exports = function(a, b) {"
+    , "  console.log(a + b + \"\");"
+    , "};"
+    , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
+    , ""
+    , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
+    , "})();"
+    ]
   ]
 
 suite :: TestTree
@@ -142,9 +141,7 @@ suite =
         "var x = require( 'foo' )" @?=
       "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
-        paths <- traverse (wrap mockConfig) mockDependencies
+        (paths, actual) <- unzip <$> traverse (wrap mockConfig) mockDependencies
         paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
-        actual <- traverse readFile paths
         actual @?= expectedOutput
-        traverse_ removeFile paths
     ]
