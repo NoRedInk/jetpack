@@ -8,6 +8,7 @@ import Control.Monad (void, when)
 import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import qualified HotReload.Server
 import qualified Message
 import qualified Parser.JetpackVersion as JetpackVersion
 import qualified Version
@@ -27,5 +28,5 @@ main
   case runMode of
     Version -> TIO.putStrLn Version.print
     Watch -> Watcher.watch config args Builder.DontHotReload
-    HotReloading -> Watcher.watch config args Builder.HotReload
+    HotReloading -> HotReload.Server.start config args Builder.HotReload
     RunOnce -> void $ Builder.build config args Builder.DontHotReload

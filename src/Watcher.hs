@@ -1,43 +1,41 @@
 module Watcher
   ( watch
+  , startWatcher
+  , listenToCommands
   ) where
 
 import qualified Builder
 import CliArguments (Args(..))
-import qualified Compile
 import Config (Config(Config))
 import qualified Config
 import Control.Monad (void)
-import Data.Foldable (traverse_)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import qualified Network.WebSockets as WS
 import qualified Notify
 import System.FilePath ()
 import Text.Regex (mkRegex)
 
 watch :: Config -> Args -> Builder.HotReload -> IO ()
-watch config@Config { Config.sourceDir
+watch config args hotReloading = do
+  putStrLn "Watching. Enter '?' to see the help."
+  state <- startWatcher config (void $ Builder.build config args hotReloading)
+  Notify.buildNow state
+  listenToCommands state
+
+startWatcher :: Config -> IO () -> IO Notify.State
+startWatcher Config { Config.sourceDir
                     , Config.watchFileExt
                     , Config.watchIgnorePatterns
-                    } args hotReloading = do
-  putStrLn "Watching. Enter '?' to see the help."
-  case hotReloading of
-    Builder.HotReload -> hotReloadingServer config args hotReloading
-    Builder.DontHotReload -> do
-      state <-
-        Notify.watch
-          Notify.Config
-          { pathToWatch = Config.unSourceDir sourceDir
-          , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
-          , ignorePatterns =
-              mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
-              watchIgnorePatterns
-          }
-          (void $ Builder.build config args hotReloading)
-      Notify.buildNow state
-      listenToCommands state
+                    } =
+  Notify.watch
+    Notify.Config
+    { pathToWatch = Config.unSourceDir sourceDir
+    , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
+    , ignorePatterns =
+        mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
+        watchIgnorePatterns
+    }
 
 listenToCommands :: Notify.State -> IO ()
 listenToCommands state = do
@@ -75,46 +73,3 @@ commandFromStr "q" = Just Quit
 commandFromStr "?" = Just Help
 commandFromStr "" = Nothing
 commandFromStr char = Just (Unknown char)
-
-hotReloadingServer :: Config -> Args -> Builder.HotReload -> IO ()
-hotReloadingServer config args hotReloading = do
-  putStrLn "Wait until the first build succeeded!"
-  putStrLn "Refresh your browser as soon as the build was successful."
-  _ <- Builder.build config args hotReloading
-  WS.runServer
-    "127.0.0.1"
-    (Config.unHotReloadingPort $ Config.hotReloadingPort config) $
-    application config args hotReloading
-
-application :: Config -> Args -> Builder.HotReload -> WS.ServerApp
-application config@Config { Config.sourceDir
-                          , Config.watchFileExt
-                          , Config.watchIgnorePatterns
-                          } args hotReloading pending = do
-  putStrLn "Hot-reloading server is ready."
-  conn <- WS.acceptRequest pending
-  state <-
-    Notify.watch
-      Notify.Config
-      { pathToWatch = Config.unSourceDir sourceDir
-      , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
-      , ignorePatterns =
-          mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
-          watchIgnorePatterns
-      }
-      (do maybeResult <- Builder.build config args hotReloading
-          case maybeResult of
-            Nothing -> pure ()
-            Just result -> traverse_ (hotReload conn) $ Compile.elmFiles result)
-  listenToCommands state
-
-hotReload :: WS.Connection -> FilePath -> IO ()
-hotReload conn filePath = do
-  content <- readFile filePath
-  WS.sendTextData conn $
-    T.unlines
-      [ "jetpack___hot__reloading();"
-      , "function jetpack___hot__reloading() {"
-      , T.pack content
-      , "}"
-      ]
