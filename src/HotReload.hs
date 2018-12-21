@@ -3,6 +3,7 @@ module HotReload
   , wrap
   ) where
 
+-- This code is directly ported from https://github.com/klazuka/elm-hot/blob/master/src/inject.js
 import qualified Config
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
