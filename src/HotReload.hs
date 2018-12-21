@@ -6,6 +6,7 @@ module HotReload
 import qualified Config
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Paths_jetpack
 import qualified Safe.IO
 import System.FilePath ((<.>), (</>))
@@ -54,29 +55,31 @@ wrap hotReloadingPort (a, content) =
 
 inject :: FilePath -> IO ()
 inject path = do
-  originalElmCodeJS <- readFile path
+  originalElmCodeJS <- TIO.readFile path
   hmrCodePath <- getDataFileName $ "resources" </> "hmr" <.> "js"
-  hmrCode <- readFile hmrCodePath
-    -- TODO SPA
-    --
-    -- if (originalElmCodeJS.indexOf("elm$browser$Browser$application") !== -1) {
-    --     // attach a tag to Browser.Navigation.Key values. It's not really fair to call this a hack
-    --     // as this entire project is a hack, but this is evil evil evil. We need to be able to find
-    --     // the Browser.Navigation.Key in a user's model so that we do not swap out the new one for
-    --     // the old. But as currently implemented (2018-08-19), there's no good way to detect it.
-    --     // So we will add a property to the key immediately after it's created so that we can find it.
-    --     const navKeyDefinition = "var key = function() { key.a(onUrlChange(_Browser_getUrl())); };";
-    --     const navKeyTag = "key['elm-hot-nav-key'] = true";
-    --     modifiedCode = originalElmCodeJS.replace(navKeyDefinition, navKeyDefinition + "\n" + navKeyTag);
-    --     if (modifiedCode === originalElmCodeJS) {
-    --         throw new Error("[elm-hot] Browser.Navigation.Key def not found. Version mismatch?");
-    --     }
-    -- }
-  case P.parse platformExportParser "" $ T.pack originalElmCodeJS of
+  hmrCode <- TIO.readFile hmrCodePath
+  let fixedNavKey = fixNavigationKey originalElmCodeJS
+  case P.parse platformExportParser "" fixedNavKey of
     Left err -> print err
     Right (before, after) -> do
-      let modifiedCode = T.unlines [before, "\n", T.pack hmrCode, "\n", after]
+      let modifiedCode = T.unlines [before, "\n", hmrCode, "\n", after]
       Safe.IO.writeFile path modifiedCode
+
+-- Attach a tag to Browser.Navigation.Key values.
+-- We will add a property to the key immediately after it's created so that we can find it.
+fixNavigationKey :: T.Text -> T.Text
+fixNavigationKey code = do
+  if T.isInfixOf "elm$browser$Browser$application" code
+    then let navKeyDefinition =
+               "var key = function() { key.a(onUrlChange(_Browser_getUrl())); };"
+             navKeyTag = "key['elm-hot-nav-key'] = true"
+             modifiedCode =
+               T.replace
+                 navKeyDefinition
+                 (navKeyDefinition <> "\n" <> navKeyTag)
+                 code
+         in modifiedCode
+    else code
 
 platformExportParser :: P.Parsec T.Text st (T.Text, T.Text)
 platformExportParser = do
