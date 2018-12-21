@@ -7,7 +7,7 @@ import qualified Config
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Paths_jetpack
-import qualified System.Directory as Dir
+import qualified Safe.IO
 import System.FilePath ((<.>), (</>))
 import qualified Text.Parsec as P
 
@@ -76,10 +76,7 @@ inject path = do
     Left err -> print err
     Right (before, after) -> do
       let modifiedCode = T.unlines [before, "\n", T.pack hmrCode, "\n", after]
-          tmpPath = (path <.> "hot")
-      writeFile tmpPath $ T.unpack modifiedCode
-      Dir.removeFile path
-      Dir.renameFile tmpPath path
+      Safe.IO.writeFile path modifiedCode
 
 platformExportParser :: P.Parsec T.Text st (T.Text, T.Text)
 platformExportParser = do

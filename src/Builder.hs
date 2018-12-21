@@ -14,7 +14,6 @@ import qualified Control.Exception.Safe as ES
 import Control.Lens.Indexed as Indexed hiding ((<.>))
 import Control.Monad ((<=<))
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
 import qualified Data.List as L
 import qualified Data.List.Utils as LU
@@ -29,6 +28,7 @@ import qualified Init
 import qualified Logger
 import qualified Message
 import qualified Parser.Ast as Ast
+import qualified Safe.IO
 import qualified System.Console.Regions as CR
 import qualified System.Directory as Dir
 import qualified System.Exit
@@ -111,7 +111,7 @@ buildHelp config@Config { Config.tempDir
                  HotReload ->
                    HotReload.wrap (Config.hotReloadingPort config) <$>
                    ConcatModule.wrap config dep
-             writeFile outPath $ T.unpack content
+             Safe.IO.writeFile outPath content
              return (dep, outPath))
           deps
       createdModulesJson tempDir (fmap snd modules)
@@ -223,7 +223,7 @@ createdModulesJson :: Config.TempDir -> [FilePath] -> IO ()
 createdModulesJson tempDir paths = do
   let encodedPaths = Aeson.encode paths
   let jsonPath = Config.unTempDir tempDir </> "modules" <.> "json"
-  _ <- BL.writeFile jsonPath encodedPaths
+  _ <- Safe.IO.writeFileByteString jsonPath encodedPaths
   return ()
 
 maybeInjectHotReload ::
