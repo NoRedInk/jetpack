@@ -10,6 +10,7 @@ module Logger
 import qualified Config
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import qualified Safe.IO
 import System.FilePath ((<.>), (</>))
 
 compileLog, compileTime, consistencyLog :: FilePath
@@ -28,4 +29,4 @@ appendLog logDir fileName msg =
 
 clearLog :: Config.LogDir -> FilePath -> IO ()
 clearLog logDir fileName =
-  TIO.writeFile (Config.unLogDir logDir </> fileName) ""
+  Safe.IO.writeFile (Config.unLogDir logDir </> fileName) ""

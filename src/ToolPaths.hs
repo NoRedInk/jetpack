@@ -13,10 +13,8 @@ import qualified Control.Exception.Safe as ES
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Typeable (Typeable)
-import System.Directory (makeAbsolute)
-import System.Exit
+import qualified System.Directory as Dir
 import System.FilePath (FilePath)
-import System.Process (system)
 
 data ToolPaths = ToolPaths
   { elm :: Config.ElmPath
@@ -36,15 +34,15 @@ find elmPath coffeePath = do
   pure $ ToolPaths {elm, coffee}
 
 toAbsPathOrBin :: String -> Maybe FilePath -> IO FilePath
-toAbsPathOrBin _ (Just pathToBin) = makeAbsolute pathToBin
+toAbsPathOrBin _ (Just pathToBin) = Dir.makeAbsolute pathToBin
 toAbsPathOrBin defaultBin Nothing = return defaultBin
 
-binExists :: String -> IO String
+binExists :: String -> IO ()
 binExists bin = do
-  exitCode <- system ("which " ++ bin ++ " >/dev/null")
-  case exitCode of
-    ExitSuccess -> return bin
-    ExitFailure _ -> ES.throwM $ BinNotFound $ T.pack bin
+  exists <- Dir.findExecutable bin
+  case exists of
+    Just _ -> return ()
+    Nothing -> ES.throwM $ BinNotFound $ T.pack bin
 
 data Error =
   BinNotFound T.Text

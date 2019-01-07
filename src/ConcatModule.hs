@@ -22,7 +22,7 @@ import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
 
-wrap :: Config -> DependencyTree -> IO FilePath
+wrap :: Config -> DependencyTree -> IO (FilePath, T.Text)
 wrap Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
   module' <- traverse (withContent tempDir) $ uniqNodes dep
   let wrapped = fmap wrapDependency module'
@@ -51,7 +51,9 @@ withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
   return Module {filePath, dependencies, content}
 
 ensureElmIife :: T.Text -> T.Text
-ensureElmIife input = "(function() {\n\n" <> input <> "\n\n}.call(exports))"
+ensureElmIife input =
+  "(function() {\n\n" <> input <>
+  "\n\nwindow.Elm = this.Elm;\n\n}.call(exports))"
 
 wrapDependency :: Module -> T.Text
 wrapDependency Module {filePath, dependencies, content} =
@@ -71,15 +73,15 @@ writeJsModule ::
   -> Config.EntryPoints
   -> [T.Text]
   -> FilePath
-  -> IO FilePath
+  -> IO (FilePath, T.Text)
 writeJsModule outputDir entryPoints fns rootFilePath = do
   let out =
         Config.unOutputDir outputDir </>
         FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath
   let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
-  writeFile out $ T.unpack $ addBoilerplate rootName fns
-  return out
+  let wrapped = addBoilerplate rootName fns
+  return (out, wrapped)
 
 addBoilerplate :: T.Text -> [T.Text] -> T.Text
 addBoilerplate root fns =

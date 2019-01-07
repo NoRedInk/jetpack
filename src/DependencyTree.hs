@@ -61,6 +61,7 @@ import qualified Parser.Ast as Ast
 import qualified Parser.Require
 import qualified Resolver
 import Safe
+import qualified Safe.IO
 import System.FilePath ((<.>), (</>), takeDirectory)
 import System.Posix.Files
 import Utils.Tree (searchNode)
@@ -86,7 +87,8 @@ readTreeCache tempDir =
 
 writeTreeCache :: Config.TempDir -> Dependencies -> IO ()
 writeTreeCache tempDir =
-  BL.writeFile (Config.unTempDir tempDir </> "deps" <.> "json") . Aeson.encode
+  Safe.IO.writeFileByteString (Config.unTempDir tempDir </> "deps" <.> "json") .
+  Aeson.encode
 
 toDependency :: Config.EntryPoints -> FilePath -> IO Dependency
 toDependency entryPoints path = do

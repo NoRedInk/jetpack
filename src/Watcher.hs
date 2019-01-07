@@ -1,11 +1,14 @@
 module Watcher
   ( watch
+  , startWatcher
+  , listenToCommands
   ) where
 
 import qualified Builder
 import CliArguments (Args(..))
 import Config (Config(Config))
 import qualified Config
+import Control.Monad (void)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -13,24 +16,26 @@ import qualified Notify
 import System.FilePath ()
 import Text.Regex (mkRegex)
 
-watch :: Config -> Args -> IO ()
-watch config@Config { Config.sourceDir
-                    , Config.watchFileExt
-                    , Config.watchIgnorePatterns
-                    } args = do
+watch :: Config -> Args -> Builder.HotReload -> IO ()
+watch config args hotReloading = do
   putStrLn "Watching. Enter '?' to see the help."
-  state <-
-    Notify.watch
-      Notify.Config
-      { pathToWatch = Config.unSourceDir sourceDir
-      , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
-      , ignorePatterns =
-          mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
-          watchIgnorePatterns
-      }
-      (Builder.build config args)
+  state <- startWatcher config (void $ Builder.build config args hotReloading)
   Notify.buildNow state
   listenToCommands state
+
+startWatcher :: Config -> IO () -> IO Notify.State
+startWatcher Config { Config.sourceDir
+                    , Config.watchFileExt
+                    , Config.watchIgnorePatterns
+                    } =
+  Notify.watch
+    Notify.Config
+    { pathToWatch = Config.unSourceDir sourceDir
+    , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
+    , ignorePatterns =
+        mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
+        watchIgnorePatterns
+    }
 
 listenToCommands :: Notify.State -> IO ()
 listenToCommands state = do

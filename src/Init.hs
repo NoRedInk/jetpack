@@ -4,7 +4,7 @@ module Init where
 
 import qualified Config
 import Data.Foldable (traverse_)
-import qualified Data.Text.IO as TIO
+import qualified Safe.IO
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((<.>), (</>))
 import qualified ToolPaths
@@ -33,4 +33,4 @@ createDepsJsonIfMissing tempDir = do
   exists <- doesFileExist depsJSONPath
   if exists
     then return ()
-    else TIO.writeFile depsJSONPath "[]"
+    else Safe.IO.writeFile depsJSONPath "[]"
