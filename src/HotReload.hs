@@ -1,14 +1,18 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module HotReload
   ( inject
   , wrap
   ) where
 
--- This code is directly ported from https://github.com/klazuka/elm-hot/blob/master/src/inject.js
 import qualified Config
+import qualified Data.FileEmbed
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
+
+-- This code is directly ported from https://github.com/klazuka/elm-hot/blob/master/src/inject.js
+import qualified Data.Text.Encoding as E
 import qualified Data.Text.IO as TIO
-import Paths_jetpack
 import qualified Safe.IO
 import System.FilePath ((<.>), (</>))
 import qualified Text.Parsec as P
@@ -57,13 +61,13 @@ wrap hotReloadingPort (a, content) =
 inject :: FilePath -> IO ()
 inject path = do
   originalElmCodeJS <- TIO.readFile path
-  hmrCodePath <- getDataFileName $ "resources" </> "hmr" <.> "js"
-  hmrCode <- TIO.readFile hmrCodePath
+  let hmrCode = $(Data.FileEmbed.embedFile $ "resources" </> "hmr" <.> "js")
   let fixedNavKey = fixNavigationKey originalElmCodeJS
   case P.parse platformExportParser "" fixedNavKey of
     Left err -> print err
     Right (before, after) -> do
-      let modifiedCode = T.unlines [before, "\n", hmrCode, "\n", after]
+      let modifiedCode =
+            T.unlines [before, "\n", E.decodeUtf8 hmrCode, "\n", after]
       Safe.IO.writeFile path modifiedCode
 
 -- Attach a tag to Browser.Navigation.Key values.
