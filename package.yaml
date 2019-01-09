@@ -18,6 +18,7 @@ default-extensions:
 - OverloadedStrings
 - PackageImports
 dependencies:
+- file-embed == 0.0.10.1
 - websockets == 0.12.4.0
 - concurrent-output == 1.10.5
 - lens == 4.16.1
