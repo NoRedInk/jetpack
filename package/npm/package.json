@@ -35,7 +35,7 @@
     "jetpack": "bin/jetpack"
   },
   "dependencies": {
-    "binwrap": "^0.2.0"
+    "binwrap": "0.2.1"
   },
   "devDependencies": {}
 }
