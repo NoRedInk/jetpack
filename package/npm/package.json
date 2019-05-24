@@ -1,6 +1,6 @@
 {
   "name": "@noredink/jetpack",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Install jetpack",
   "preferGlobal": true,
   "engines": {
@@ -35,7 +35,7 @@
     "jetpack": "bin/jetpack"
   },
   "dependencies": {
-    "binwrap": "^0.2.0"
+    "binwrap": "0.2.1"
   },
   "devDependencies": {}
 }
