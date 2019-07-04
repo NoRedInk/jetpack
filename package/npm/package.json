@@ -9,9 +9,10 @@
   "main": "index.js",
   "scripts": {
     "install": "npx binwrap-install",
-    "prepare": "npx binwrap-prepare",
+    "prepare": "npm run snyk-protect; npx binwrap-prepare",
     "test": "npx binwrap-test",
-    "prepublish": "npm test"
+    "prepublish": "npm test",
+    "snyk-protect": "snyk protect"
   },
   "repository": {
     "type": "git",
@@ -35,7 +36,9 @@
     "jetpack": "bin/jetpack"
   },
   "dependencies": {
-    "binwrap": "0.2.1"
+    "binwrap": "0.2.1",
+    "snyk": "^1.192.0"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "snyk": true
 }
