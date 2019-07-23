@@ -15,7 +15,7 @@ Given an entry point, it follows all `require` statements and creates a dependen
 Configuration
 -------------
 
-```json
+```jsonc
 {
   "entry_points": "./FOLDER/TO/THE/ENTRY_POINTS",
   "modules_directories": [ // folders where jetpack should try to find modules
