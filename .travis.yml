@@ -13,7 +13,7 @@ env:
   global:
   - CASHER_TIME_OUT=1000
   - BUILD="jetpack-${TRAVIS_OS_NAME}.tar.gz"
-language: c
+language: nix
 os:
 - linux
 - osx
