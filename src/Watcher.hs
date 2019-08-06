@@ -2,11 +2,12 @@ module Watcher
   ( watch
   , startWatcher
   , listenToCommands
-  ) where
+  )
+where
 
 import qualified Builder
-import CliArguments (Args(..))
-import Config (Config(Config))
+import CliArguments (Args (..))
+import Config (Config (Config))
 import qualified Config
 import Control.Monad (void)
 import Data.Semigroup ((<>))
@@ -24,18 +25,19 @@ watch config args hotReloading = do
   listenToCommands state
 
 startWatcher :: Config -> IO () -> IO Notify.State
-startWatcher Config { Config.sourceDir
-                    , Config.watchFileExt
-                    , Config.watchIgnorePatterns
-                    } =
-  Notify.watch
-    Notify.Config
-    { pathToWatch = Config.unSourceDir sourceDir
-    , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
-    , ignorePatterns =
-        mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
-        watchIgnorePatterns
-    }
+startWatcher
+  Config
+    { Config.sourceDir
+    , Config.watchFileExt
+    , Config.watchIgnorePatterns
+    } =
+    Notify.watch
+      Notify.Config
+        { pathToWatch = Config.unSourceDir sourceDir
+        , relevantExtensions = Config.unWatchFileExt <$> watchFileExt
+        , ignorePatterns = mkRegex . T.unpack <$> Config.unWatchIgnorePatterns <$>
+          watchIgnorePatterns
+        }
 
 listenToCommands :: Notify.State -> IO ()
 listenToCommands state = do

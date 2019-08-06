@@ -8,7 +8,8 @@ module Parser.Comment
   ( eatJsComments
   , eatCoffeeComments
   , eatElmComments
-  ) where
+  )
+where
 
 import Data.Functor (void)
 import qualified Data.List as L

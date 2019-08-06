@@ -1,6 +1,6 @@
 module Cleaner where
 
-import Config (Config(Config))
+import Config (Config (Config))
 import qualified Config
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
@@ -15,5 +15,6 @@ clean Config {Config.elmRoot, Config.tempDir} = do
   removeDirectoryRecursive elmStuff
   removeDirectoryRecursive $ Config.unTempDir tempDir
   Message.warning
-    ("Removed " <> T.pack elmStuff <> " and " <>
-     T.pack (Config.unTempDir tempDir))
+    ( "Removed " <> T.pack elmStuff <> " and " <>
+      T.pack (Config.unTempDir tempDir)
+    )

@@ -4,8 +4,9 @@
 -}
 module ToolPaths
   ( find
-  , ToolPaths(..)
-  ) where
+  , ToolPaths (..)
+  )
+where
 
 import qualified Config
 import Control.Exception.Safe (Exception)
@@ -16,10 +17,11 @@ import Data.Typeable (Typeable)
 import qualified System.Directory as Dir
 import System.FilePath (FilePath)
 
-data ToolPaths = ToolPaths
-  { elm :: Config.ElmPath
-  , coffee :: Config.CoffeePath
-  }
+data ToolPaths
+  = ToolPaths
+      { elm :: Config.ElmPath
+      , coffee :: Config.CoffeePath
+      }
 
 {-| Check if tool from config exists. It falls back to a globally installed bin.
 -}
@@ -44,15 +46,16 @@ binExists bin = do
     Just _ -> return ()
     Nothing -> ES.throwM $ BinNotFound $ T.pack bin
 
-data Error =
-  BinNotFound T.Text
+data Error
+  = BinNotFound T.Text
   deriving (Typeable, Exception)
 
 instance Show Error where
+
   show (BinNotFound bin) =
     T.unpack $
-    T.unlines
-      [ "I had troubles finding the " <> bin <> " command."
-      , ""
-      , "You might want to install it."
-      ]
+      T.unlines
+        [ "I had troubles finding the " <> bin <> " command."
+        , ""
+        , "You might want to install it."
+        ]

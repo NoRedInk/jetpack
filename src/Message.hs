@@ -3,16 +3,31 @@ module Message
   , success
   , error
   , list
-  ) where
+  )
+where
 
 import Data.Foldable (traverse_)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Prelude hiding (error)
 import Rainbow
-       (Chunk, Radiant, back, black, brightGreen, brightRed, brightWhite,
-        chunk, cyan, fore, green, only256, putChunkLn, red, white)
+  ( Chunk
+  , Radiant
+  , back
+  , black
+  , brightGreen
+  , brightRed
+  , brightWhite
+  , chunk
+  , cyan
+  , fore
+  , green
+  , only256
+  , putChunkLn
+  , red
+  , white
+  )
+import Prelude hiding (error)
 
 success :: T.Text -> IO ()
 success = block Theme {bg = green <> only256 brightGreen, fg = black}
@@ -26,10 +41,11 @@ error = block Theme {bg = red <> only256 brightRed, fg = black}
 list :: [T.Text] -> IO ()
 list = traverse_ (putChunkLn . fore cyan . chunk . (<>) ("- "))
 
-data Theme = Theme
-  { bg :: Radiant
-  , fg :: Radiant
-  }
+data Theme
+  = Theme
+      { bg :: Radiant
+      , fg :: Radiant
+      }
 
 block :: Theme -> T.Text -> IO ()
 block Theme {bg, fg} = surroundedByNL . back bg . fore fg . chunk . spaced
