@@ -3,3 +3,6 @@ extra-package-dbs: []
 packages:
 - '.'
 resolver: lts-13.30
+nix:
+  enable: true
+  shell-file: shell.nix
