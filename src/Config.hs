@@ -31,6 +31,7 @@ module Config
   )
 where
 
+import Protolude
 import qualified Data.Aeson as Aeson
 import Data.Aeson ((.!=), (.:), (.:?))
 import Data.Aeson.Types (typeMismatch)

@@ -30,6 +30,7 @@ module Resolver
   )
 where
 
+import Protolude hiding ((<.>))
 import Alternative.IO (AlternativeIO)
 import qualified Alternative.IO as AIO
 import Config (Config (Config))
@@ -48,6 +49,7 @@ import qualified Parser.Require
 import System.Directory (doesFileExist)
 import System.FilePath ((<.>), (</>), takeExtension)
 import System.Posix.Files
+import qualified Text.Show
 
 resolve :: Config -> Maybe Dependency -> Dependency -> IO Dependency
 resolve Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} requiredIn dep = do

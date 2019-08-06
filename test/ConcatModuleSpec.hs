@@ -1,5 +1,6 @@
 module ConcatModuleSpec where
 
+import Protolude hiding ((<.>))
 import ConcatModule
 import Config
 import Control.Monad.State (modify)

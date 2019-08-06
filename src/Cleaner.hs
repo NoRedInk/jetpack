@@ -1,5 +1,6 @@
 module Cleaner where
 
+import Protolude
 import Config (Config (Config))
 import qualified Config
 import Data.Semigroup ((<>))

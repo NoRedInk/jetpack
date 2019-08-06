@@ -2,8 +2,11 @@
 -}
 module Helper.Property where
 
+import Protolude
 import Data.Text as T
 import Test.Tasty.QuickCheck as QC
+import Data.String
+import qualified Text.Show
 
 newtype AlphaNum =
   AlphaNum T.Text

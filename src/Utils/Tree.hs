@@ -6,6 +6,7 @@ module Utils.Tree
   )
 where
 
+import Protolude
 import Data.Tree
 
 {-| The first child that satisfies a predicate.

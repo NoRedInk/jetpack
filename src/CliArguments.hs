@@ -8,6 +8,8 @@ module CliArguments
   )
 where
 
+import Protolude hiding (option)
+import Data.String (String)
 import Data.Semigroup ((<>))
 import Options.Applicative
 import System.FilePath ()

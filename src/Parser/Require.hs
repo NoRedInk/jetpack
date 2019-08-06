@@ -16,12 +16,14 @@ module Parser.Require
   )
 where
 
+import Protolude hiding ((<.>), try, many)
 import qualified Data.Text as T
 import Parser.Ast as Ast
 import Parser.Comment as Comment
 import System.FilePath ((<.>), splitExtension)
 import Text.Parsec
 import qualified Utils.Parser as UP
+import Data.String
 
 {-| returns all requires of a file
     >>> :{
@@ -49,7 +51,7 @@ requires sourceType = concatMap require . T.lines . eatComments
       case sourceType of
         Ast.Js -> Comment.eatJsComments
         Ast.Coffee -> Comment.eatCoffeeComments
-        _ -> id
+        _ -> identity
 
 {-| Partially applied `requires` for js files.
 -}

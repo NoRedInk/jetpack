@@ -1,5 +1,6 @@
 module Utils.Text where
 
+import Protolude
 import Data.Text as T
 
 {-| Check if a text starts with a given prefix.

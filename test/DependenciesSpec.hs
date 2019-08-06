@@ -1,5 +1,6 @@
 module DependenciesSpec where
 
+import Protolude hiding ((<.>))
 import Config
 import qualified Control.Exception.Safe as ES
 import Control.Monad.Except (runExceptT)
@@ -12,6 +13,7 @@ import Parser.Ast as Ast
 import System.FilePath ((<.>), (</>))
 import Test.Tasty
 import Test.Tasty.HUnit
+import Data.String (String)
 
 basicsFixtures :: Config
 basicsFixtures =
@@ -124,8 +126,8 @@ suite =
         case result of
           Left err ->
             show err @?=
-            "\n\nI had troubles finding 'index' required in './test/fixtures/failing/modules/test.js'.\n\nMake sure that you spelled the name of the module correctly.\nYou might also want to make sure that all dependencies are updated.\n"
-          Right _ -> assertFailure $ "This shouldn't pass"
+            ("\n\nI had troubles finding 'index' required in './test/fixtures/failing/modules/test.js'.\n\nMake sure that you spelled the name of the module correctly.\nYou might also want to make sure that all dependencies are updated.\n" :: String)
+          Right _ -> assertFailure $ "This shouldn't pass" 
     ]
 
 dropLastMod :: Dependency -> (Ast.SourceType, FilePath, FilePath)

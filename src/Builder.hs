@@ -4,6 +4,7 @@ module Builder
   )
 where
 
+import Protolude hiding ((<.>))
 import CliArguments (Args (..))
 import qualified Compile
 import ConcatModule
@@ -37,6 +38,7 @@ import System.FilePath ((<.>), (</>))
 import qualified System.FilePath as FP
 import qualified System.FilePath.Glob as Glob
 import qualified ToolPaths
+import Data.String (String)
 
 data HotReload
   = HotReload
@@ -53,10 +55,10 @@ printResult result =
   case result of
     Right entryPoints -> do
       _ <- Message.list $ T.pack <$> entryPoints
-      Message.success $ T.pack "Succeeded"
+      Message.success $ "Succeeded"
     Left err -> do
-      _ <- putStrLn $ show err
-      _ <- Message.error $ T.pack "Failed!"
+      _ <- putStrLn $ T.pack $ show err
+      _ <- Message.error $ "Failed!"
       System.Exit.exitFailure
 
 buildHelp
@@ -82,8 +84,7 @@ buildHelp
       deps <-
         withSpinner $ \subRegion endSpinner -> do
           _ <-
-            CR.setConsoleRegion subRegion $
-              T.pack " Finding dependencies for entrypoints."
+            CR.setConsoleRegion subRegion $ (" Finding dependencies for entrypoints." :: String)
           cache <- DependencyTree.readTreeCache tempDir
           deps <-
             Concurrent.mapConcurrently
@@ -108,7 +109,7 @@ buildHelp
             )
       logCompileResults logDir result
       withSpinner $ \subRegion endSpinner -> do
-        CR.setConsoleRegion subRegion $ T.pack " Writing modules."
+        CR.setConsoleRegion subRegion $ (" Writing modules." :: String)
         modules <-
           Concurrent.mapConcurrently
             ( \dep -> do
@@ -138,29 +139,29 @@ compile
 compile args config toolPaths (sourceType, modules) =
   withSpinner $ \subRegion endSpinner -> do
     _ <-
-      CR.setConsoleRegion subRegion $
-        " " <>
+      CR.setConsoleRegion subRegion $ 
+        (" " <>
         show sourceType <>
         " (0/" <>
         show (length modules) <>
-        ") "
+        ") " :: String)
     CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
       result <-
         Indexed.itraverse
           ( \index m -> do
             r <- Compile.compile region args config toolPaths m
-            CR.setConsoleRegion subRegion $
-              " " <>
+            CR.setConsoleRegion subRegion $ 
+              (" " <>
               show sourceType <>
               " (" <>
               show index <>
               "/" <>
               show (length modules) <>
-              ") "
+              ") " :: String)
             pure r
           )
           modules
-      endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
+      endSpinner $ "Compiling " <> show sourceType <> " successful."
       pure result
 
 parallelCompile
@@ -172,7 +173,7 @@ parallelCompile
   -> IO (t Compile.Result)
 parallelCompile args config toolPaths (sourceType, modules) =
   withSpinner $ \subRegion endSpinner -> do
-    _ <- CR.setConsoleRegion subRegion $ " " <> show sourceType <> " "
+    _ <- CR.setConsoleRegion subRegion $ (" " <> show sourceType <> " " :: String)
     CR.withConsoleRegion (CR.InLine subRegion) $ \region -> do
       result <-
         Concurrent.mapConcurrently
@@ -181,7 +182,7 @@ parallelCompile args config toolPaths (sourceType, modules) =
             pure r
           )
           modules
-      endSpinner $ T.pack $ "Compiling " <> show sourceType <> " successful."
+      endSpinner $ "Compiling " <> show sourceType <> " successful."
       pure result
 
 logCompileResults :: Traversable t => Config.LogDir -> t Compile.Result -> IO ()
@@ -206,7 +207,7 @@ withSpinner go =
         spin spinnerRegion ((counter + 1) `mod` 8)
    in CR.withConsoleRegion CR.Linear $ \parentRegion -> do
         CR.withConsoleRegion (CR.InLine parentRegion) $ \spinnerRegion -> do
-          CR.appendConsoleRegion spinnerRegion $ T.pack "\\"
+          CR.appendConsoleRegion spinnerRegion $ ("\\" :: Text)
           threadId <- Control.Concurrent.forkIO $ spin spinnerRegion 0
           result <-
             CR.withConsoleRegion (CR.InLine parentRegion) $ \subRegion -> do

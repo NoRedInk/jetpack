@@ -1,3 +1,4 @@
+import Protolude
 import ConcatModuleSpec
 import ConfigSpec
 import DependenciesSpec

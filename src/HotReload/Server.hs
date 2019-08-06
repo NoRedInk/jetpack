@@ -3,6 +3,7 @@ module HotReload.Server
   )
 where
 
+import Protolude
 import qualified Builder
 import CliArguments (Args (..))
 import qualified Compile
@@ -12,11 +13,12 @@ import Data.Foldable (traverse_)
 import qualified Data.Text as T
 import qualified Network.WebSockets as WS
 import qualified Watcher
+import Data.String (String)
 
 start :: Config -> Args -> Builder.HotReload -> IO ()
 start config args hotReloading = do
-  putStrLn "Wait until the first build succeeded!"
-  putStrLn "Refresh your browser as soon as the build was successful."
+  putStrLn ("Wait until the first build succeeded!" :: String)
+  putStrLn ("Refresh your browser as soon as the build was successful." ::  String)
   _ <- Builder.build config args hotReloading
   WS.runServer
     "127.0.0.1"
@@ -25,7 +27,7 @@ start config args hotReloading = do
 
 application :: Config -> Args -> Builder.HotReload -> WS.ServerApp
 application config args hotReloading pending = do
-  putStrLn "Hot-reloading server is ready."
+  putStrLn ("Hot-reloading server is ready." :: String)
   conn <- WS.acceptRequest pending
   state <-
     Watcher.startWatcher
@@ -45,6 +47,6 @@ reload conn filePath = do
     T.unlines
       [ "jetpack___hot__reloading();"
       , "function jetpack___hot__reloading() {"
-      , T.pack content
+      , content
       , "}"
       ]

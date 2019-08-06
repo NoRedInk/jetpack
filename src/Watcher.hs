@@ -5,6 +5,7 @@ module Watcher
   )
 where
 
+import Protolude
 import qualified Builder
 import CliArguments (Args (..))
 import Config (Config (Config))
@@ -16,10 +17,11 @@ import qualified Data.Text.IO as TIO
 import qualified Notify
 import System.FilePath ()
 import Text.Regex (mkRegex)
+import Data.String (String)
 
 watch :: Config -> Args -> Builder.HotReload -> IO ()
 watch config args hotReloading = do
-  putStrLn "Watching. Enter '?' to see the help."
+  putStrLn ("Watching. Enter '?' to see the help." :: String)
   state <- startWatcher config (void $ Builder.build config args hotReloading)
   Notify.buildNow state
   listenToCommands state
@@ -49,7 +51,7 @@ listenToCommands state = do
       listenToCommands state
     Just Quit -> do
       Notify.end state
-      putStrLn "Thanks for compiling with jetpack today. Have a great day!"
+      putStrLn ("Thanks for compiling with jetpack today. Have a great day!" :: String)
     Just Help -> do
       _ <- TIO.putStrLn "Help"
       _ <- TIO.putStrLn "===="

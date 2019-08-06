@@ -8,6 +8,7 @@ module Logger
   )
 where
 
+import Protolude hiding ((<.>))
 import qualified Config
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO

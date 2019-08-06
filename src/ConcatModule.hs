@@ -7,6 +7,7 @@ module ConcatModule
   )
 where
 
+import Protolude
 import qualified Config
 import Config (Config (Config))
 import Data.Char (isSpace)
@@ -22,6 +23,7 @@ import System.FilePath as FP
 import Text.Regex (mkRegex, subRegex)
 import qualified Utils.Files as F
 import qualified Utils.Tree as UT
+import Data.String
 
 wrap :: Config -> DependencyTree -> IO (FilePath, T.Text)
 wrap Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
@@ -46,7 +48,7 @@ data Module
 withContent :: Config.TempDir -> (Dependency, [Dependency]) -> IO Module
 withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
   let name = F.pathToFileName filePath "js"
-  rawContent <- fmap T.pack $ readFile $ Config.unTempDir tempDir </> name
+  rawContent <- readFile $ Config.unTempDir tempDir </> name
   let content =
         case fileType of
           Ast.Elm -> ensureElmIife rawContent

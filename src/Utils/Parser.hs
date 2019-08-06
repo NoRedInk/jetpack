@@ -5,8 +5,10 @@ module Utils.Parser
   )
 where
 
+import Protolude
 import qualified Data.Text as T
 import qualified Text.Parsec as P
+import Data.String
 
 {-| imports for doctests
     >>> import qualified Text.Parsec as P

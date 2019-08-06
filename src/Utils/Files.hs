@@ -5,9 +5,11 @@ module Utils.Files
   )
 where
 
+import Protolude hiding ((<.>))
 import qualified Data.List as L
 import qualified Data.Text as T
 import System.FilePath ((<.>), splitDirectories)
+import Data.String
 
 {-| Converts a path into a flat filename.
     >>> import System.FilePath ((</>), (<.>))

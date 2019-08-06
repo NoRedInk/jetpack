@@ -5,6 +5,7 @@ module Alternative.IO
   )
 where
 
+import Protolude
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Except (lift, throwError)
 

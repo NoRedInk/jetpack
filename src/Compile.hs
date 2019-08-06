@@ -4,6 +4,7 @@
 -}
 module Compile where
 
+import Protolude
 import CliArguments (Args (..), CompileMode (..))
 import Config (Config (Config))
 import qualified Config
@@ -31,12 +32,13 @@ import System.Clock
   )
 import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
-import System.Exit
 import System.FilePath ((</>))
 import System.IO (utf8)
 import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
+import qualified Text.Show
+import Data.String
 
 data Result
   = Result

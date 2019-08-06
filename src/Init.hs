@@ -2,6 +2,7 @@
 -}
 module Init where
 
+import Protolude hiding ((<.>))
 import qualified Config
 import Data.Foldable (traverse_)
 import qualified Safe.IO

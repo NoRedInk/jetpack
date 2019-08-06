@@ -11,10 +11,12 @@ module Parser.Comment
   )
 where
 
+import Protolude hiding ((<|>), try, optional)
 import Data.Functor (void)
 import qualified Data.List as L
 import qualified Data.Text as T
 import Text.Parsec
+import Data.String
 
 {-| Removes block and line comments from text.
     >>> :{

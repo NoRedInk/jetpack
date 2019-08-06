@@ -6,6 +6,7 @@ module Parser.PackageJson
   )
 where
 
+import Protolude
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
 import Data.Aeson as Aeson
@@ -15,6 +16,7 @@ import qualified Data.Text as T
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import System.FilePath (FilePath, dropFileName)
+import qualified Text.Show
 
 data PackageJson
   = PackageJson

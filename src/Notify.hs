@@ -7,7 +7,7 @@ module Notify
   )
 where
 
-import Control.Concurrent
+import Protolude hiding (State)
 import Data.Foldable (traverse_)
 import Data.Maybe (isJust)
 import qualified Data.Text as T

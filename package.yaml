@@ -17,6 +17,7 @@ default-extensions:
 - NamedFieldPuns
 - OverloadedStrings
 - PackageImports
+- NoImplicitPrelude
 dependencies:
 - file-embed == 0.0.11
 - websockets == 0.12.5.3
@@ -38,6 +39,7 @@ dependencies:
 - optparse-applicative == 0.14.3.0
 - parsec == 3.1.13.0
 - process == 1.6.5.0
+- protolude == 0.2.3
 - rainbow == 0.30.0.2
 - regex-compat == 0.95.1
 - safe == 0.3.17

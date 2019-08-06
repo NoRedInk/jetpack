@@ -1,5 +1,6 @@
 module Main where
 
+import Protolude
 import qualified Builder
 import qualified Cleaner
 import CliArguments (Args(..), RunMode(..), readArguments)

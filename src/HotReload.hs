@@ -6,6 +6,7 @@ module HotReload
   )
 where
 
+import Protolude hiding ((<.>))
 import qualified Config
 import qualified Data.FileEmbed
 import Data.Semigroup ((<>))

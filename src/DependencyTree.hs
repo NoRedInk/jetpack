@@ -47,6 +47,7 @@ module DependencyTree
   )
 where
 
+import Protolude hiding ((<.>), headMay)
 import Config (Config)
 import qualified Config
 import Control.Monad ((<=<))
@@ -134,7 +135,7 @@ parseModule cache dep@Dependency {filePath} parser =
     Just cached -> return cached
     Nothing -> do
       content <- readFile filePath
-      let requires = parser $ T.pack content
+      let requires = parser content
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
 

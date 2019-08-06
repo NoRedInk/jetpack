@@ -5,12 +5,14 @@ module Dependencies
   )
 where
 
+import Protolude hiding (show)
 import Data.Aeson as Aeson
 import Data.Time.Clock
 import qualified Data.Tree as Tree
 import GHC.Generics (Generic)
 import qualified Parser.Ast as Ast
 import System.FilePath ()
+import Text.Show (Show, show)
 
 data Dependency
   = Dependency

@@ -1,5 +1,6 @@
 module ConfigSpec where
 
+import Protolude
 import Config
 import System.FilePath ((</>))
 import Test.Tasty

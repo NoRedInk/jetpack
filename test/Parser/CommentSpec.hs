@@ -1,5 +1,6 @@
 module Parser.CommentSpec where
 
+import Protolude
 import Control.Monad.Except (runExceptT)
 import Data.Maybe as M
 import Data.Text as T

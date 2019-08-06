@@ -7,6 +7,7 @@ module EntryPoints
   )
 where
 
+import Protolude hiding (find, show)
 import CliArguments (Args (..))
 import qualified Config
 import Control.Exception.Safe (Exception)
@@ -21,6 +22,7 @@ import System.FilePath
   , takeDirectory
   )
 import "Glob" System.FilePath.Glob (glob)
+import Text.Show (Show, show)
 
 find :: Args -> Config.EntryPoints -> IO [FilePath]
 find args entryPoints = do

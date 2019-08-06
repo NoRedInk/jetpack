@@ -4,9 +4,11 @@ module Error
   )
 where
 
+import Protolude hiding (show)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import System.FilePath ()
+import Text.Show (show)
 
 data Error
   = FileNotFound T.Text

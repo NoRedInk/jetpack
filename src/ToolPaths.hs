@@ -8,6 +8,7 @@ module ToolPaths
   )
 where
 
+import Protolude hiding (find)
 import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -16,6 +17,8 @@ import qualified Data.Text as T
 import Data.Typeable (Typeable)
 import qualified System.Directory as Dir
 import System.FilePath (FilePath)
+import qualified Text.Show
+import Data.String
 
 data ToolPaths
   = ToolPaths

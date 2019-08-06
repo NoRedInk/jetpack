@@ -4,9 +4,11 @@ module Parser.Ast
   )
 where
 
+import Protolude hiding (show)
 import Data.Aeson as Aeson
 import GHC.Generics (Generic)
 import System.FilePath ()
+import Text.Show (Show, show)
 
 data Require
   = Require
