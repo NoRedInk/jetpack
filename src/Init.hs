@@ -9,8 +9,8 @@ import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((<.>), (</>))
 import qualified ToolPaths
 
-setup ::
-     Config.TempDir
+setup
+  :: Config.TempDir
   -> Config.LogDir
   -> Config.OutputDir
   -> Maybe Config.ElmPath
@@ -32,5 +32,5 @@ createDepsJsonIfMissing tempDir = do
   let depsJSONPath = Config.unTempDir tempDir </> "deps" <.> "json"
   exists <- doesFileExist depsJSONPath
   if exists
-    then return ()
-    else Safe.IO.writeFile depsJSONPath "[]"
+  then return ()
+  else Safe.IO.writeFile depsJSONPath "[]"

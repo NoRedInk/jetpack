@@ -2,7 +2,8 @@ module Utils.Parser
   ( stringContent
   , betweenParens
   , eatTill
-  ) where
+  )
+where
 
 import qualified Data.Text as T
 import qualified Text.Parsec as P
@@ -48,8 +49,8 @@ betweenParens = P.between openAndSpaces spacesAndClose
 manyNotQuotes :: P.Parsec T.Text u String
 manyNotQuotes = P.many1 $ P.noneOf "'\""
 
-between ::
-     P.Parsec T.Text u Char
+between
+  :: P.Parsec T.Text u Char
   -> P.Parsec T.Text u String
   -> P.Parsec T.Text u String
 between c = P.between c c

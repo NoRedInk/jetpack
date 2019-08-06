@@ -1,7 +1,8 @@
 module Version
   ( print
   , check
-  ) where
+  )
+where
 
 import qualified Data.SemVer as SemVer
 import Data.Semigroup ((<>))
@@ -22,13 +23,18 @@ check JetpackVersion.Version {version} =
         "The version defined in your jetpack.json seems to be incorrect. Check your package.json to find the correct version."
     Right actual ->
       if version == actual
-        then Nothing
-        else if version > actual
-               then Just
-                      ("Running jetpack@" <> print <>
-                       " the config expects a newer version " <>
-                       SemVer.toText version)
-               else Just
-                      ("Running jetpack@" <> print <>
-                       " the config expects an older version" <>
-                       SemVer.toText version)
+      then Nothing
+      else
+        if version > actual
+        then
+          Just
+            ( "Running jetpack@" <> print <>
+              " the config expects a newer version " <>
+              SemVer.toText version
+            )
+        else
+          Just
+            ( "Running jetpack@" <> print <>
+              " the config expects an older version" <>
+              SemVer.toText version
+            )

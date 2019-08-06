@@ -2,8 +2,9 @@
 
 module Parser.PackageJson
   ( load
-  , PackageJson(..)
-  ) where
+  , PackageJson (..)
+  )
+where
 
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -15,10 +16,12 @@ import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import System.FilePath (FilePath, dropFileName)
 
-data PackageJson = PackageJson
-  { main :: Maybe FilePath
-  , browser :: Maybe FilePath
-  } deriving (Show, Eq, Generic)
+data PackageJson
+  = PackageJson
+      { main :: Maybe FilePath
+      , browser :: Maybe FilePath
+      }
+  deriving (Show, Eq, Generic)
 
 instance FromJSON PackageJson
 
@@ -31,17 +34,19 @@ load path = do
     Left err -> ES.throwM $ JsonInvalid path $ T.pack err
     Right json -> return json
 
-data Error =
-  JsonInvalid FilePath
-              T.Text
+data Error
+  = JsonInvalid
+      FilePath
+      T.Text
   deriving (Typeable, Exception)
 
 instance Show Error where
+
   show (JsonInvalid file err) =
     T.unpack $
-    T.unlines
-      [ "I couldn't decode package.json in " <> (T.pack $ dropFileName file)
-      , ""
-      , "    " <> err
-      , ""
-      ]
+      T.unlines
+        [ "I couldn't decode package.json in " <> (T.pack $ dropFileName file)
+        , ""
+        , "    " <> err
+        , ""
+        ]

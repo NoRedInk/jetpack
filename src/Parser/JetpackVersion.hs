@@ -1,9 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Parser.JetpackVersion
-  ( Version(..)
+  ( Version (..)
   , load
-  ) where
+  )
+where
 
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -17,17 +18,20 @@ import qualified Data.Text as T
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import qualified System.Directory as Dir
-import System.FilePath (FilePath, (</>), dropFileName)
+import System.FilePath ((</>), FilePath, dropFileName)
 
-data Version = Version
-  { version :: SemVer.Version
-  } deriving (Show, Eq, Generic)
+data Version
+  = Version
+      { version :: SemVer.Version
+      }
+  deriving (Show, Eq, Generic)
 
 instance FromJSON Version where
+
   parseJSON =
     withObject "devDependencies" $ \v ->
       Version <$>
-      (v .: "devDependencies" >>= (.: "@noredink/jetpack") >>= toSemVer)
+        (v .: "devDependencies" >>= (.: "@noredink/jetpack") >>= toSemVer)
 
 toSemVer :: T.Text -> Parser SemVer.Version
 toSemVer v =
@@ -46,17 +50,19 @@ load = do
     Left err -> ES.throwM $ JsonInvalid path $ T.pack err
     Right json -> return json
 
-data Error =
-  JsonInvalid FilePath
-              T.Text
+data Error
+  = JsonInvalid
+      FilePath
+      T.Text
   deriving (Typeable, Exception)
 
 instance Show Error where
+
   show (JsonInvalid file err) =
     T.unpack $
-    T.unlines
-      [ "I couldn't decode package.json in " <> (T.pack $ dropFileName file)
-      , ""
-      , "    " <> err
-      , ""
-      ]
+      T.unlines
+        [ "I couldn't decode package.json in " <> (T.pack $ dropFileName file)
+        , ""
+        , "    " <> err
+        , ""
+        ]

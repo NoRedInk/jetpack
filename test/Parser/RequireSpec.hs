@@ -25,7 +25,7 @@ suite =
   testGroup
     "Require"
     [ testCase ".elm" $
-      assertRequire "var x = require(\"x.elm\")" [Ast.Require Ast.Elm "x.elm"]
+        assertRequire "var x = require(\"x.elm\")" [Ast.Require Ast.Elm "x.elm"]
     , testCase ".elm with namespace" $
       assertRequire
         "let foo = require(\"foo.elm\")"
@@ -90,9 +90,11 @@ properties =
           [] -> False
           c ->
             c ==
-            [ (Ast.Require (Require.getFileType $ T.unpack ext) $
-               T.unpack name <.> T.unpack ext)
-            ]
+              [ ( Ast.Require (Require.getFileType $ T.unpack ext) $
+                  T.unpack name <.>
+                  T.unpack ext
+                )
+              ]
     ]
   where
     require name ext =

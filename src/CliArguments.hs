@@ -1,24 +1,26 @@
 {-# LANGUAGE ApplicativeDo #-}
 
 module CliArguments
-  ( Args(..)
-  , RunMode(..)
-  , CompileMode(..)
+  ( Args (..)
+  , RunMode (..)
+  , CompileMode (..)
   , readArguments
-  ) where
+  )
+where
 
 import Data.Semigroup ((<>))
 import Options.Applicative
 import System.FilePath ()
 
-data Args = Args
-  { entryPointGlob :: [String]
-  , configPath :: Maybe FilePath
-  , compileMode :: CompileMode
-  , time :: Bool
-  , clean :: Bool
-  , runMode :: RunMode
-  }
+data Args
+  = Args
+      { entryPointGlob :: [String]
+      , configPath :: Maybe FilePath
+      , compileMode :: CompileMode
+      , time :: Bool
+      , clean :: Bool
+      , runMode :: RunMode
+      }
 
 data CompileMode
   = Normal
@@ -41,8 +43,9 @@ parser = do
   configPath <-
     option
       auto
-      (long "config" <> short 'c' <> value Nothing <>
-       help "Path to config file.")
+      ( long "config" <> short 'c' <> value Nothing <>
+        help "Path to config file."
+      )
   debug <-
     switch (long "debug" <> short 'd' <> help "Run jetpack in debug mode.")
   optimize <-
@@ -61,22 +64,23 @@ parser = do
       (long "clean" <> short 'c' <> help "Cleans elm-stuff and removes .jetpack")
   return
     Args
-    { entryPointGlob = entryPointGlob
-    , configPath = configPath
-    , compileMode =
-        if debug
-          then Debug
-          else if optimize
-                 then Optimize
-                 else Normal
-    , time = time
-    , clean = clean
-    , runMode =
-        if version
-          then Version
-          else if hotReloading
-                 then HotReloading
-                 else if watch
-                        then Watch
-                        else RunOnce
-    }
+      { entryPointGlob = entryPointGlob
+      , configPath = configPath
+      , compileMode = if debug
+      then Debug
+      else
+        if optimize
+        then Optimize
+        else Normal
+      , time = time
+      , clean = clean
+      , runMode = if version
+      then Version
+      else
+        if hotReloading
+        then HotReloading
+        else
+          if watch
+          then Watch
+          else RunOnce
+      }

@@ -5,7 +5,8 @@ module Logger
   , consistencyLog
   , compileTime
   , allLogs
-  ) where
+  )
+where
 
 import qualified Config
 import qualified Data.Text as T

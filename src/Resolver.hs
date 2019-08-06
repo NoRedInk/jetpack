@@ -27,11 +27,12 @@ In each directory we search for the following names.
 -}
 module Resolver
   ( resolve
-  ) where
+  )
+where
 
 import Alternative.IO (AlternativeIO)
 import qualified Alternative.IO as AIO
-import Config (Config(Config))
+import Config (Config (Config))
 import qualified Config
 import Control.Applicative ((<|>))
 import Control.Exception.Safe (Exception)
@@ -41,7 +42,7 @@ import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX
 import Data.Typeable (Typeable)
-import Dependencies (Dependency(..))
+import Dependencies (Dependency (..))
 import Parser.PackageJson as PackageJson
 import qualified Parser.Require
 import System.Directory (doesFileExist)
@@ -56,8 +57,8 @@ resolve Config {Config.modulesDirs, Config.entryPoints, Config.sourceDir} requir
       ES.throwM $ ModuleNotFound (filePath <$> requiredIn) $ requiredAs dep
     Right dep -> return dep
 
-resolveHelp ::
-     [Config.ModulesDir]
+resolveHelp
+  :: [Config.ModulesDir]
   -> Config.EntryPoints
   -> Config.SourceDir
   -> Dependency
@@ -65,9 +66,9 @@ resolveHelp ::
 resolveHelp modulesDirs entryPoints sourceDir dep = do
   resolved <-
     findRelative dep <|> findRelativeNodeModules dep <|>
-    findInEntryPoints entryPoints dep <|>
-    findInSources (Config.unSourceDir sourceDir) dep <|>
-    findInModules modulesDirs dep
+      findInEntryPoints entryPoints dep <|>
+      findInSources (Config.unSourceDir sourceDir) dep <|>
+      findInModules modulesDirs dep
   updateDepTime $ updateDepType resolved
 
 findRelative :: Dependency -> AlternativeIO Dependency
@@ -78,14 +79,14 @@ findRelativeNodeModules :: Dependency -> AlternativeIO Dependency
 findRelativeNodeModules dep@Dependency {filePath, requiredAs} =
   tryToFind (filePath </> "node_modules") requiredAs dep
 
-findInEntryPoints ::
-     Config.EntryPoints -> Dependency -> AlternativeIO Dependency
+findInEntryPoints
+  :: Config.EntryPoints -> Dependency -> AlternativeIO Dependency
 findInEntryPoints entryPoints dep@Dependency {requiredAs} = do
   tryToFind (Config.unEntryPoints entryPoints) requiredAs dep
 
 findInModules :: [Config.ModulesDir] -> Dependency -> AlternativeIO Dependency
 findInModules [] _parent = AIO.tryNext
-findInModules (x:xs) dep@Dependency {requiredAs} =
+findInModules (x : xs) dep@Dependency {requiredAs} =
   tryToFind (Config.unModulesDir x) requiredAs dep <|> findInModules xs dep
 
 findInSources :: FilePath -> Dependency -> AlternativeIO Dependency
@@ -103,31 +104,31 @@ tryToFind basePath fileName require = do
 tryJs :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryJs basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
-  moduleExistsInBase "" require <|>
-  moduleExistsInBase fileName require <|>
-  moduleExistsInBase (fileName <.> "js") require <|>
-  moduleExistsInBase (fileName </> "index.js") require
+    moduleExistsInBase "" require <|>
+    moduleExistsInBase fileName require <|>
+    moduleExistsInBase (fileName <.> "js") require <|>
+    moduleExistsInBase (fileName </> "index.js") require
   where
     moduleExistsInBase = moduleExists basePath
 
 tryJsWithExt :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryJsWithExt basePath fileName require =
   tryMainFromPackageJson basePath fileName require <|>
-  moduleExistsInBase "" require <|>
-  moduleExistsInBase fileName require
+    moduleExistsInBase "" require <|>
+    moduleExistsInBase fileName require
   where
     moduleExistsInBase = moduleExists basePath
 
 tryCoffee :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryCoffee basePath fileName require =
   moduleExistsInBase fileName require <|>
-  moduleExistsInBase (fileName <.> "coffee") require <|>
-  moduleExistsInBase (fileName </> "index.coffee") require
+    moduleExistsInBase (fileName <.> "coffee") require <|>
+    moduleExistsInBase (fileName </> "index.coffee") require
   where
     moduleExistsInBase = moduleExists basePath
 
-tryCoffeeWithExt ::
-     FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
+tryCoffeeWithExt
+  :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryCoffeeWithExt basePath fileName require =
   moduleExistsInBase "" require <|> moduleExistsInBase fileName require
   where
@@ -135,27 +136,28 @@ tryCoffeeWithExt basePath fileName require =
 
 {-| check if we have a package.json. It contains information about the main file.
 -}
-tryMainFromPackageJson ::
-     FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
+tryMainFromPackageJson
+  :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 tryMainFromPackageJson basePath fileName require = do
   let packageJsonPath = basePath </> fileName </> "package" <.> "json"
   exists <- AIO.lift (doesFileExist packageJsonPath)
   if exists
-    then do
+  then
+    do
       PackageJson {main, browser} <- AIO.lift (PackageJson.load packageJsonPath)
       case browser <|> main of
         Just packageIndex ->
           moduleExists basePath (fileName </> packageIndex) require
         Nothing -> AIO.tryNext
-    else AIO.tryNext
+  else AIO.tryNext
 
 moduleExists :: FilePath -> FilePath -> Dependency -> AlternativeIO Dependency
 moduleExists basePath path require = do
   let searchPath = basePath </> path
   exists <- AIO.lift (doesFileExist searchPath)
   if exists
-    then return (require {filePath = searchPath})
-    else AIO.tryNext
+  then return (require {filePath = searchPath})
+  else AIO.tryNext
 
 updateDepType :: Dependency -> Dependency
 updateDepType (Dependency _ r p l) = Dependency newType r p l
@@ -169,25 +171,27 @@ updateDepTime (Dependency t r p _) = do
         posixSecondsToUTCTime $ modificationTimeHiRes status
   return $ Dependency t r p $ Just lastModificationTime
 
-data Error =
-  ModuleNotFound (Maybe FilePath)
-                 FilePath
+data Error
+  = ModuleNotFound
+      (Maybe FilePath)
+      FilePath
   deriving (Typeable, Exception)
 
 instance Show Error where
+
   show (ModuleNotFound (Just requiredIn) file) =
     T.unpack $
-    T.unlines
-      [ ""
-      , ""
-      , "I had troubles finding '" <> T.pack file <> "' required in '" <>
-        T.pack requiredIn <>
-        "'."
-      , ""
-      , "Make sure that you spelled the name of the module correctly."
-      , "You might also want to make sure that all dependencies are updated."
-      ]
+      T.unlines
+        [ ""
+        , ""
+        , "I had troubles finding '" <> T.pack file <> "' required in '" <>
+          T.pack requiredIn <>
+          "'."
+        , ""
+        , "Make sure that you spelled the name of the module correctly."
+        , "You might also want to make sure that all dependencies are updated."
+        ]
   show (ModuleNotFound Nothing file) =
     T.unpack $
-    T.unlines
-      ["", "", "I had troubles finding the entry point " <> T.pack file <> "."]
+      T.unlines
+        ["", "", "I had troubles finding the entry point " <> T.pack file <> "."]

@@ -1,10 +1,11 @@
 module Notify
-  ( Config(..)
+  ( Config (..)
   , State
   , watch
   , buildNow
   , end
-  ) where
+  )
+where
 
 import Control.Concurrent
 import Data.Foldable (traverse_)
@@ -22,18 +23,20 @@ import Text.Regex (Regex, matchRegex)
 We keep track of running processes and the config.
 You might need this if you want to use `end` or `force`.
 -}
-data State = State
-  { onChange :: IO ()
-  , mVar :: MVar (Maybe ProcessID)
-  }
+data State
+  = State
+      { onChange :: IO ()
+      , mVar :: MVar (Maybe ProcessID)
+      }
 
 {-| Configuration for a watcher.
 -}
-data Config = Config
-  { pathToWatch :: FilePath -- Watch files recursivelly under this path.
-  , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
-  , ignorePatterns :: [Regex] -- Which filename patterns do we want to ignore? Empty list will accept all.
-  }
+data Config
+  = Config
+      { pathToWatch :: FilePath -- Watch files recursivelly under this path.
+      , relevantExtensions :: [T.Text] -- Which extensions do we care about? Empty list will accept all.
+      , ignorePatterns :: [Regex] -- Which filename patterns do we want to ignore? Empty list will accept all.
+      }
 
 watch :: Config -> IO () -> IO State
 watch config onChange = do
@@ -46,11 +49,12 @@ start :: MVar (Maybe ProcessID) -> Config -> IO () -> IO ()
 start mVar Config {pathToWatch, relevantExtensions, ignorePatterns} onChange = do
   manager <-
     startManagerConf
-      (WatchConfig
-       { confDebounce = Debounce 0.2
-       , confUsePolling = False
-       , confPollInterval = 10 ^ (6 :: Int)
-       })
+      ( WatchConfig
+        { confDebounce = Debounce 0.2
+        , confUsePolling = False
+        , confPollInterval = 10 ^ (6 :: Int)
+        }
+      )
   _ <-
     watchTree
       manager
@@ -62,7 +66,8 @@ start mVar Config {pathToWatch, relevantExtensions, ignorePatterns} onChange = d
 eventIsRelevant :: [T.Text] -> [Regex] -> Event -> Bool
 eventIsRelevant relevantExtensions ignorePatterns event =
   getExtensionFromEvent event `elem` relevantExtensions &&
-  getFilepathFromEvent event `matchesNone` ignorePatterns
+    getFilepathFromEvent event `matchesNone`
+    ignorePatterns
 
 getExtensionFromEvent :: Event -> T.Text
 getExtensionFromEvent = T.pack . takeExtension . getFilepathFromEvent

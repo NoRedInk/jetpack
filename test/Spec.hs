@@ -25,19 +25,20 @@ runTests = do
           , Parser.CommentSpec.suite
           ]
       , testGroup
-          "properties"
-          [Parser.RequireSpec.properties, Parser.CommentSpec.properties]
+        "properties"
+        [Parser.RequireSpec.properties, Parser.CommentSpec.properties]
       ]
 
 runDocTests :: IO ()
 runDocTests = do
   tests <- glob "src/**/*.hs"
   doctest
-    ([ "-XDeriveFunctor"
-     , "-XDeriveGeneric"
-     , "-XDuplicateRecordFields"
-     , "-XNamedFieldPuns"
-     , "-XOverloadedStrings"
-     , "-XPackageImports"
-     ] ++
-     tests)
+    ( [ "-XDeriveFunctor"
+      , "-XDeriveGeneric"
+      , "-XDuplicateRecordFields"
+      , "-XNamedFieldPuns"
+      , "-XOverloadedStrings"
+      , "-XPackageImports"
+      ] ++
+      tests
+    )

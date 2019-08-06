@@ -44,7 +44,8 @@ module DependencyTree
   ( build
   , readTreeCache
   , writeTreeCache
-  ) where
+  )
+where
 
 import Config (Config)
 import qualified Config
@@ -78,17 +79,17 @@ buildTree :: Config -> Dependencies -> Dependency -> IO DependencyTree
 buildTree config cache =
   Tree.unfoldTreeM
     (resolveChildren config <=< findRequires cache (Config.noParse config)) <=<
-  Resolver.resolve config Nothing
+    Resolver.resolve config Nothing
 
 readTreeCache :: Config.TempDir -> IO Dependencies
 readTreeCache tempDir =
   (fromMaybe [] . Aeson.decode) <$>
-  BL.readFile (Config.unTempDir tempDir </> "deps" <.> "json")
+    BL.readFile (Config.unTempDir tempDir </> "deps" <.> "json")
 
 writeTreeCache :: Config.TempDir -> Dependencies -> IO ()
 writeTreeCache tempDir =
   Safe.IO.writeFileByteString (Config.unTempDir tempDir </> "deps" <.> "json") .
-  Aeson.encode
+    Aeson.encode
 
 toDependency :: Config.EntryPoints -> FilePath -> IO Dependency
 toDependency entryPoints path = do
@@ -100,18 +101,19 @@ toDependency entryPoints path = do
 requireToDep :: FilePath -> Ast.Require -> Dependency
 requireToDep path (Ast.Require t n) = Dependency t n path Nothing
 
-findRequires ::
-     Dependencies
+findRequires
+  :: Dependencies
   -> [Config.NoParse]
   -> Dependency
   -> IO (Dependency, [Dependency])
 findRequires cache noParse parent@Dependency {filePath, fileType} =
   if Config.NoParse filePath `elem` noParse
-    then return (parent, [])
-    else case fileType of
-           Ast.Js -> parseModule cache parent Parser.Require.jsRequires
-           Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
-           Ast.Elm -> return (parent, [])
+  then return (parent, [])
+  else
+    case fileType of
+      Ast.Js -> parseModule cache parent Parser.Require.jsRequires
+      Ast.Coffee -> parseModule cache parent Parser.Require.coffeeRequires
+      Ast.Elm -> return (parent, [])
 
 findInCache :: Dependency -> Dependencies -> Maybe (Dependency, [Dependency])
 findInCache dep = headMay . M.catMaybes . fmap (findInCache_ dep)
@@ -122,8 +124,8 @@ findInCache_ dep = fmap toTuple . searchNode ((==) dep . Tree.rootLabel)
     toTuple Tree.Node {Tree.rootLabel, Tree.subForest} =
       (rootLabel, fmap Tree.rootLabel subForest)
 
-parseModule ::
-     Dependencies
+parseModule
+  :: Dependencies
   -> Dependency
   -> (T.Text -> [Ast.Require])
   -> IO (Dependency, [Dependency])
@@ -136,8 +138,8 @@ parseModule cache dep@Dependency {filePath} parser =
       let dependencies = fmap (requireToDep $ takeDirectory filePath) requires
       return (dep, dependencies)
 
-resolveChildren ::
-     Config -> (Dependency, [Dependency]) -> IO (Dependency, [Dependency])
+resolveChildren
+  :: Config -> (Dependency, [Dependency]) -> IO (Dependency, [Dependency])
 resolveChildren config (parent, children) = do
   resolved <- traverse (Resolver.resolve config (Just parent)) children
   return (parent, resolved)

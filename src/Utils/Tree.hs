@@ -3,7 +3,8 @@ module Utils.Tree
   , foldTree_
   , roots
   , nodesWithChildren
-  ) where
+  )
+where
 
 import Data.Tree
 
@@ -24,9 +25,9 @@ import Data.Tree
 searchNode :: (Tree a -> Bool) -> Tree a -> Maybe (Tree a)
 searchNode p = find . pure
   where
-    find (x:_)
+    find (x : _)
       | p x = Just x
-    find (x:xs) = find (xs ++ subForest x)
+    find (x : xs) = find (xs ++ subForest x)
     find [] = Nothing
 
 {-| Fold over a tree.

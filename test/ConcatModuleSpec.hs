@@ -43,21 +43,19 @@ mockDependencyTree =
 mockConfig :: Config
 mockConfig =
   Config
-  { entryPoints =
-      EntryPoints ("." </> "test" </> "fixtures" </> "concat" </> "modules")
-  , modulesDirs = []
-  , sourceDir =
-      SourceDir ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "concat" </> "sources")
-  , tempDir = TempDir ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
-  , logDir = LogDir ("." </> "test" </> "fixtures" </> "concat" </> "logs")
-  , outputDir = OutputDir ("." </> "test" </> "fixtures" </> "concat" </> "js")
-  , elmPath = Nothing
-  , coffeePath = Nothing
-  , noParse = []
-  , watchFileExt = []
-  , watchIgnorePatterns = []
-  }
+    { entryPoints = EntryPoints ("." </> "test" </> "fixtures" </> "concat" </> "modules")
+    , modulesDirs = []
+    , sourceDir = SourceDir ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+    , elmRoot = ElmRoot ("." </> "test" </> "fixtures" </> "concat" </> "sources")
+    , tempDir = TempDir ("." </> "test" </> "fixtures" </> "concat" </> "tmp")
+    , logDir = LogDir ("." </> "test" </> "fixtures" </> "concat" </> "logs")
+    , outputDir = OutputDir ("." </> "test" </> "fixtures" </> "concat" </> "js")
+    , elmPath = Nothing
+    , coffeePath = Nothing
+    , noParse = []
+    , watchFileExt = []
+    , watchIgnorePatterns = []
+    }
 
 mockDependency :: FilePath -> FilePath -> D.Dependency
 mockDependency f p = D.Dependency Ast.Js f p Nothing
@@ -72,45 +70,46 @@ mockDependencies =
     dependency location fileName =
       mockDependency
         ("." </> fileName)
-        ("." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </>
-         fileName <.>
-         "js")
+        ( "." </> "test" </> "fixtures" </> "concat" </> location </> "Page" </>
+          fileName <.>
+          "js"
+        )
 
 expectedOutput :: [T.Text]
 expectedOutput =
   [ T.unlines $
-    [ "(function() {"
-    , "var jetpackCache = {};"
-    , "function jetpackRequire(fn, fnName) {"
-    , "  var e = {};"
-    , "  var m = { exports : e };"
-    , "  if (typeof fn !== \"function\") {"
-    , "    console.error(\"Required function isn't a jetpack module.\", fn)"
-    , "    return;"
-    , "  }"
-    , "  if (jetpackCache[fnName]) {"
-    , "    return jetpackCache[fnName];"
-    , "  }"
-    , "  jetpackCache[fnName] = m.exports;"
-    , "  fn(m, e);  "
-    , "  jetpackCache[fnName] = m.exports;"
-    , "  return m.exports;"
-    , "}"
-    , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
-    , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
-    , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
-    , "moo(4, 2);"
-    , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
-    , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
-    , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
-    , "module.exports = function(a, b) {"
-    , "  console.log(a + b + \"\");"
-    , "};"
-    , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
-    , ""
-    , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
-    , "})();"
-    ]
+      [ "(function() {"
+      , "var jetpackCache = {};"
+      , "function jetpackRequire(fn, fnName) {"
+      , "  var e = {};"
+      , "  var m = { exports : e };"
+      , "  if (typeof fn !== \"function\") {"
+      , "    console.error(\"Required function isn't a jetpack module.\", fn)"
+      , "    return;"
+      , "  }"
+      , "  if (jetpackCache[fnName]) {"
+      , "    return jetpackCache[fnName];"
+      , "  }"
+      , "  jetpackCache[fnName] = m.exports;"
+      , "  fn(m, e);  "
+      , "  jetpackCache[fnName] = m.exports;"
+      , "  return m.exports;"
+      , "}"
+      , "/* START: ./test/fixtures/concat/modules/Page/Foo.js */"
+      , "function test___fixtures___concat___modules___Page___Foo_js_js(module, exports) {"
+      , "var moo = jetpackRequire(test___fixtures___concat___sources___Page___Moo_js_js, \"test___fixtures___concat___sources___Page___Moo_js_js\");"
+      , "moo(4, 2);"
+      , "\n} /* END: ./test/fixtures/concat/modules/Page/Foo.js */"
+      , "/* START: ./test/fixtures/concat/sources/Page/Moo.js */"
+      , "function test___fixtures___concat___sources___Page___Moo_js_js(module, exports) {"
+      , "module.exports = function(a, b) {"
+      , "  console.log(a + b + \"\");"
+      , "};"
+      , "\n} /* END: ./test/fixtures/concat/sources/Page/Moo.js */"
+      , ""
+      , "jetpackRequire(test___fixtures___concat___modules___Page___Foo_js_js, \"test___fixtures___concat___modules___Page___Foo_js_js\");"
+      , "})();"
+      ]
   ]
 
 suite :: TestTree
@@ -121,27 +120,28 @@ suite =
         wrapModule "a___b.elm" "" @?=
           "/* START: a/b.elm */  console.warn(\"a/b.elm: is an empty module!\");\nfunction a___b_elm_js(module, exports) {\n\n} /* END: a/b.elm */\n"
     , testCase "#wrapModule wraps a module in a function" $
-      wrapModule "testFunction" mockModule @?= wrappedModule
+      wrapModule "testFunction" mockModule @?=
+      wrappedModule
     , testCase
-        "#replaceRequire replaces require('string') with jetpackRequire(function, fnName)" $
+      "#replaceRequire replaces require('string') with jetpackRequire(function, fnName)" $
       replaceRequire
         (mockDependency "foo" $ "ui" </> "src" </> "foo")
         "var x = require('foo')" @?=
       "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
-        "#replaceRequire replaces require(\"string\") with jetpackRequire(function, fnName)" $
+      "#replaceRequire replaces require(\"string\") with jetpackRequire(function, fnName)" $
       replaceRequire
         (mockDependency "foo" $ "ui" </> "src" </> "foo")
         "var x = require(\"foo\")" @?=
       "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase
-        "#replaceRequire replaces require( 'string' ) with jetpackRequire(function, fnName)" $
+      "#replaceRequire replaces require( 'string' ) with jetpackRequire(function, fnName)" $
       replaceRequire
         (mockDependency "foo" $ "ui" </> "src" </> "foo")
         "var x = require( 'foo' )" @?=
       "var x = jetpackRequire(ui___src___foo_js, \"ui___src___foo_js\")"
     , testCase "#wrap" $ do
-        (paths, actual) <- unzip <$> traverse (wrap mockConfig) mockDependencies
-        paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
-        actual @?= expectedOutput
+      (paths, actual) <- unzip <$> traverse (wrap mockConfig) mockDependencies
+      paths @?= ["./test/fixtures/concat/js/Page/Foo.js"]
+      actual @?= expectedOutput
     ]

@@ -4,17 +4,18 @@ module ConcatModule
   ( wrap
   , wrapModule
   , replaceRequire
-  ) where
+  )
+where
 
 import qualified Config
-import Config (Config(Config))
+import Config (Config (Config))
 import Data.Char (isSpace)
 import Data.Foldable (all)
 import qualified Data.List.Utils as LU
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Tree as Tree
-import Dependencies (Dependency(..), DependencyTree)
+import Dependencies (Dependency (..), DependencyTree)
 import qualified Parser.Ast as Ast
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath as FP
@@ -28,17 +29,19 @@ wrap Config {Config.outputDir, Config.entryPoints, Config.tempDir} dep = do
   let wrapped = fmap wrapDependency module'
   out <-
     writeJsModule outputDir entryPoints wrapped $
-    Dependencies.filePath $ Tree.rootLabel dep
+      Dependencies.filePath $
+      Tree.rootLabel dep
   return out
 
 uniqNodes :: DependencyTree -> [(Dependency, [Dependency])]
 uniqNodes = LU.uniq . UT.nodesWithChildren
 
-data Module = Module
-  { filePath :: FilePath
-  , dependencies :: [Dependency]
-  , content :: T.Text
-  }
+data Module
+  = Module
+      { filePath :: FilePath
+      , dependencies :: [Dependency]
+      , content :: T.Text
+      }
 
 withContent :: Config.TempDir -> (Dependency, [Dependency]) -> IO Module
 withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
@@ -53,7 +56,7 @@ withContent tempDir (Dependency {filePath, fileType}, dependencies) = do
 ensureElmIife :: T.Text -> T.Text
 ensureElmIife input =
   "(function() {\n\n" <> input <>
-  "\n\nwindow.Elm = this.Elm;\n\n}.call(exports))"
+    "\n\nwindow.Elm = this.Elm;\n\n}.call(exports))"
 
 wrapDependency :: Module -> T.Text
 wrapDependency Module {filePath, dependencies, content} =
@@ -68,8 +71,8 @@ replaceRequire Dependency {requiredAs, filePath} body =
       mkRegex $ "require\\([ \t]*['\"]" <> requiredAs <> "['\"][ \t]*\\)"
     jetpackRequire = "jetpackRequire(" <> fnName <> ", \"" <> fnName <> "\")"
 
-writeJsModule ::
-     Config.OutputDir
+writeJsModule
+  :: Config.OutputDir
   -> Config.EntryPoints
   -> [T.Text]
   -> FilePath
@@ -77,7 +80,7 @@ writeJsModule ::
 writeJsModule outputDir entryPoints fns rootFilePath = do
   let out =
         Config.unOutputDir outputDir </>
-        FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath
+          FP.makeRelative (Config.unEntryPoints entryPoints) rootFilePath
   let rootName = pathToFunctionName rootFilePath "js"
   createDirectoryIfMissing True $ FP.takeDirectory out
   let wrapped = addBoilerplate rootName fns
@@ -119,8 +122,8 @@ wrapModule path body =
     , filePath
     , " */"
     , if all isSpace $ T.unpack body
-        then "  console.warn(\"" <> filePath <> ": is an empty module!\");"
-        else ""
+    then "  console.warn(\"" <> filePath <> ": is an empty module!\");"
+    else ""
     , "\n"
     , T.concat ["function ", fnName, "(module, exports) {\n"]
     , body

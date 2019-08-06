@@ -1,9 +1,10 @@
 module HotReload.Server
   ( start
-  ) where
+  )
+where
 
 import qualified Builder
-import CliArguments (Args(..))
+import CliArguments (Args (..))
 import qualified Compile
 import qualified Config
 import Config (Config)
@@ -29,10 +30,12 @@ application config args hotReloading pending = do
   state <-
     Watcher.startWatcher
       config
-      (do maybeResult <- Builder.build config args hotReloading
-          case maybeResult of
-            Nothing -> pure ()
-            Just result -> traverse_ (reload conn) $ Compile.elmFiles result)
+      ( do
+        maybeResult <- Builder.build config args hotReloading
+        case maybeResult of
+          Nothing -> pure ()
+          Just result -> traverse_ (reload conn) $ Compile.elmFiles result
+      )
   Watcher.listenToCommands state
 
 reload :: WS.Connection -> FilePath -> IO ()

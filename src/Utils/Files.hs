@@ -2,7 +2,8 @@
 -}
 module Utils.Files
   ( pathToFileName
-  ) where
+  )
+where
 
 import qualified Data.List as L
 import qualified Data.Text as T
@@ -22,6 +23,9 @@ pathToFileName filePath extension = safeFileName filePath <.> extension
 safeFileName :: FilePath -> FilePath
 safeFileName =
   T.unpack .
-  T.replace "-" "_" .
-  T.concat .
-  L.intersperse "___" . filter ((/=) ".") . fmap T.pack . splitDirectories
+    T.replace "-" "_" .
+    T.concat .
+    L.intersperse "___" .
+    filter ((/=) ".") .
+    fmap T.pack .
+    splitDirectories
