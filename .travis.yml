@@ -23,6 +23,7 @@ script:
 - stack test
 - stack build --ghc-options -O2
 - tar zcvf "${BUILD}" -C "$(stack path --local-install-root)/bin" jetpack
+- script/format.sh
 deploy:
   provider: releases
   api_key:
