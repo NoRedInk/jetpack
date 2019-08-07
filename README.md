@@ -38,4 +38,4 @@ stack build
 stack test
 ```
 
-Run `./script/hindent.sh` to format everything correctly.
+Run `./script/format.sh` to format everything correctly.
