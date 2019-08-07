@@ -89,9 +89,10 @@ end :: State -> IO ()
 end State {mVar} = stopProcess mVar
 
 getFilepathFromEvent :: Event -> FilePath
-getFilepathFromEvent (Added filepath _) = filepath
-getFilepathFromEvent (Modified filepath _) = filepath
-getFilepathFromEvent (Removed filepath _) = filepath
+getFilepathFromEvent (Added filepath _ _) = filepath
+getFilepathFromEvent (Modified filepath _ _) = filepath
+getFilepathFromEvent (Removed filepath _ _) = filepath
+getFilepathFromEvent (Unknown filepath _ _) = filepath
 
 matchesNone :: FilePath -> [Regex] -> Bool
 matchesNone filepath = not . any (isJust . flip matchRegex filepath)

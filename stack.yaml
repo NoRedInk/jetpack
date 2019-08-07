@@ -2,4 +2,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-resolver: lts-11.4
+resolver: lts-13.30
+nix:
+  enable: true
+  shell-file: shell.nix

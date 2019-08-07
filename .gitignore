@@ -32,3 +32,4 @@ cabal.sandbox.config
 test/index.html
 *.cabal
 binaries
+.direnv.cache

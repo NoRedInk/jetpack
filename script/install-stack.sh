@@ -18,5 +18,4 @@ else
     rm stack.tar
 fi
 
-./script/install-readline.sh
 stack --version
