@@ -2,7 +2,8 @@ module Alternative.IO
   ( AlternativeIO
   , tryNext
   , lift
-  ) where
+  )
+where
 
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Except (lift, throwError)

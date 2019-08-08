@@ -4,8 +4,8 @@
 -}
 module Compile where
 
-import CliArguments (Args(..), CompileMode(..))
-import Config (Config(Config))
+import CliArguments (Args (..), CompileMode (..))
+import Config (Config (Config))
 import qualified Config
 import Control.Exception.Safe (Exception)
 import qualified Control.Exception.Safe as ES
@@ -17,13 +17,18 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Typeable (Typeable)
-import Dependencies (Dependency(..))
+import Dependencies (Dependency (..))
 import Formatting (sformat)
 import Formatting.Clock (timeSpecs)
 import GHC.IO.Handle
 import Parser.Ast as Ast
 import System.Clock
-       (Clock(Monotonic), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
+  ( Clock (Monotonic)
+  , TimeSpec
+  , diffTimeSpec
+  , getTime
+  , toNanoSecs
+  )
 import qualified System.Console.Regions as CR
 import System.Directory (copyFile)
 import System.Exit
@@ -33,59 +38,75 @@ import System.Process
 import ToolPaths
 import Utils.Files (pathToFileName)
 
-data Result = Result
-  { duration :: Duration
-  , compiledAt :: UTCTime
-  , command :: T.Text
-  , stdout :: Maybe T.Text
-  , compiledFile :: FilePath
-  , outputFile :: FilePath
-  } deriving (Show)
+data Result
+  = Result
+      { duration :: Duration
+      , compiledAt :: UTCTime
+      , command :: T.Text
+      , stdout :: Maybe T.Text
+      , compiledFile :: FilePath
+      , outputFile :: FilePath
+      }
+  deriving (Show)
 
 elmFiles :: [Compile.Result] -> [FilePath]
 elmFiles [] = []
-elmFiles (Result {outputFile}:rest)
+elmFiles (Result {outputFile} : rest)
   | T.isSuffixOf ".elm.js" (T.pack outputFile) = outputFile : elmFiles rest
   | otherwise = elmFiles rest
 
 printTime :: Args -> Compile.Result -> IO ()
 printTime Args {time} Compile.Result {compiledFile, duration} =
   when time $
-  TIO.putStrLn $ T.pack compiledFile <> ": " <> formatDuration duration
+    TIO.putStrLn $
+    T.pack compiledFile <>
+    ": " <>
+    formatDuration duration
 
 formatDuration :: Duration -> T.Text
 formatDuration (Duration start end) = sformat timeSpecs start end
 
-data Duration = Duration
-  { start :: TimeSpec
-  , end :: TimeSpec
-  }
+data Duration
+  = Duration
+      { start :: TimeSpec
+      , end :: TimeSpec
+      }
 
 instance Show Duration where
+
   show (Duration start end) =
     show (div (toNanoSecs (diffTimeSpec end start)) 1000000)
 
-compile ::
-     CR.ConsoleRegion -> Args -> Config -> ToolPaths -> Dependency -> IO Result
-compile region args config@Config {Config.tempDir} toolPaths Dependency { fileType
-                                                                        , filePath
-                                                                        } =
-  runCompiler
-    region
-    args
-    config
-    fileType
-    toolPaths
-    Arguments
-    {input = filePath, output = buildArtifactPath tempDir fileType filePath}
+compile
+  :: CR.ConsoleRegion -> Args -> Config -> ToolPaths -> Dependency -> IO Result
+compile
+  region
+  args
+  config@Config {Config.tempDir}
+  toolPaths
+  Dependency
+    { fileType
+    , filePath
+    } =
+    runCompiler
+      region
+      args
+      config
+      fileType
+      toolPaths
+      Arguments
+        { input = filePath
+        , output = buildArtifactPath tempDir fileType filePath
+        }
 
-data Arguments = Arguments
-  { input :: FilePath
-  , output :: FilePath
-  }
+data Arguments
+  = Arguments
+      { input :: FilePath
+      , output :: FilePath
+      }
 
-runCompiler ::
-     CR.ConsoleRegion
+runCompiler
+  :: CR.ConsoleRegion
   -> Args
   -> Config
   -> Ast.SourceType
@@ -98,20 +119,22 @@ runCompiler region args config fileType ToolPaths {elm, coffee} arguments =
     Ast.Js -> jsCompiler region arguments
     Ast.Coffee -> coffeeCompiler coffee region arguments
 
-data Groupped = Groupped
-  { elm :: [Dependency]
-  , coffee :: [Dependency]
-  , js :: [Dependency]
-  }
+data Groupped
+  = Groupped
+      { elm :: [Dependency]
+      , coffee :: [Dependency]
+      , js :: [Dependency]
+      }
 
 group :: [Dependency] -> Groupped
 group =
   foldl
-    (\Groupped {elm, js, coffee} dep ->
-       case Dependencies.fileType dep of
-         Ast.Elm -> Groupped {elm = dep : elm, js, coffee}
-         Ast.Js -> Groupped {js = dep : js, elm, coffee}
-         Ast.Coffee -> Groupped {coffee = dep : coffee, elm, js})
+    ( \Groupped {elm, js, coffee} dep ->
+      case Dependencies.fileType dep of
+        Ast.Elm -> Groupped {elm = dep : elm, js, coffee}
+        Ast.Js -> Groupped {js = dep : js, elm, coffee}
+        Ast.Coffee -> Groupped {coffee = dep : coffee, elm, js}
+    )
     Groupped {elm = [], js = [], coffee = []}
 
 buildArtifactPath :: Config.TempDir -> Ast.SourceType -> FilePath -> String
@@ -127,8 +150,8 @@ buildArtifactPath tempDir fileType inputPath =
 ---------------
 -- COMPILERS --
 ---------------
-elmCompiler ::
-     Config.ElmPath
+elmCompiler
+  :: Config.ElmPath
   -> CR.ConsoleRegion
   -> Args
   -> Config
@@ -143,19 +166,19 @@ elmCompiler elm region args Config {elmRoot} Arguments {input, output} = do
           Normal -> ""
   let cmd =
         T.pack (Config.unElmPath elm) <> " " <> "make" <> " " <> "../" <>
-        T.pack input <>
-        " --output " <>
-        "../" <>
-        T.pack output <>
-        T.pack modeFlag
+          T.pack input <>
+          " --output " <>
+          "../" <>
+          T.pack output <>
+          T.pack modeFlag
   runCmd region input output cmd $ Just $ Config.unElmRoot elmRoot
 
-coffeeCompiler ::
-     Config.CoffeePath -> CR.ConsoleRegion -> Arguments -> IO Result
+coffeeCompiler
+  :: Config.CoffeePath -> CR.ConsoleRegion -> Arguments -> IO Result
 coffeeCompiler coffee region Arguments {input, output} = do
   let cmd =
         T.pack (Config.unCoffeePath coffee) <> " -p " <> T.pack input <> " > " <>
-        T.pack output
+          T.pack output
   runCmd region input output cmd Nothing
 
 {-| The js compiler will basically only copy the file into the tmp dir.
@@ -169,16 +192,16 @@ jsCompiler region Arguments {input, output} = do
   end <- getTime Monotonic
   return
     Result
-    { duration = Duration start end
-    , compiledAt = currentTime
-    , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
-    , stdout = Nothing
-    , compiledFile = input
-    , outputFile = output
-    }
+      { duration = Duration start end
+      , compiledAt = currentTime
+      , command = T.unwords ["moved", T.pack input, "=>", T.pack output]
+      , stdout = Nothing
+      , compiledFile = input
+      , outputFile = output
+      }
 
-runCmd ::
-     CR.ConsoleRegion
+runCmd
+  :: CR.ConsoleRegion
   -> FilePath
   -> FilePath
   -> T.Text
@@ -195,13 +218,13 @@ runCmd region input output cmd maybeCwd = do
       currentTime <- getCurrentTime
       return
         Result
-        { duration = Duration start end
-        , compiledAt = currentTime
-        , command = cmd
-        , stdout = Just $ T.pack content
-        , compiledFile = input
-        , outputFile = output
-        }
+          { duration = Duration start end
+          , compiledAt = currentTime
+          , command = cmd
+          , stdout = Just $ T.pack content
+          , compiledFile = input
+          , outputFile = output
+          }
     ExitFailure _ ->
       ES.throwM $ CompileError cmd (T.pack (content <> errContent))
 
@@ -210,41 +233,46 @@ runAndWaitForProcess cmd maybeCwd = do
   (_, Just out, Just err, ph) <-
     createProcess
       (proc "bash" ["-c", cmd])
-      {std_out = CreatePipe, std_err = CreatePipe, cwd = maybeCwd}
+        { std_out = CreatePipe
+        , std_err = CreatePipe
+        , cwd = maybeCwd
+        }
   hSetEncoding out utf8
   hSetEncoding err utf8
   gatherOutput ph err out
 
 -- https://passingcuriosity.com/2015/haskell-reading-process-safe-deadlock/
-gatherOutput ::
-     ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
+gatherOutput
+  :: ProcessHandle -> Handle -> Handle -> IO (ExitCode, String, String)
 gatherOutput ph h1 h2 = work mempty mempty
   where
-    work acc1 acc2
-        -- Read any outstanding input.
-     = do
-      bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
-      let acc1' = acc1 <> bs1
-      bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
-      let acc2' = acc2 <> bs2
+    work acc1 acc2 =
+      -- Read any outstanding input.
+      do
+        bs1 <- BS.hGetNonBlocking h1 (64 * 1024)
+        let acc1' = acc1 <> bs1
+        bs2 <- BS.hGetNonBlocking h2 (64 * 1024)
+        let acc2' = acc2 <> bs2
         -- Check on the process.
-      s <- getProcessExitCode ph
+        s <- getProcessExitCode ph
         -- Exit or loop.
-      case s of
-        Nothing -> work acc1' acc2'
-        Just ec
-                -- Get any last bit written between the read and the status
-                -- check.
-         -> do
-          last1 <- BS.hGetContents h1
-          last2 <- BS.hGetContents h2
-          pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
+        case s of
+          Nothing -> work acc1' acc2'
+          Just ec ->
+            -- Get any last bit written between the read and the status
+            -- check.
+            do
+              last1 <- BS.hGetContents h1
+              last2 <- BS.hGetContents h2
+              pure $ (ec, BSC.unpack $ acc1' <> last1, BSC.unpack $ acc2' <> last2)
 
-data Error =
-  CompileError T.Text
-               T.Text
+data Error
+  = CompileError
+      T.Text
+      T.Text
   deriving (Typeable, Exception)
 
 instance Show Error where
+
   show (CompileError cmd msg) =
     T.unpack $ T.unlines ["Command:", "", "    $ " <> cmd, "", msg]

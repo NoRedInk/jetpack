@@ -5,18 +5,20 @@ module Helper.Property where
 import Data.Text as T
 import Test.Tasty.QuickCheck as QC
 
-newtype AlphaNum =
-  AlphaNum T.Text
+newtype AlphaNum
+  = AlphaNum T.Text
   deriving (Show)
 
 instance (QC.Arbitrary AlphaNum) where
+
   arbitrary = fmap (AlphaNum . T.pack) letterOrDigit
 
-newtype CodeNoComments =
-  CodeNoComments T.Text
+newtype CodeNoComments
+  = CodeNoComments T.Text
   deriving (Show)
 
 instance (QC.Arbitrary CodeNoComments) where
+
   arbitrary = fmap (CodeNoComments . T.pack) code
 
 alphaFreqList :: [(Int, QC.Gen Char)]

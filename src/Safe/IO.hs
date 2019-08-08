@@ -3,15 +3,16 @@
 module Safe.IO
   ( writeFile
   , writeFileByteString
-  ) where
+  )
+where
 
 import qualified Control.Exception as Exception
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Prelude hiding (writeFile)
 import qualified System.Directory as Dir
 import System.FilePath ((<.>))
+import Prelude hiding (writeFile)
 
 writeFile :: FilePath -> T.Text -> IO ()
 writeFile path content = do

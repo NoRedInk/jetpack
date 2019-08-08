@@ -1,7 +1,8 @@
 module Error
-  ( Error(..)
+  ( Error (..)
   , description
-  ) where
+  )
+where
 
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
@@ -9,18 +10,23 @@ import System.FilePath ()
 
 data Error
   = FileNotFound T.Text
-  | JsonInvalid FilePath
-                T.Text
+  | JsonInvalid
+      FilePath
+      T.Text
   | NoModulesPresent [FilePath]
-  | ModuleNotFound (Maybe FilePath)
-                   FilePath
+  | ModuleNotFound
+      (Maybe FilePath)
+      FilePath
   | BinNotFound T.Text
-  | CompileError T.Text
-                 T.Text
-  | HookFailed T.Text
-               T.Text
-  | ConfigInvalid FilePath
-                  T.Text
+  | CompileError
+      T.Text
+      T.Text
+  | HookFailed
+      T.Text
+      T.Text
+  | ConfigInvalid
+      FilePath
+      T.Text
   | NoConfigFound FilePath
   deriving (Eq, Show)
 

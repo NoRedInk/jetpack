@@ -13,7 +13,8 @@ module Parser.Require
   , coffeeRequires
   , require
   , getFileType
-  ) where
+  )
+where
 
 import qualified Data.Text as T
 import Parser.Ast as Ast
