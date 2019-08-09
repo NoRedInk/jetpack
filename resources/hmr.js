@@ -16,7 +16,7 @@
         - various functions defined by Elm which we have to hook such as `_Platform_initialize` and `_Scheduler_binding`
  */
 
-if (moduleHot.hot) {
+if (module.hot) {
     (function () {
         "use strict";
 
@@ -43,15 +43,44 @@ if (moduleHot.hot) {
             };
         }
 
-        var instances = moduleHot.hot.data
-            ? moduleHot.hot.data.instances || {}
+        // Elm 0.19.1 introduced a '$' prefix at the beginning of the symbols it emits,
+        // and we check for `List.map` because we expect it to be present in all Elm programs.
+        var elmVersion;
+        if (typeof elm$core$List$map !== 'undefined')
+            elmVersion = '0.19.0';
+        else if (typeof $elm$core$List$map !== 'undefined')
+            elmVersion = '0.19.1';
+        else
+            throw new Error("Could not determine Elm version");
+
+        function elmSymbol(symbol) {
+            try {
+                switch (elmVersion) {
+                    case '0.19.0':
+                        return eval(symbol);
+                    case '0.19.1':
+                        return eval('$' + symbol);
+                    default:
+                        throw new Error('Cannot resolve ' + symbol + '. Elm version unknown!')
+                }
+            } catch (e) {
+                if (e instanceof ReferenceError) {
+                    return undefined;
+                } else {
+                    throw e;
+                }
+            }
+        }
+
+        var instances = module.hot.data
+            ? module.hot.data.instances || {}
             : {};
-        var uid = moduleHot.hot.data
-            ? moduleHot.hot.data.uid || 0
+        var uid = module.hot.data
+            ? module.hot.data.uid || 0
             : 0;
 
         if (Object.keys(instances).length === 0) {
-            console.log("[elm-hot] Enabled");
+            log("[elm-hot] Enabled");
         }
 
         var cancellers = [];
@@ -61,8 +90,8 @@ if (moduleHot.hot) {
         var initializingInstance = null;
         var swappingInstance = null;
 
-        moduleHot.hot.accept();
-        moduleHot.hot.dispose(function (data) {
+        module.hot.accept();
+        module.hot.dispose(function (data) {
             data.instances = instances;
             data.uid = uid;
 
@@ -75,7 +104,7 @@ if (moduleHot.hot) {
 
             // Second, kill pending tasks belonging to the old instance
             if (cancellers.length) {
-                console.log('[elm-hot] Killing ' + cancellers.length + ' running processes...');
+                log('[elm-hot] Killing ' + cancellers.length + ' running processes...');
                 try {
                     cancellers.forEach(function (cancel) {
                         cancel();
@@ -85,6 +114,12 @@ if (moduleHot.hot) {
                 }
             }
         });
+
+        function log(message) {
+            if (module.hot.verbose) {
+                console.log(message)
+            }
+        }
 
         function getId() {
             return ++uid;
@@ -126,8 +161,8 @@ if (moduleHot.hot) {
 
         function isFullscreenApp() {
             // Returns true if the Elm app will take over the entire DOM body.
-            return typeof elm$browser$Browser$application !== 'undefined'
-                || typeof elm$browser$Browser$document !== 'undefined';
+            return typeof elmSymbol("elm$browser$Browser$application") !== 'undefined'
+                || typeof elmSymbol("elm$browser$Browser$document") !== 'undefined';
         }
 
         function wrapDomNode(node) {
@@ -148,6 +183,7 @@ if (moduleHot.hot) {
             // behind their back and rudely put stuff in their DOM.
             var dummyNode = document.createElement("div");
             dummyNode.setAttribute("data-elm-hot", "true");
+            dummyNode.style.height = "inherit";
             var parentNode = node.parentNode;
             parentNode.replaceChild(dummyNode, node);
             dummyNode.appendChild(node);
@@ -186,7 +222,7 @@ if (moduleHot.hot) {
         }
 
         function swap(Elm, instance) {
-            console.log('[elm-hot] Hot-swapping module: ' + instance.path);
+            log('[elm-hot] Hot-swapping module: ' + instance.path);
 
             swappingInstance = instance;
 
@@ -218,28 +254,28 @@ if (moduleHot.hot) {
                         if (!handlers.length) {
                             return;
                         }
-                        console.log('[elm-hot] Reconnect ' + handlers.length + ' handler(s) to port \''
+                        log('[elm-hot] Reconnect ' + handlers.length + ' handler(s) to port \''
                             + portName + '\' (' + instance.path + ').');
                         handlers.forEach(function (handler) {
                             elm.ports[portName].subscribe(handler);
                         });
                     } else {
                         delete instance.portSubscribes[portName];
-                        console.log('[elm-hot] Port was removed: ' + portName);
+                        log('[elm-hot] Port was removed: ' + portName);
                     }
                 });
 
                 Object.keys(instance.portSends).forEach(function (portName) {
                     if (portName in elm.ports && 'send' in elm.ports[portName]) {
-                        console.log('[elm-hot] Replace old port send with the new send');
+                        log('[elm-hot] Replace old port send with the new send');
                         instance.portSends[portName] = elm.ports[portName].send;
                     } else {
                         delete instance.portSends[portName];
-                        console.log('[elm-hot] Port was removed: ' + portName);
+                        log('[elm-hot] Port was removed: ' + portName);
                     }
                 });
             } else {
-                console.log('[elm-hot] Module was removed: ' + instance.path);
+                log('[elm-hot] Module was removed: ' + instance.path);
             }
 
             swappingInstance = null;
@@ -260,7 +296,7 @@ if (moduleHot.hot) {
                         var unsubscribe = port.unsubscribe;
                         elm.ports[portName] = Object.assign(port, {
                             subscribe: function (handler) {
-                                console.log('[elm-hot] ports.' + portName + '.subscribe called.');
+                                log('[elm-hot] ports.' + portName + '.subscribe called.');
                                 if (!portSubscribes[portName]) {
                                     portSubscribes[portName] = [handler];
                                 } else {
@@ -270,7 +306,7 @@ if (moduleHot.hot) {
                                 return subscribe.call(port, handler);
                             },
                             unsubscribe: function (handler) {
-                                console.log('[elm-hot] ports.' + portName + '.unsubscribe called.');
+                                log('[elm-hot] ports.' + portName + '.unsubscribe called.');
                                 var list = portSubscribes[portName];
                                 if (list && list.indexOf(handler) !== -1) {
                                     list.splice(list.lastIndexOf(handler), 1);
@@ -369,7 +405,7 @@ if (moduleHot.hot) {
                     var oldModel = swappingInstance.lastState;
                     var newModel = initialStateTuple.a;
 
-                    if (typeof elm$browser$Browser$application !== 'undefined') {
+                    if (typeof elmSymbol("elm$browser$Browser$application") !== 'undefined') {
                         // attempt to find the Browser.Navigation.Key in the newly-constructed model
                         // and bring it along with the rest of the old data.
                         var newKeyLoc = findNavKey(newModel);
@@ -406,13 +442,13 @@ if (moduleHot.hot) {
                     initialStateTuple.a = oldModel;
 
                     // ignore any Cmds returned by the init during hot-swap
-                    initialStateTuple.b = elm$core$Platform$Cmd$none;
+                    initialStateTuple.b = elmSymbol("elm$core$Platform$Cmd$none");
                 } else {
                     // capture the initial state for later
                     initializingInstance.lastState = initialStateTuple.a;
 
                     // capture Browser.application's navigation key for later
-                    if (typeof elm$browser$Browser$application !== 'undefined') {
+                    if (typeof elmSymbol("elm$browser$Browser$application") !== 'undefined') {
                         var navKeyLoc = findNavKey(initializingInstance.lastState);
                         if (!navKeyLoc) {
                             console.error("[elm-hot] Hot-swapping disabled for " + instance.path
