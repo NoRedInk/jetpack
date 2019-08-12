@@ -16,7 +16,7 @@
         - various functions defined by Elm which we have to hook such as `_Platform_initialize` and `_Scheduler_binding`
  */
 
-if (module.hot) {
+if (moduleHot.hot) {
     (function () {
         "use strict";
 
@@ -72,11 +72,11 @@ if (module.hot) {
             }
         }
 
-        var instances = module.hot.data
-            ? module.hot.data.instances || {}
+        var instances = moduleHot.hot.data
+            ? moduleHot.hot.data.instances || {}
             : {};
-        var uid = module.hot.data
-            ? module.hot.data.uid || 0
+        var uid = moduleHot.hot.data
+            ? moduleHot.hot.data.uid || 0
             : 0;
 
         if (Object.keys(instances).length === 0) {
@@ -90,8 +90,8 @@ if (module.hot) {
         var initializingInstance = null;
         var swappingInstance = null;
 
-        module.hot.accept();
-        module.hot.dispose(function (data) {
+        moduleHot.hot.accept();
+        moduleHot.hot.dispose(function (data) {
             data.instances = instances;
             data.uid = uid;
 
@@ -116,7 +116,7 @@ if (module.hot) {
         });
 
         function log(message) {
-            if (module.hot.verbose) {
+            if (moduleHot.hot.verbose) {
                 console.log(message)
             }
         }
